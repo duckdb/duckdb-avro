@@ -469,7 +469,7 @@ struct AvroReader {
     avro_file_reader_close(reader);
   }
 
-  void Read(DataChunk &output, const vector<column_t> &column_ids) {
+  void Read(DataChunk &output, const vector<ColumnIndex> &column_ids) {
     idx_t out_idx = 0;
 
     while (avro_file_reader_read_value(reader, &value) == 0) {
@@ -481,14 +481,14 @@ struct AvroReader {
     // pull up root struct into output chunk
     if (duckdb_type.id() == LogicalTypeId::STRUCT) {
       for (idx_t col_idx = 0; col_idx < column_ids.size(); col_idx++) {
-        if (column_ids[col_idx] >= names.size()) {
+        if (column_ids[col_idx].GetPrimaryIndex() >= names.size()) {
           continue; // to be filled in later
         }
         output.data[col_idx].Reference(
-            *StructVector::GetEntries(*read_vec)[column_ids[col_idx]]);
+            *StructVector::GetEntries(*read_vec)[column_ids[col_idx].GetPrimaryIndex()]);
       }
     } else {
-      output.data[column_ids[0]].Reference(*read_vec);
+      output.data[column_ids[0].GetPrimaryIndex()].Reference(*read_vec);
     }
 
     output.SetCardinality(out_idx);
@@ -635,7 +635,7 @@ struct AvroGlobalState : GlobalTableFunctionState {
   MultiFileListScanData scan_data;
   shared_ptr<AvroReader> reader;
 
-  vector<column_t> column_ids;
+  vector<ColumnIndex> column_ids;
   optional_ptr<TableFilterSet> filters;
 };
 
@@ -698,7 +698,10 @@ AvroGlobalInit(ClientContext &context, TableFunctionInitInput &input) {
   auto &global_state = *global_state_result;
   auto &bind_data = input.bind_data->Cast<AvroBindData>();
 
-  global_state.column_ids = input.column_ids;
+  for  (auto& column_id : input.column_ids) {
+    global_state.column_ids.push_back(ColumnIndex(column_id));
+  }
+
   global_state.filters = input.filters;
 
   bind_data.file_list->InitializeScan(global_state.scan_data);

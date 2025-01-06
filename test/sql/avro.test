@@ -4,6 +4,23 @@
 
 require avro
 
+
+
+mode skip
+
+
+query II
+select column_name, column_type from (DESCRIBE FROM read_avro('test/manifest.avro'));
+----
+
+
+query II
+FROM read_avro('test/manifest.avro')
+----
+
+mode unskip
+
+
 statement ok
 PRAGMA enable_verification
 
@@ -452,4 +469,5 @@ FROM read_avro('test/reuse-2.avro')
 ----
 {'major': 4, 'minor': 2}	{'release_version': {'major': 8, 'minor': 5}}
 {'major': 5, 'minor': 3}	{'release_version': {'major': 9, 'minor': 6}}
+
 
