@@ -9,10 +9,7 @@
     "jansson",
     "liblzma",
     "snappy",
-    {
-      "name": "vcpkg-cmake",
-      "host": true
-    },
+    "vcpkg-cmake",
     "zlib"
   ]
 }

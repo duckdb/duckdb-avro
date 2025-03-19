@@ -3,6 +3,12 @@ if(VCPKG_TARGET_IS_WINDOWS)
     vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 endif()
 
+set(OPTIONAL_DUCKDB_PATCHES "")
+if (VCPKG_TARGET_IS_EMSCRIPTEN)
+   set(OPTIONAL_DUCKDB_PATCHES "${ADDITIONAL_PATCHES} static_link_only.patch")
+endif()
+separate_arguments(OPTIONAL_DUCKDB_PATCHES)
+
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO apache/avro
@@ -12,7 +18,7 @@ vcpkg_from_github(
     PATCHES
         avro.patch          # Private vcpkg build fixes
         duckdb.patch          # expose avro_file_reader_reader
-
+        ${OPTIONAL_DUCKDB_PATCHES}
 )
 
 vcpkg_cmake_configure(
@@ -31,14 +37,18 @@ file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 # the files are broken and there is no way to fix it because the snappy dependency has no pkgconfig file
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/lib/pkgconfig" "${CURRENT_PACKAGES_DIR}/debug/lib/pkgconfig")
 
-vcpkg_copy_tools(TOOL_NAMES avroappend avrocat AUTO_CLEAN)
 
-if(NOT VCPKG_TARGET_IS_WINDOWS)
-    vcpkg_copy_tools(TOOL_NAMES avropipe avromod AUTO_CLEAN)
-endif()
 
-if(VCPKG_LIBRARY_LINKAGE STREQUAL "static" AND NOT VCPKG_TARGET_IS_WINDOWS)
-    file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/bin" "${CURRENT_PACKAGES_DIR}/debug/bin")
+if(NOT VCPKG_TARGET_IS_EMSCRIPTEN)
+    vcpkg_copy_tools(TOOL_NAMES avroappend avrocat AUTO_CLEAN)
+
+    if(NOT VCPKG_TARGET_IS_WINDOWS)
+        vcpkg_copy_tools(TOOL_NAMES avropipe avromod AUTO_CLEAN)
+    endif()
+
+    if(VCPKG_LIBRARY_LINKAGE STREQUAL "static" AND NOT VCPKG_TARGET_IS_WINDOWS)
+        file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/bin" "${CURRENT_PACKAGES_DIR}/debug/bin")
+    endif()
 endif()
 
 file(INSTALL "${SOURCE_PATH}/lang/c/LICENSE" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}" RENAME copyright)
