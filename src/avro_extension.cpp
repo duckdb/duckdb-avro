@@ -632,7 +632,7 @@ AvroBindFunction(ClientContext &context, TableFunctionBindInput &input,
   return_types = result->types;
   names = result->names;
 
-  return result;
+  return std::move(result);
 }
 
 struct AvroGlobalState : GlobalTableFunctionState {
@@ -712,7 +712,7 @@ AvroGlobalInit(ClientContext &context, TableFunctionInitInput &input) {
                     bind_data.initial_reader)) {
     throw InternalException("Cannot scan files");
   }
-  return global_state_result;
+  return std::move(global_state_result);
 }
 
 static void LoadInternal(DatabaseInstance &instance) {
