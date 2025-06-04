@@ -121,7 +121,7 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 AvroReader::AvroReader(ClientContext &context, OpenFileInfo file) : BaseFileReader(file) {
 	auto caching_file_system = CachingFileSystem::Get(context);
 
-	auto caching_file_handle = caching_file_system.OpenFile(this->file, FileOpenFlags::FILE_FLAGS_READ);
+	auto caching_file_handle = caching_file_system.OpenFile(this->file.path, FileOpenFlags::FILE_FLAGS_READ);
 	auto total_size = caching_file_handle->GetFileSize();
 	data_ptr_t data = nullptr;
 
