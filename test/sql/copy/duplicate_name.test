@@ -10,7 +10,9 @@ COPY (
 			'child': true
 		}
 	} my_struct
-) TO '__TEST_DIR__/tmp.avro';
+) TO '__TEST_DIR__/tmp.avro' (
+	FORMAT 'avro'
+);
 
 query I
 select * from read_avro('__TEST_DIR__/tmp.avro');
@@ -25,7 +27,7 @@ COPY (
 			'field': true
 		}
 	} structure
-) TO '__TEST_DIR__/tmp2.avro' ( ROOT_NAME 'a');
+) TO '__TEST_DIR__/tmp2.avro' ( ROOT_NAME 'a', FORMAT 'avro');
 
 query I
 select * from read_avro('__TEST_DIR__/tmp2.avro');
@@ -46,6 +48,8 @@ COPY (
 			}
 		}
 	} structure
-) TO '__TEST_DIR__/tmp3.avro';
+) TO '__TEST_DIR__/tmp3.avro' (
+	FORMAT 'avro'
+);
 ----
 Binder Error: Avro schema by the name of 'a' already exists, names of 'record', 'enum' and 'fixed' types have to be distinct

@@ -5,7 +5,8 @@ COPY (
 	select 42
 ) TO '__TEST_DIR__/test2.avro' (
 	NOT_RECOGNIZED,
-	ROOT_NAME 'test'
+	ROOT_NAME 'test',
+	FORMAT 'avro'
 );
 ----
 Invalid Configuration Error: The following option(s) are not recognized: key: 'NOT_RECOGNIZED'
@@ -15,7 +16,8 @@ COPY (
 	select 42
 ) TO '__TEST_DIR__/test3.avro' (
 	NOT_RECOGNIZED 'with_value',
-	ROOT_NAME 'test'
+	ROOT_NAME 'test',
+	FORMAT 'avro'
 );
 ----
 Invalid Configuration Error: The following option(s) are not recognized: key: 'NOT_RECOGNIZED' with value: 'with_value'
@@ -29,7 +31,8 @@ COPY (
 		'key': 'value',
 		'key2': 42
 	},
-	ROOT_NAME 'test'
+	ROOT_NAME 'test',
+	FORMAT 'avro'
 );
 ----
 Not implemented Error: The 'METADATA' option is not supported in this release of Avro, please try upgrading your version ('FORCE INSTALL avro;')
