@@ -16,7 +16,8 @@ COPY (
 			'__duckdb_field_id': 301
 		}
 	},
-	ROOT_NAME 'test'
+	ROOT_NAME 'test',
+	FORMAT 'avro'
 );
 
 statement ok
@@ -42,5 +43,6 @@ COPY (
 			'__duckdb_field_id': 507
 		}
 	},
-	ROOT_NAME 'manifest_file'
+	ROOT_NAME 'manifest_file',
+	FORMAT 'avro'
 );
