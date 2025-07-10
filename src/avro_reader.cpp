@@ -72,7 +72,7 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 		auto size = avro_schema_enum_number_of_symbols(avro_schema);
 		Vector levels(LogicalType::VARCHAR, size);
 		auto levels_data = FlatVector::GetData<string_t>(levels);
-		for (idx_t enum_idx = 0; enum_idx < size; enum_idx++) {
+		for (idx_t enum_idx = 0; enum_idx < static_cast<idx_t>(size); enum_idx++) {
 			levels_data[enum_idx] = StringVector::AddString(levels, avro_schema_enum_get(avro_schema, enum_idx));
 		}
 		levels.Verify(size);
