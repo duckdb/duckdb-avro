@@ -24,8 +24,8 @@ static void LoadInternal(ExtensionLoader &loader) {
 	loader.RegisterFunction(AvroCopyFunction::Create());
 }
 
-void AvroExtension::Load(ExtensionLoader &db) {
-	LoadInternal(db);
+void AvroExtension::Load(ExtensionLoader &loader) {
+	LoadInternal(loader);
 }
 std::string AvroExtension::Name() {
 	return "avro";
