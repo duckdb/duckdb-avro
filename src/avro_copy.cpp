@@ -438,7 +438,7 @@ WriteAvroGlobalState::WriteAvroGlobalState(ClientContext &context, FunctionData 
 	                                                                 &file_writer, json_metadata)) == ENOSPC) {
 		auto current_capacity = memory_buffer.GetCapacity();
 		memory_buffer.Resize(NextPowerOfTwo(current_capacity * 2));
-		// re-initialize writer and datum_writer
+		// re-initialize writer to use correct data location
 		writer = avro_writer_memory(const_char_ptr_cast(memory_buffer.GetData()), memory_buffer.GetCapacity());
 	}
 	if (ret) {
