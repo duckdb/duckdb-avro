@@ -216,6 +216,36 @@ public:
 			} else {
 				D_ASSERT(type.id() == LogicalTypeId::MAP);
 				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "map");
+				auto &list_child = ListType::GetChildType(type);
+				auto map_field_id = field_id->GetFieldId();
+				yyjson_mut_obj_add_int(doc, object, "field-id", map_field_id);
+				D_ASSERT(list_child.id() == LogicalTypeId::STRUCT);
+				auto items_obj = yyjson_mut_obj_add_obj(doc, object, "items");
+				yyjson_mut_obj_add_strcpy(doc, items_obj, "type", "record");
+				yyjson_mut_obj_add_strcpy(doc, items_obj, "name", GenerateSchemaName("element").c_str());
+				// map type children cannot be unioned with null. Other Iceberg readers (pyiceberg) will fail.
+				auto &struct_children = StructType::GetChildTypes(list_child);
+				auto fields = yyjson_mut_obj_add_arr(doc, items_obj, "fields");
+				D_ASSERT(struct_children.size() == 2);
+				for (auto &it : struct_children) {
+					auto &child_name = it.first;
+					if (StringUtil::CIEquals(child_name, "__duckdb_empty_struct_marker")) {
+						continue;
+					}
+					auto &child_type = it.second;
+					optional_ptr<avro::FieldID> child_field_id;
+					if (field_id) {
+						auto it = field_id->children.find(child_name);
+						if (it != field_id->children.end()) {
+							child_field_id = it->second;
+						}
+					}
+					auto field_entry = yyjson_mut_arr_add_obj(doc, fields);
+					yyjson_mut_obj_add_strcpy(doc, field_entry, "name", child_name.c_str());
+					yyjson_mut_obj_add_strcpy(doc, field_entry, "type", ConvertTypeToAvro(child_type).c_str());
+					yyjson_mut_obj_add_uint(doc, field_entry, "field-id", child_field_id->GetFieldId());
+				}
+				break;
 			}
 
 			auto &list_child = ListType::GetChildType(type);
@@ -279,13 +309,14 @@ public:
 static string CreateJSONSchema(const case_insensitive_map_t<vector<Value>> &options, const vector<string> &names,
                                const vector<LogicalType> &types, case_insensitive_set_t &recognized) {
 	JSONSchemaGenerator state(names, types);
-	
+
 	state.ParseFieldIds(options, recognized);
 	state.ParseRootName(options, recognized);
 	return state.GenerateJSON();
 }
 
-static string CreateJSONMetadata(const case_insensitive_map_t<vector<Value>> &options, case_insensitive_set_t &recognized) {
+static string CreateJSONMetadata(const case_insensitive_map_t<vector<Value>> &options,
+                                 case_insensitive_set_t &recognized) {
 	auto it = options.find("METADATA");
 	if (it == options.end()) {
 		return "";
@@ -403,9 +434,12 @@ WriteAvroGlobalState::WriteAvroGlobalState(ClientContext &context, FunctionData 
 		json_metadata = bind_data.json_metadata.c_str();
 	}
 
-	while ((ret = avro_file_writer_create_from_writers_with_metadata(writer, datum_writer, bind_data.schema, &file_writer, json_metadata)) == ENOSPC) {
+	while ((ret = avro_file_writer_create_from_writers_with_metadata(writer, datum_writer, bind_data.schema,
+	                                                                 &file_writer, json_metadata)) == ENOSPC) {
 		auto current_capacity = memory_buffer.GetCapacity();
 		memory_buffer.Resize(NextPowerOfTwo(current_capacity * 2));
+		// re-initialize writer and datum_writer
+		writer = avro_writer_memory(const_char_ptr_cast(memory_buffer.GetData()), memory_buffer.GetCapacity());
 	}
 	if (ret) {
 		throw InvalidInputException(avro_strerror());
