@@ -217,8 +217,12 @@ public:
 				D_ASSERT(type.id() == LogicalTypeId::MAP);
 				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "map");
 				auto &list_child = ListType::GetChildType(type);
-				auto map_field_id = field_id->GetFieldId();
-				yyjson_mut_obj_add_int(doc, object, "field-id", map_field_id);
+				if (field_id) {
+					auto map_field_id = field_id->GetFieldId();
+					if (map_field_id) {
+						yyjson_mut_obj_add_int(doc, object, "field-id", map_field_id);
+					}
+				}
 				D_ASSERT(list_child.id() == LogicalTypeId::STRUCT);
 				auto items_obj = yyjson_mut_obj_add_obj(doc, object, "items");
 				yyjson_mut_obj_add_strcpy(doc, items_obj, "type", "record");
@@ -243,7 +247,9 @@ public:
 					auto field_entry = yyjson_mut_arr_add_obj(doc, fields);
 					yyjson_mut_obj_add_strcpy(doc, field_entry, "name", child_name.c_str());
 					yyjson_mut_obj_add_strcpy(doc, field_entry, "type", ConvertTypeToAvro(child_type).c_str());
-					yyjson_mut_obj_add_uint(doc, field_entry, "field-id", child_field_id->GetFieldId());
+					if (child_field_id) {
+						yyjson_mut_obj_add_uint(doc, field_entry, "field-id", child_field_id->GetFieldId());
+					}
 				}
 				break;
 			}
