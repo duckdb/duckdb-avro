@@ -139,7 +139,7 @@ public:
 	}
 
 	yyjson_mut_val *CreateJSONType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
-	                               bool struct_field = false) {
+	                               bool struct_field = false, bool union_null = true) {
 		yyjson_mut_val *object;
 		if (!type.IsNested()) {
 			object = yyjson_mut_obj(doc);
@@ -159,6 +159,9 @@ public:
 			object = CreateNestedType(name, type, field_id);
 		}
 
+		if (!union_null) {
+			return object;
+		}
 		auto wrapper = yyjson_mut_obj(doc);
 		auto union_type = yyjson_mut_obj_add_arr(doc, wrapper, "type");
 		if (struct_field) {
@@ -244,12 +247,13 @@ public:
 							child_field_id = it->second;
 						}
 					}
-					auto field_entry = yyjson_mut_arr_add_obj(doc, fields);
-					yyjson_mut_obj_add_strcpy(doc, field_entry, "name", child_name.c_str());
-					yyjson_mut_obj_add_strcpy(doc, field_entry, "type", ConvertTypeToAvro(child_type).c_str());
-					if (child_field_id) {
-						yyjson_mut_obj_add_uint(doc, field_entry, "field-id", child_field_id->GetFieldId());
-					}
+					yyjson_mut_arr_add_val(fields, CreateJSONType(child_name, child_type, child_field_id, true, false));
+					// auto field_entry = yyjson_mut_arr_add_obj(doc, fields);
+					// yyjson_mut_obj_add_strcpy(doc, field_entry, "name", child_name.c_str());
+					// yyjson_mut_obj_add_strcpy(doc, field_entry, "type", ConvertTypeToAvro(child_type).c_str());
+					// if (child_field_id) {
+					// 	yyjson_mut_obj_add_uint(doc, field_entry, "field-id", child_field_id->GetFieldId());
+					// }
 				}
 				break;
 			}
@@ -445,7 +449,9 @@ WriteAvroGlobalState::WriteAvroGlobalState(ClientContext &context, FunctionData 
 		auto current_capacity = memory_buffer.GetCapacity();
 		memory_buffer.Resize(NextPowerOfTwo(current_capacity * 2));
 		// re-initialize writer to use correct data location
+		avro_file_writer_close(file_writer);
 		writer = avro_writer_memory(const_char_ptr_cast(memory_buffer.GetData()), memory_buffer.GetCapacity());
+		datum_writer = avro_writer_memory(const_char_ptr_cast(datum_buffer.GetData()), datum_buffer.GetCapacity());
 	}
 	if (ret) {
 		throw InvalidInputException(avro_strerror());
