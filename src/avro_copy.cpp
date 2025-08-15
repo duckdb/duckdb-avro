@@ -175,8 +175,8 @@ public:
 		return wrapper;
 	}
 
-	yyjson_mut_val *CreateNestedType(const string &name, const LogicalType &type,
-	                                 optional_ptr<avro::FieldID> field_id) {
+	yyjson_mut_val *CreateNestedType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
+	                                 bool union_null = true) {
 		D_ASSERT(type.IsNested());
 		auto object = yyjson_mut_obj(doc);
 		yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
@@ -199,13 +199,16 @@ public:
 						child_field_id = it->second;
 					}
 				}
-				yyjson_mut_arr_add_val(fields, CreateJSONType(child_name, child_type, child_field_id, true));
+				yyjson_mut_arr_add_val(fields,
+				                       CreateJSONType(child_name, child_type, child_field_id, true, union_null));
 			}
 			break;
 		}
 		case LogicalTypeId::MAP:
 		case LogicalTypeId::LIST: {
 			optional_ptr<avro::FieldID> element_field_id;
+			// if the type is a map, we cannot union the elements with null
+			auto is_map = type.id() == LogicalTypeId::MAP;
 			if (field_id) {
 				auto it = field_id->children.find("element");
 				if (it != field_id->children.end()) {
@@ -219,47 +222,24 @@ public:
 			} else {
 				D_ASSERT(type.id() == LogicalTypeId::MAP);
 				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "map");
-				auto &list_child = ListType::GetChildType(type);
-				if (field_id) {
-					auto map_field_id = field_id->GetFieldId();
-					if (map_field_id) {
-						yyjson_mut_obj_add_int(doc, object, "field-id", map_field_id);
-					}
-				}
-				D_ASSERT(list_child.id() == LogicalTypeId::STRUCT);
-				auto items_obj = yyjson_mut_obj_add_obj(doc, object, "items");
-				yyjson_mut_obj_add_strcpy(doc, items_obj, "type", "record");
-				yyjson_mut_obj_add_strcpy(doc, items_obj, "name", GenerateSchemaName("element").c_str());
-				// map type children cannot be unioned with null. Other Iceberg readers (pyiceberg) will fail.
-				auto &struct_children = StructType::GetChildTypes(list_child);
-				auto fields = yyjson_mut_obj_add_arr(doc, items_obj, "fields");
-				D_ASSERT(struct_children.size() == 2);
-				for (auto &it : struct_children) {
-					auto &child_name = it.first;
-					if (StringUtil::CIEquals(child_name, "__duckdb_empty_struct_marker")) {
-						continue;
-					}
-					auto &child_type = it.second;
-					optional_ptr<avro::FieldID> child_field_id;
-					if (field_id) {
-						auto it = field_id->children.find(child_name);
-						if (it != field_id->children.end()) {
-							child_field_id = it->second;
-						}
-					}
-					yyjson_mut_arr_add_val(fields, CreateJSONType(child_name, child_type, child_field_id, true, false));
-				}
-				break;
 			}
 
 			auto &list_child = ListType::GetChildType(type);
-			auto union_type = yyjson_mut_obj_add_arr(doc, object, "items");
-			yyjson_mut_arr_add_strcpy(doc, union_type, "null");
-			if (list_child.IsNested()) {
-				yyjson_mut_arr_add_val(union_type,
-				                       CreateNestedType(GenerateSchemaName("element"), list_child, element_field_id));
+			if (is_map) {
+				// do not union null for first level of items in a map. When map types for iceberg manifeste files are
+				// written if the key/value types are unioned with null, other readers may crash when attempting to read
+				// our files (e.g python-iceberg)
+				yyjson_mut_obj_add_val(doc, object, "items",
+				                       CreateNestedType(GenerateSchemaName("element"), list_child, field_id, false));
 			} else {
-				yyjson_mut_arr_add_strcpy(doc, union_type, ConvertTypeToAvro(list_child).c_str());
+				auto union_type = yyjson_mut_obj_add_arr(doc, object, "items");
+				yyjson_mut_arr_add_strcpy(doc, union_type, "null");
+				if (list_child.IsNested()) {
+					yyjson_mut_arr_add_val(
+					    union_type, CreateNestedType(GenerateSchemaName("element"), list_child, element_field_id));
+				} else {
+					yyjson_mut_arr_add_strcpy(doc, union_type, ConvertTypeToAvro(list_child).c_str());
+				}
 			}
 			break;
 		}
