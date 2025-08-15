@@ -248,12 +248,6 @@ public:
 						}
 					}
 					yyjson_mut_arr_add_val(fields, CreateJSONType(child_name, child_type, child_field_id, true, false));
-					// auto field_entry = yyjson_mut_arr_add_obj(doc, fields);
-					// yyjson_mut_obj_add_strcpy(doc, field_entry, "name", child_name.c_str());
-					// yyjson_mut_obj_add_strcpy(doc, field_entry, "type", ConvertTypeToAvro(child_type).c_str());
-					// if (child_field_id) {
-					// 	yyjson_mut_obj_add_uint(doc, field_entry, "field-id", child_field_id->GetFieldId());
-					// }
 				}
 				break;
 			}
