@@ -46,5 +46,4 @@ extern "C" {
 DUCKDB_CPP_EXTENSION_ENTRY(avro, loader) {
 	duckdb::LoadInternal(loader);
 }
-
 }
