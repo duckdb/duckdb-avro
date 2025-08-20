@@ -422,7 +422,7 @@ Not implemented Error: 'union_by_name' not implemented for Avro reader yet
 
 # files with different schemas that can be safely combined are okay
 query III
-select * exclude filename FROM read_avro('test/union-name-*.avro', filename=true) order by all;
+select one, two, three FROM read_avro('test/union-name-*.avro', filename=true) order by all;
 ----
 10	2.0	s30
 11	2.1	s31
