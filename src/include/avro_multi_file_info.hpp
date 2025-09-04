@@ -16,8 +16,7 @@ namespace duckdb {
 class AvroFileReaderOptions : public BaseFileReaderOptions {};
 
 struct AvroMultiFileInfo : MultiFileReaderInterface {
-	static unique_ptr<MultiFileReaderInterface> InitializeInterface(ClientContext &context, MultiFileReader &reader,
-	                                                                MultiFileList &file_list);
+	static unique_ptr<MultiFileReaderInterface> CreateInterface(ClientContext &context);
 
 	unique_ptr<BaseFileReaderOptions> InitializeOptions(ClientContext &context,
 	                                                    optional_ptr<TableFunctionInfo> info) override;
