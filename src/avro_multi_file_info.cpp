@@ -4,7 +4,7 @@
 namespace duckdb {
 
 unique_ptr<MultiFileReaderInterface>
-AvroMultiFileInfo::InitializeInterface(ClientContext &context, MultiFileReader &reader, MultiFileList &file_list) {
+AvroMultiFileInfo::CreateInterface(ClientContext &context) {
 	return make_uniq<AvroMultiFileInfo>();
 }
 
