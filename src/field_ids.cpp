@@ -110,7 +110,7 @@ static void GetFieldIDs(const Value &field_ids_value, case_insensitive_map_t<Fie
 				const bool field_id_bool = BooleanValue::Get(field_id_bool_value);
 				field_id = FieldID(UnsafeNumericCast<int32_t>(field_id_int), field_id_bool);
 			} else {
-				field_id = FieldID(UnsafeNumericCast<int32_t>(field_id_int), true);
+				field_id = FieldID(UnsafeNumericCast<int32_t>(field_id_int));
 			}
 		}
 		auto inserted = field_ids.emplace(col_name, std::move(field_id));

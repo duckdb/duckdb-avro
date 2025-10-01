@@ -7,9 +7,20 @@ require avro
 statement ok
 COPY (
 	select NULL field1
-) TO '__TEST_DIR__/field_ids.avro' (
+) TO '__TEST_DIR__/field_ids_1.avro' (
 	FIELD_IDS {
 		'field1': {'__duckdb_field_id': 301},
+	},
+	ROOT_NAME 'test'
+);
+
+# copy null into a field (type unioned with null)
+statement ok
+COPY (
+	select NULL field1
+) TO '__TEST_DIR__/field_ids_1_nullable.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': true},
 	},
 	ROOT_NAME 'test'
 );
@@ -18,7 +29,7 @@ COPY (
 statement error
 COPY (
 	select NULL field1
-) TO '__TEST_DIR__/field_ids.avro' (
+) TO '__TEST_DIR__/field_ids_error.avro' (
 	FIELD_IDS {
 		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': false},
 	},
@@ -31,7 +42,7 @@ COPY (
 statement error
 COPY (
 	select NULL field1
-) TO '__TEST_DIR__/field_ids.avro' (
+) TO '__TEST_DIR__/field_ids_error.avro' (
 	FIELD_IDS {
 		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': 'foo'},
 	},
@@ -46,7 +57,7 @@ COPY (
 statement ok
 COPY (
 	select 1 field1, 2 field2, 3 field3
-) TO '__TEST_DIR__/field_ids.avro' (
+) TO '__TEST_DIR__/field_ids_2.avro' (
 	FIELD_IDS {
 		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': false},
 		'field2': 303,
@@ -56,7 +67,7 @@ COPY (
 
 # read
 query III
-select * from read_avro('__TEST_DIR__/field_ids.avro');
+select * from read_avro('__TEST_DIR__/field_ids_2.avro');
 ----
 1	2	3
 
@@ -71,7 +82,7 @@ create table t1 as select
 } data_file_nullable;
 
 statement ok
-COPY t1 TO '__TEST_DIR__/data_file.avro' (
+COPY t1 TO '__TEST_DIR__/field_ids_3.avro' (
 	FIELD_IDS {
 		'manifest_entry': {
 			'__duckdb_field_id': 0
@@ -90,7 +101,7 @@ COPY t1 TO '__TEST_DIR__/data_file.avro' (
 );
 
 query III
-select * from read_avro('__TEST_DIR__/data_file.avro');
+select * from read_avro('__TEST_DIR__/field_ids_3.avro');
 ----
 1	{'content': 1}	{'content': 2}
 
@@ -104,7 +115,7 @@ COPY (select
       {
       	'content': NULL,
       } data_file_nullable
-) TO '__TEST_DIR__/data_file.avro' (
+) TO '__TEST_DIR__/field_ids_4.avro' (
 	FIELD_IDS {
 		'manifest_entry': {
 			'__duckdb_field_id': 0

@@ -18,7 +18,7 @@ public:
 
 public:
 	FieldID();
-	explicit FieldID(int32_t field_id, bool nullable);
+	explicit FieldID(int32_t field_id, bool nullable = true);
 
 public:
 	int32_t GetFieldId() const;
