@@ -3,10 +3,11 @@
 
 require avro
 
+# copy null into a field (type unioned with null)
 statement ok
 COPY (
 	select NULL field1
-) TO 'field_ids.avro' (
+) TO '__TEST_DIR__/field_ids.avro' (
 	FIELD_IDS {
 		'field1': {'__duckdb_field_id': 301},
 	},
@@ -17,7 +18,7 @@ COPY (
 statement error
 COPY (
 	select NULL field1
-) TO 'field_ids.avro' (
+) TO '__TEST_DIR__/field_ids.avro' (
 	FIELD_IDS {
 		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': false},
 	},
@@ -26,25 +27,38 @@ COPY (
 ----
 <REGEX>:.*Cannot insert NULL to non-nullable field.*
 
+# cannot cast foo to BOOL
+statement error
+COPY (
+	select NULL field1
+) TO '__TEST_DIR__/field_ids.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': 'foo'},
+	},
+	ROOT_NAME 'test'
+);
+----
+<REGEX>:.*Invalid Input Error: Failed to cast value:.*
 
 # test different ways to set a field id
+# via a struct
+# directly
 statement ok
 COPY (
 	select 1 field1, 2 field2, 3 field3
-) TO 'field_ids.avro' (
+) TO '__TEST_DIR__/field_ids.avro' (
 	FIELD_IDS {
 		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': false},
 		'field2': 303,
-		'field3': {}
 	},
 	ROOT_NAME 'test'
 );
 
 # read
-query II
-select * from read_avro('field_ids.avro');
+query III
+select * from read_avro('__TEST_DIR__/field_ids.avro');
 ----
-5	7	8
+1	2	3
 
 statement ok
 create table t1 as select
@@ -57,7 +71,7 @@ create table t1 as select
 } data_file_nullable;
 
 statement ok
-COPY t1 TO 'data_file.avro' (
+COPY t1 TO '__TEST_DIR__/data_file.avro' (
 	FIELD_IDS {
 		'manifest_entry': {
 			'__duckdb_field_id': 0
@@ -76,7 +90,7 @@ COPY t1 TO 'data_file.avro' (
 );
 
 query III
-select * from 'data_file.avro';
+select * from read_avro('__TEST_DIR__/data_file.avro');
 ----
 1	{'content': 1}	{'content': 2}
 
@@ -90,7 +104,7 @@ COPY (select
       {
       	'content': NULL,
       } data_file_nullable
-) TO 'data_file.avro' (
+) TO '__TEST_DIR__/data_file.avro' (
 	FIELD_IDS {
 		'manifest_entry': {
 			'__duckdb_field_id': 0
@@ -118,25 +132,6 @@ COPY (select
 
 # other nested types
 statement ok
-create view all_types_view as select
-	MAP {
-		21: 'abc',
-		42: 'test'
-	} "field_map",
-	[
-		'a',
-		'b',
-		'c'
-	] "field_list",
-	{
-		'a': 21,
-		'b': True,
-		'c': 1.234::FLOAT
-	} "field_struct"
-;
-
-
-statement ok
 COPY (select
       	MAP {
       		21: 'abc',
@@ -152,7 +147,7 @@ COPY (select
       		'b': True,
       		'c': 1.234::FLOAT
       	} "field_struct"
-) TO 'nested_field_types.avro' (
+) TO '__TEST_DIR__/nested_field_types.avro' (
 	FIELD_IDS {
 		'field_map': {
 		    'key': 0,
@@ -175,52 +170,3 @@ COPY (select
 	},
 	ROOT_NAME 'manifest_file'
 );
-
-
-#
-# mode skip
-#
-# statement ok
-# COPY (
-# 	select {
-# 		'a': 21,
-# 		'b': NULL,
-# 		'c': 'test'
-# 	} field1
-# ) TO '__TEST_DIR__/field_ids.avro' (
-# 	FIELD_IDS {
-# 		'field1': {
-# 			'a': 100,
-# 			'b': 200,
-# 			'c': 300,
-# 			'__duckdb_field_id': 301
-# 		}
-# 	},
-# 	ROOT_NAME 'test'
-# );
-#
-# statement ok
-# COPY (
-# 	select [
-# 		{
-# 			'contains_null': true,
-# 			'contains_nan': true,
-# 			'lower_bound': 'blob blob',
-# 			'upper_bound': 'blob blob blob'
-# 		}
-# 	] partitions
-# ) TO '__TEST_DIR__/partitions.avro' (
-# 	FIELD_IDS {
-# 		'partitions': {
-# 			'element': {
-# 				'contains_null': 509,
-# 				'contains_nan': 518,
-# 				'lower_bound': 510,
-# 				'upper_bound': 511,
-# 				'__duckdb_field_id': 508
-# 			},
-# 			'__duckdb_field_id': 507
-# 		}
-# 	},
-# 	ROOT_NAME 'manifest_file'
-# );
