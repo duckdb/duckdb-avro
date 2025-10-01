@@ -1,0 +1,226 @@
+# name: test/sql/copy/nullable.test
+# group: [copy]
+
+require avro
+
+statement ok
+COPY (
+	select NULL field1
+) TO 'field_ids.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_field_id': 301},
+	},
+	ROOT_NAME 'test'
+);
+
+# insert null into non-nullable field
+statement error
+COPY (
+	select NULL field1
+) TO 'field_ids.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': false},
+	},
+	ROOT_NAME 'test'
+);
+----
+<REGEX>:.*Cannot insert NULL to non-nullable field.*
+
+
+# test different ways to set a field id
+statement ok
+COPY (
+	select 1 field1, 2 field2, 3 field3
+) TO 'field_ids.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': false},
+		'field2': 303,
+		'field3': {}
+	},
+	ROOT_NAME 'test'
+);
+
+# read
+query II
+select * from read_avro('field_ids.avro');
+----
+5	7	8
+
+statement ok
+create table t1 as select
+1 manifest_entry,
+{
+	'content': 1,
+} data_file_not_nullable,
+{
+	'content': 2,
+} data_file_nullable;
+
+statement ok
+COPY t1 TO 'data_file.avro' (
+	FIELD_IDS {
+		'manifest_entry': {
+			'__duckdb_field_id': 0
+		},
+		'data_file_not_nullable': {
+		    	'__duckdb_field_id': 2,
+		    	'__duckdb_nullable': false,
+		    	'content': 3
+		},
+        'data_file_nullable': {
+                '__duckdb_field_id': 4,
+                'content': 5
+        }
+	},
+	ROOT_NAME 'manifest_entry'
+);
+
+query III
+select * from 'data_file.avro';
+----
+1	{'content': 1}	{'content': 2}
+
+# nested nullable field throws error
+statement error
+COPY (select
+      1 manifest_entry,
+      {
+      	'content': 1,
+      } data_file_not_nullable,
+      {
+      	'content': NULL,
+      } data_file_nullable
+) TO 'data_file.avro' (
+	FIELD_IDS {
+		'manifest_entry': {
+			'__duckdb_field_id': 0
+		},
+		'data_file_not_nullable': {
+		    	'__duckdb_field_id': 2,
+		    	'__duckdb_nullable': false,
+		    	'content': {
+		    	    '__duckdb_field_id': 3,
+		    	    '__duckdb_nullable': false
+		    	}
+		},
+        'data_file_nullable': {
+                '__duckdb_field_id': 4,
+                'content': {
+                    '__duckdb_field_id': 5,
+                    '__duckdb_nullable': false
+                }
+        }
+	},
+	ROOT_NAME 'manifest_entry'
+);
+----
+<REGEX>:.*Cannot insert NULL to non-nullable field.*
+
+# other nested types
+statement ok
+create view all_types_view as select
+	MAP {
+		21: 'abc',
+		42: 'test'
+	} "field_map",
+	[
+		'a',
+		'b',
+		'c'
+	] "field_list",
+	{
+		'a': 21,
+		'b': True,
+		'c': 1.234::FLOAT
+	} "field_struct"
+;
+
+
+statement ok
+COPY (select
+      	MAP {
+      		21: 'abc',
+      		42: 'test'
+      	} "field_map",
+      	[
+      		'a',
+      		'b',
+      		'c'
+      	] "field_list",
+      	{
+      		'a': 21,
+      		'b': True,
+      		'c': 1.234::FLOAT
+      	} "field_struct"
+) TO 'nested_field_types.avro' (
+	FIELD_IDS {
+		'field_map': {
+		    'key': 0,
+		    'value': 1,
+		    '__duckdb_field_id': 2,
+		    '__duckdb_nullable': false
+		},
+		'field_list': {
+		    'element': 3,
+		    '__duckdb_field_id': 4,
+		    '__duckdb_nullable': false
+		},
+		'field_struct': {
+		    'a': 5,
+		    'b': 6,
+		    'c': 7,
+			'__duckdb_field_id': 507,
+			'__duckdb_nullable': false
+		}
+	},
+	ROOT_NAME 'manifest_file'
+);
+
+
+#
+# mode skip
+#
+# statement ok
+# COPY (
+# 	select {
+# 		'a': 21,
+# 		'b': NULL,
+# 		'c': 'test'
+# 	} field1
+# ) TO '__TEST_DIR__/field_ids.avro' (
+# 	FIELD_IDS {
+# 		'field1': {
+# 			'a': 100,
+# 			'b': 200,
+# 			'c': 300,
+# 			'__duckdb_field_id': 301
+# 		}
+# 	},
+# 	ROOT_NAME 'test'
+# );
+#
+# statement ok
+# COPY (
+# 	select [
+# 		{
+# 			'contains_null': true,
+# 			'contains_nan': true,
+# 			'lower_bound': 'blob blob',
+# 			'upper_bound': 'blob blob blob'
+# 		}
+# 	] partitions
+# ) TO '__TEST_DIR__/partitions.avro' (
+# 	FIELD_IDS {
+# 		'partitions': {
+# 			'element': {
+# 				'contains_null': 509,
+# 				'contains_nan': 518,
+# 				'lower_bound': 510,
+# 				'upper_bound': 511,
+# 				'__duckdb_field_id': 508
+# 			},
+# 			'__duckdb_field_id': 507
+# 		}
+# 	},
+# 	ROOT_NAME 'manifest_file'
+# );

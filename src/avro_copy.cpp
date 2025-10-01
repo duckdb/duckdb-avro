@@ -163,15 +163,21 @@ public:
 			return object;
 		}
 		auto wrapper = yyjson_mut_obj(doc);
-		auto union_type = yyjson_mut_obj_add_arr(doc, wrapper, "type");
-		if (struct_field) {
-			yyjson_mut_obj_add_strcpy(doc, wrapper, "name", name.c_str());
-		}
-		yyjson_mut_arr_add_strcpy(doc, union_type, "null");
-		yyjson_mut_arr_add_val(union_type, object);
 		if (field_id) {
 			yyjson_mut_obj_add_int(doc, wrapper, "field-id", field_id->GetFieldId());
 		}
+		if (struct_field) {
+			yyjson_mut_obj_add_strcpy(doc, wrapper, "name", name.c_str());
+		}
+
+		if (field_id && !field_id->nullable) {
+			yyjson_mut_obj_add_val(doc, wrapper, "type", object);
+		} else {
+			auto union_type = yyjson_mut_obj_add_arr(doc, wrapper, "type");
+			yyjson_mut_arr_add_strcpy(doc, union_type, "null");
+			yyjson_mut_arr_add_val(union_type, object);
+		}
+
 		return wrapper;
 	}
 
@@ -461,6 +467,11 @@ static idx_t PopulateValue(avro_value_t *target, const Value &val) {
 	auto union_value = *target;
 	if (val.IsNull()) {
 		avro_value_set_branch(&union_value, 0, target);
+		auto schema_type = avro_value_get_type(target);
+		if (schema_type != AVRO_NULL) {
+			throw InvalidInputException("Cannot insert NULL to non-nullable field of type %s",
+			                            LogicalTypeIdToString(val.type().id()));
+		}
 		avro_value_set_null(target);
 		return 1;
 	}
