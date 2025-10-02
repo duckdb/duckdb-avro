@@ -1,4 +1,6 @@
 #include "field_ids.hpp"
+#include "include/field_ids.hpp"
+
 #include "duckdb/common/exception/list.hpp"
 
 namespace duckdb {
@@ -8,7 +10,7 @@ namespace avro {
 FieldID::FieldID() : set(false) {
 }
 
-FieldID::FieldID(int32_t field_id_p) : set(true), field_id(field_id_p) {
+FieldID::FieldID(int32_t field_id_p, bool nullable) : set(true), field_id(field_id_p), nullable(nullable) {
 }
 
 int32_t FieldID::GetFieldId() const {
@@ -53,7 +55,7 @@ static void GetFieldIDs(const Value &field_ids_value, case_insensitive_map_t<Fie
 	D_ASSERT(StructType::GetChildTypes(struct_type).size() == struct_children.size());
 	for (idx_t i = 0; i < struct_children.size(); i++) {
 		const auto &col_name = StringUtil::Lower(StructType::GetChildName(struct_type, i));
-		if (col_name == FieldID::DUCKDB_FIELD_ID) {
+		if (col_name == FieldID::DUCKDB_FIELD_ID || col_name == FieldID::DUCKDB_NULLABLE_ID) {
 			continue;
 		}
 
@@ -76,6 +78,7 @@ static void GetFieldIDs(const Value &field_ids_value, case_insensitive_map_t<Fie
 		const auto &child_value = struct_children[i];
 		const auto &child_type = child_value.type();
 		optional_ptr<const Value> field_id_value;
+		optional_ptr<const Value> field_id_nullable;
 		optional_ptr<const Value> child_field_ids_value;
 
 		if (child_type.id() == LogicalTypeId::STRUCT) {
@@ -85,6 +88,8 @@ static void GetFieldIDs(const Value &field_ids_value, case_insensitive_map_t<Fie
 				const auto &field_id_or_nested_col = StructType::GetChildName(child_type, nested_i);
 				if (field_id_or_nested_col == FieldID::DUCKDB_FIELD_ID) {
 					field_id_value = &nested_children[nested_i];
+				} else if (field_id_or_nested_col == FieldID::DUCKDB_NULLABLE_ID) {
+					field_id_nullable = &nested_children[nested_i];
 				} else {
 					child_field_ids_value = &child_value;
 				}
@@ -100,7 +105,13 @@ static void GetFieldIDs(const Value &field_ids_value, case_insensitive_map_t<Fie
 			if (!unique_field_ids.insert(field_id_int).second) {
 				throw BinderException("Duplicate field_id %s found in FIELD_IDS", field_id_integer_value.ToString());
 			}
-			field_id = FieldID(UnsafeNumericCast<int32_t>(field_id_int));
+			if (field_id_nullable) {
+				Value field_id_bool_value = field_id_nullable->DefaultCastAs(LogicalType::BOOLEAN);
+				const bool field_id_bool = BooleanValue::Get(field_id_bool_value);
+				field_id = FieldID(UnsafeNumericCast<int32_t>(field_id_int), field_id_bool);
+			} else {
+				field_id = FieldID(UnsafeNumericCast<int32_t>(field_id_int));
+			}
 		}
 		auto inserted = field_ids.emplace(col_name, std::move(field_id));
 		D_ASSERT(inserted.second);
