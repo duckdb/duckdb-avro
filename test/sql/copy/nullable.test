@@ -38,6 +38,13 @@ COPY (
 ----
 <REGEX>:.*Cannot insert NULL to non-nullable field.*
 
+# No rows
+# FIXME: there should be clean up logic in the copy
+query I
+select * from read_avro('__TEST_DIR__/field_ids_error.avro');
+----
+
+
 # cannot cast foo to BOOL
 statement error
 COPY (
