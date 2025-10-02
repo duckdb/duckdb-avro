@@ -71,6 +71,30 @@ select * from read_avro('__TEST_DIR__/field_ids_2.avro');
 ----
 1	2	3
 
+
+# items in structs can also be nullable
+statement ok
+COPY (
+	select
+          1 manifest_entry,
+          {
+          	'content': 1,
+          } data_file_not_nullable,
+) TO '__TEST_DIR__/field_ids_3.avro' (
+	FIELD_IDS {
+		'manifest_entry': 0,
+		'data_file_not_nullable': {
+		    '__duckdb_field_id': 1,
+		    '__duckdb_nullable': false,
+		    'content': {
+		        '__duckdb_field_id': 2,
+		        '__duckdb_nullable': false
+		    }
+		}
+	},
+	ROOT_NAME 'test'
+);
+
 statement ok
 create table t1 as select
 1 manifest_entry,
@@ -82,7 +106,7 @@ create table t1 as select
 } data_file_nullable;
 
 statement ok
-COPY t1 TO '__TEST_DIR__/field_ids_3.avro' (
+COPY t1 TO '__TEST_DIR__/field_ids_4.avro' (
 	FIELD_IDS {
 		'manifest_entry': {
 			'__duckdb_field_id': 0
@@ -101,7 +125,7 @@ COPY t1 TO '__TEST_DIR__/field_ids_3.avro' (
 );
 
 query III
-select * from read_avro('__TEST_DIR__/field_ids_3.avro');
+select * from read_avro('__TEST_DIR__/field_ids_4.avro');
 ----
 1	{'content': 1}	{'content': 2}
 
@@ -115,7 +139,7 @@ COPY (select
       {
       	'content': NULL,
       } data_file_nullable
-) TO '__TEST_DIR__/field_ids_4.avro' (
+) TO '__TEST_DIR__/field_ids_5.avro' (
 	FIELD_IDS {
 		'manifest_entry': {
 			'__duckdb_field_id': 0
