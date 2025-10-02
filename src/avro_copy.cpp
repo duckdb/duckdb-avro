@@ -564,70 +564,77 @@ static void WriteAvroSink(ExecutionContext &context, FunctionData &bind_data_p, 
 	auto &datum_buffer = global_state.datum_buffer;
 	idx_t count = input.size();
 	idx_t offset_in_datum_buffer = 0;
-	for (idx_t i = 0; i < count; i++) {
 
-		//! Populate our avro value, estimating the size of the value as we go
-		idx_t value_size = 0;
-		for (idx_t col_idx = 0; col_idx < input.ColumnCount(); col_idx++) {
-			auto val = input.GetValue(col_idx, i);
+	try {
+		for (idx_t i = 0; i < count; i++) {
 
-			const char *unused_name;
-			avro_value_t column;
-			if (avro_value_get_by_index(&local_state.value, col_idx, &column, &unused_name)) {
+			//! Populate our avro value, estimating the size of the value as we go
+			idx_t value_size = 0;
+			for (idx_t col_idx = 0; col_idx < input.ColumnCount(); col_idx++) {
+				auto val = input.GetValue(col_idx, i);
+
+				const char *unused_name;
+				avro_value_t column;
+				if (avro_value_get_by_index(&local_state.value, col_idx, &column, &unused_name)) {
+					throw InvalidInputException(avro_strerror());
+				}
+				value_size += PopulateValue(&column, val);
+			}
+
+			//! Prepare the datum buffer for this row
+			idx_t length = datum_buffer.GetCapacity() - offset_in_datum_buffer;
+			if (value_size > length) {
+				//! This value is too big to fit into the remaining portion of the buffer
+				idx_t new_capacity = datum_buffer.GetCapacity();
+				new_capacity += value_size;
+				datum_buffer.ResizeAndCopy(NextPowerOfTwo(new_capacity));
+			}
+			avro_writer_memory_set_dest_with_offset(global_state.datum_writer, (const char *)datum_buffer.GetData(),
+													datum_buffer.GetCapacity(), offset_in_datum_buffer);
+
+			int ret;
+			while ((ret = avro_file_writer_append_value(global_state.file_writer, &local_state.value)) == ENOSPC) {
+				auto current_capacity = datum_buffer.GetCapacity();
+				datum_buffer.ResizeAndCopy(NextPowerOfTwo(current_capacity * 2));
+				avro_writer_memory_set_dest_with_offset(global_state.datum_writer, (const char *)datum_buffer.GetData(),
+														datum_buffer.GetCapacity(), offset_in_datum_buffer);
+			}
+			if (ret) {
 				throw InvalidInputException(avro_strerror());
 			}
-			value_size += PopulateValue(&column, val);
+
+			offset_in_datum_buffer = avro_writer_tell(global_state.datum_writer);
+			avro_value_reset(&local_state.value);
 		}
 
-		//! Prepare the datum buffer for this row
-		idx_t length = datum_buffer.GetCapacity() - offset_in_datum_buffer;
-		if (value_size > length) {
-			//! This value is too big to fit into the remaining portion of the buffer
-			idx_t new_capacity = datum_buffer.GetCapacity();
-			new_capacity += value_size;
-			datum_buffer.ResizeAndCopy(NextPowerOfTwo(new_capacity));
+		auto &buffer = global_state.memory_buffer;
+		auto expected_size = avro_writer_tell(global_state.datum_writer);
+		expected_size += WriteAvroGlobalState::SYNC_SIZE + WriteAvroGlobalState::MAX_ROW_COUNT_BYTES;
+		if (static_cast<idx_t>(expected_size) > buffer.GetCapacity()) {
+			//! Resize the buffer in advance, to prevent any need for resizing below
+			buffer.Resize(NextPowerOfTwo(expected_size));
+			avro_writer_memory_set_dest(global_state.writer, (const char *)buffer.GetData(), buffer.GetCapacity());
 		}
-		avro_writer_memory_set_dest_with_offset(global_state.datum_writer, (const char *)datum_buffer.GetData(),
-		                                        datum_buffer.GetCapacity(), offset_in_datum_buffer);
 
+		//! Flush the contents to the buffer, if it fails, resize the buffer and try again
 		int ret;
-		while ((ret = avro_file_writer_append_value(global_state.file_writer, &local_state.value)) == ENOSPC) {
-			auto current_capacity = datum_buffer.GetCapacity();
-			datum_buffer.ResizeAndCopy(NextPowerOfTwo(current_capacity * 2));
-			avro_writer_memory_set_dest_with_offset(global_state.datum_writer, (const char *)datum_buffer.GetData(),
-			                                        datum_buffer.GetCapacity(), offset_in_datum_buffer);
+		while ((ret = avro_file_writer_flush(global_state.file_writer)) == ENOSPC) {
+			auto current_capacity = buffer.GetCapacity();
+			buffer.Resize(NextPowerOfTwo(current_capacity * 2));
+			avro_writer_memory_set_dest(global_state.writer, (const char *)buffer.GetData(), buffer.GetCapacity());
 		}
 		if (ret) {
 			throw InvalidInputException(avro_strerror());
 		}
 
-		offset_in_datum_buffer = avro_writer_tell(global_state.datum_writer);
-		avro_value_reset(&local_state.value);
-	}
-
-	auto &buffer = global_state.memory_buffer;
-	auto expected_size = avro_writer_tell(global_state.datum_writer);
-	expected_size += WriteAvroGlobalState::SYNC_SIZE + WriteAvroGlobalState::MAX_ROW_COUNT_BYTES;
-	if (static_cast<idx_t>(expected_size) > buffer.GetCapacity()) {
-		//! Resize the buffer in advance, to prevent any need for resizing below
-		buffer.Resize(NextPowerOfTwo(expected_size));
+		auto written_bytes = avro_writer_tell(global_state.writer);
+		global_state.WriteData(buffer.GetData(), written_bytes);
 		avro_writer_memory_set_dest(global_state.writer, (const char *)buffer.GetData(), buffer.GetCapacity());
+	} catch (const std::exception &e) {
+		// Something went wrong. Delete the file and throw the error
+		global_state.fs.RemoveFile(global_state.handle->GetPath());
+		throw;
 	}
-
-	//! Flush the contents to the buffer, if it fails, resize the buffer and try again
-	int ret;
-	while ((ret = avro_file_writer_flush(global_state.file_writer)) == ENOSPC) {
-		auto current_capacity = buffer.GetCapacity();
-		buffer.Resize(NextPowerOfTwo(current_capacity * 2));
-		avro_writer_memory_set_dest(global_state.writer, (const char *)buffer.GetData(), buffer.GetCapacity());
-	}
-	if (ret) {
-		throw InvalidInputException(avro_strerror());
-	}
-
-	auto written_bytes = avro_writer_tell(global_state.writer);
-	global_state.WriteData(buffer.GetData(), written_bytes);
-	avro_writer_memory_set_dest(global_state.writer, (const char *)buffer.GetData(), buffer.GetCapacity());
 }
 
 static void WriteAvroCombine(ExecutionContext &context, FunctionData &bind_data, GlobalFunctionData &gstate,
