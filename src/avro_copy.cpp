@@ -632,7 +632,9 @@ static void WriteAvroSink(ExecutionContext &context, FunctionData &bind_data_p, 
 		avro_writer_memory_set_dest(global_state.writer, (const char *)buffer.GetData(), buffer.GetCapacity());
 	} catch (const std::exception &e) {
 		// Something went wrong. Delete the file and throw the error
-		global_state.fs.RemoveFile(global_state.handle->GetPath());
+		if (global_state.handle) {
+			global_state.fs.RemoveFile(global_state.handle->GetPath());
+		}
 		throw;
 	}
 }
