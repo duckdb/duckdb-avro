@@ -1,5 +1,3 @@
-#define DUCKDB_EXTENSION_MAIN
-
 #include "avro_extension.hpp"
 
 #include "duckdb.hpp"
@@ -7,7 +5,7 @@
 #include "duckdb/common/string_util.hpp"
 #include "duckdb/function/scalar_function.hpp"
 
-#include "duckdb/main/extension_util.hpp"
+#include "duckdb/main/extension/extension_loader.hpp"
 #include "include/avro_reader.hpp"
 #include "duckdb/common/multi_file/multi_file_reader.hpp"
 #include "avro_multi_file_info.hpp"
@@ -18,16 +16,16 @@
 
 namespace duckdb {
 
-static void LoadInternal(DatabaseInstance &instance) {
+static void LoadInternal(ExtensionLoader &loader) {
 	// Register a scalar function
 	auto table_function = MultiFileFunction<AvroMultiFileInfo>("read_avro");
 	table_function.projection_pushdown = true;
-	ExtensionUtil::RegisterFunction(instance, MultiFileReader::CreateFunctionSet(table_function));
-	ExtensionUtil::RegisterFunction(instance, AvroCopyFunction::Create());
+	loader.RegisterFunction(MultiFileReader::CreateFunctionSet(table_function));
+	loader.RegisterFunction(AvroCopyFunction::Create());
 }
 
-void AvroExtension::Load(DuckDB &db) {
-	LoadInternal(*db.instance);
+void AvroExtension::Load(ExtensionLoader &loader) {
+	LoadInternal(loader);
 }
 std::string AvroExtension::Name() {
 	return "avro";
@@ -45,16 +43,7 @@ std::string AvroExtension::Version() const {
 
 extern "C" {
 
-DUCKDB_EXTENSION_API void avro_init(duckdb::DatabaseInstance &db) {
-	duckdb::DuckDB db_wrapper(db);
-	db_wrapper.LoadExtension<duckdb::AvroExtension>();
-}
-
-DUCKDB_EXTENSION_API const char *avro_version() {
-	return duckdb::DuckDB::LibraryVersion();
+DUCKDB_CPP_EXTENSION_ENTRY(avro, loader) {
+	duckdb::LoadInternal(loader);
 }
 }
-
-#ifndef DUCKDB_EXTENSION_MAIN
-#error DUCKDB_EXTENSION_MAIN not defined
-#endif

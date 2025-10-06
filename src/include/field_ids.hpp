@@ -14,10 +14,11 @@ namespace avro {
 struct FieldID {
 public:
 	static constexpr const auto DUCKDB_FIELD_ID = "__duckdb_field_id";
+	static constexpr const auto DUCKDB_NULLABLE_ID = "__duckdb_nullable";
 
 public:
 	FieldID();
-	explicit FieldID(int32_t field_id);
+	explicit FieldID(int32_t field_id, bool nullable = true);
 
 public:
 	int32_t GetFieldId() const;
@@ -25,6 +26,7 @@ public:
 public:
 	bool set = false;
 	int32_t field_id;
+	bool nullable = true;
 	case_insensitive_map_t<FieldID> children;
 };
 
