@@ -139,7 +139,7 @@ public:
 	}
 
 	yyjson_mut_val *CreateJSONType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
-	                               bool struct_field = false) {
+	                               bool struct_field = false, bool union_null = true) {
 		yyjson_mut_val *object;
 		if (!type.IsNested()) {
 			object = yyjson_mut_obj(doc);
@@ -159,21 +159,30 @@ public:
 			object = CreateNestedType(name, type, field_id);
 		}
 
-		auto wrapper = yyjson_mut_obj(doc);
-		auto union_type = yyjson_mut_obj_add_arr(doc, wrapper, "type");
-		if (struct_field) {
-			yyjson_mut_obj_add_strcpy(doc, wrapper, "name", name.c_str());
+		if (!union_null) {
+			return object;
 		}
-		yyjson_mut_arr_add_strcpy(doc, union_type, "null");
-		yyjson_mut_arr_add_val(union_type, object);
+		auto wrapper = yyjson_mut_obj(doc);
 		if (field_id) {
 			yyjson_mut_obj_add_int(doc, wrapper, "field-id", field_id->GetFieldId());
 		}
+		if (struct_field) {
+			yyjson_mut_obj_add_strcpy(doc, wrapper, "name", name.c_str());
+		}
+
+		if (field_id && !field_id->nullable) {
+			yyjson_mut_obj_add_val(doc, wrapper, "type", object);
+		} else {
+			auto union_type = yyjson_mut_obj_add_arr(doc, wrapper, "type");
+			yyjson_mut_arr_add_strcpy(doc, union_type, "null");
+			yyjson_mut_arr_add_val(union_type, object);
+		}
+
 		return wrapper;
 	}
 
-	yyjson_mut_val *CreateNestedType(const string &name, const LogicalType &type,
-	                                 optional_ptr<avro::FieldID> field_id) {
+	yyjson_mut_val *CreateNestedType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
+	                                 bool union_null = true) {
 		D_ASSERT(type.IsNested());
 		auto object = yyjson_mut_obj(doc);
 		yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
@@ -196,13 +205,16 @@ public:
 						child_field_id = it->second;
 					}
 				}
-				yyjson_mut_arr_add_val(fields, CreateJSONType(child_name, child_type, child_field_id, true));
+				yyjson_mut_arr_add_val(fields,
+				                       CreateJSONType(child_name, child_type, child_field_id, true, union_null));
 			}
 			break;
 		}
 		case LogicalTypeId::MAP:
 		case LogicalTypeId::LIST: {
 			optional_ptr<avro::FieldID> element_field_id;
+			// if the type is a map, we cannot union the elements with null
+			auto is_map = type.id() == LogicalTypeId::MAP;
 			if (field_id) {
 				auto it = field_id->children.find("element");
 				if (it != field_id->children.end()) {
@@ -219,13 +231,21 @@ public:
 			}
 
 			auto &list_child = ListType::GetChildType(type);
-			auto union_type = yyjson_mut_obj_add_arr(doc, object, "items");
-			yyjson_mut_arr_add_strcpy(doc, union_type, "null");
-			if (list_child.IsNested()) {
-				yyjson_mut_arr_add_val(union_type,
-				                       CreateNestedType(GenerateSchemaName("element"), list_child, element_field_id));
+			if (is_map) {
+				// do not union null for first level of items in a map. When map types for iceberg manifeste files are
+				// written if the key/value types are unioned with null, other readers may crash when attempting to read
+				// our files (e.g python-iceberg)
+				yyjson_mut_obj_add_val(doc, object, "items",
+				                       CreateNestedType(GenerateSchemaName("element"), list_child, field_id, false));
 			} else {
-				yyjson_mut_arr_add_strcpy(doc, union_type, ConvertTypeToAvro(list_child).c_str());
+				auto union_type = yyjson_mut_obj_add_arr(doc, object, "items");
+				yyjson_mut_arr_add_strcpy(doc, union_type, "null");
+				if (list_child.IsNested()) {
+					yyjson_mut_arr_add_val(
+					    union_type, CreateNestedType(GenerateSchemaName("element"), list_child, element_field_id));
+				} else {
+					yyjson_mut_arr_add_strcpy(doc, union_type, ConvertTypeToAvro(list_child).c_str());
+				}
 			}
 			break;
 		}
@@ -279,13 +299,14 @@ public:
 static string CreateJSONSchema(const case_insensitive_map_t<vector<Value>> &options, const vector<string> &names,
                                const vector<LogicalType> &types, case_insensitive_set_t &recognized) {
 	JSONSchemaGenerator state(names, types);
-	
+
 	state.ParseFieldIds(options, recognized);
 	state.ParseRootName(options, recognized);
 	return state.GenerateJSON();
 }
 
-static string CreateJSONMetadata(const case_insensitive_map_t<vector<Value>> &options, case_insensitive_set_t &recognized) {
+static string CreateJSONMetadata(const case_insensitive_map_t<vector<Value>> &options,
+                                 case_insensitive_set_t &recognized) {
 	auto it = options.find("METADATA");
 	if (it == options.end()) {
 		return "";
@@ -403,9 +424,14 @@ WriteAvroGlobalState::WriteAvroGlobalState(ClientContext &context, FunctionData 
 		json_metadata = bind_data.json_metadata.c_str();
 	}
 
-	while ((ret = avro_file_writer_create_from_writers_with_metadata(writer, datum_writer, bind_data.schema, &file_writer, json_metadata)) == ENOSPC) {
+	while ((ret = avro_file_writer_create_from_writers_with_metadata(writer, datum_writer, bind_data.schema,
+	                                                                 &file_writer, json_metadata)) == ENOSPC) {
 		auto current_capacity = memory_buffer.GetCapacity();
 		memory_buffer.Resize(NextPowerOfTwo(current_capacity * 2));
+		// re-initialize writer to use correct data location
+		avro_file_writer_close(file_writer);
+		writer = avro_writer_memory(const_char_ptr_cast(memory_buffer.GetData()), memory_buffer.GetCapacity());
+		datum_writer = avro_writer_memory(const_char_ptr_cast(datum_buffer.GetData()), datum_buffer.GetCapacity());
 	}
 	if (ret) {
 		throw InvalidInputException(avro_strerror());
@@ -441,6 +467,11 @@ static idx_t PopulateValue(avro_value_t *target, const Value &val) {
 	auto union_value = *target;
 	if (val.IsNull()) {
 		avro_value_set_branch(&union_value, 0, target);
+		auto schema_type = avro_value_get_type(target);
+		if (schema_type != AVRO_NULL) {
+			throw InvalidInputException("Cannot insert NULL to non-nullable field of type %s",
+			                            LogicalTypeIdToString(val.type().id()));
+		}
 		avro_value_set_null(target);
 		return 1;
 	}
@@ -533,6 +564,7 @@ static void WriteAvroSink(ExecutionContext &context, FunctionData &bind_data_p, 
 	auto &datum_buffer = global_state.datum_buffer;
 	idx_t count = input.size();
 	idx_t offset_in_datum_buffer = 0;
+
 	for (idx_t i = 0; i < count; i++) {
 
 		//! Populate our avro value, estimating the size of the value as we go

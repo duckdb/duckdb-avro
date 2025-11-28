@@ -1,0 +1,214 @@
+# name: test/sql/copy/nullable.test
+# group: [copy]
+
+require avro
+
+# copy null into a field (type unioned with null)
+statement ok
+COPY (
+	select NULL field1
+) TO '__TEST_DIR__/field_ids_1.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_field_id': 301},
+	},
+	ROOT_NAME 'test'
+);
+
+# copy null into a field (type unioned with null)
+statement ok
+COPY (
+	select NULL field1
+) TO '__TEST_DIR__/field_ids_1_nullable.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': true},
+	},
+	ROOT_NAME 'test'
+);
+
+# insert null into non-nullable field
+statement error
+COPY (
+	select NULL field1
+) TO '__TEST_DIR__/field_ids_error.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': false},
+	},
+	ROOT_NAME 'test'
+);
+----
+<REGEX>:.*Cannot insert NULL to non-nullable field.*
+
+# No rows
+# FIXME: there should be clean up logic in the copy
+query I
+select * from read_avro('__TEST_DIR__/field_ids_error.avro');
+----
+
+
+# cannot cast foo to BOOL
+statement error
+COPY (
+	select NULL field1
+) TO '__TEST_DIR__/field_ids_error.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': 'foo'},
+	},
+	ROOT_NAME 'test'
+);
+----
+<REGEX>:.*Invalid Input Error: Failed to cast value:.*
+
+# test different ways to set a field id
+# via a struct
+# directly
+statement ok
+COPY (
+	select 1 field1, 2 field2, 3 field3
+) TO '__TEST_DIR__/field_ids_2.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': false},
+		'field2': 303,
+	},
+	ROOT_NAME 'test'
+);
+
+# read
+query III
+select * from read_avro('__TEST_DIR__/field_ids_2.avro');
+----
+1	2	3
+
+
+# items in structs can also be nullable
+statement ok
+COPY (
+	select
+          1 manifest_entry,
+          {
+          	'content': 1,
+          } data_file_not_nullable,
+) TO '__TEST_DIR__/field_ids_3.avro' (
+	FIELD_IDS {
+		'manifest_entry': 0,
+		'data_file_not_nullable': {
+		    '__duckdb_field_id': 1,
+		    '__duckdb_nullable': false,
+		    'content': {
+		        '__duckdb_field_id': 2,
+		        '__duckdb_nullable': false
+		    }
+		}
+	},
+	ROOT_NAME 'test'
+);
+
+statement ok
+create table t1 as select
+1 manifest_entry,
+{
+	'content': 1,
+} data_file_not_nullable,
+{
+	'content': 2,
+} data_file_nullable;
+
+statement ok
+COPY t1 TO '__TEST_DIR__/field_ids_4.avro' (
+	FIELD_IDS {
+		'manifest_entry': {
+			'__duckdb_field_id': 0
+		},
+		'data_file_not_nullable': {
+		    	'__duckdb_field_id': 2,
+		    	'__duckdb_nullable': false,
+		    	'content': 3
+		},
+        'data_file_nullable': {
+                '__duckdb_field_id': 4,
+                'content': 5
+        }
+	},
+	ROOT_NAME 'manifest_entry'
+);
+
+query III
+select * from read_avro('__TEST_DIR__/field_ids_4.avro');
+----
+1	{'content': 1}	{'content': 2}
+
+# nested nullable field throws error
+statement error
+COPY (select
+      1 manifest_entry,
+      {
+      	'content': 1,
+      } data_file_not_nullable,
+      {
+      	'content': NULL,
+      } data_file_nullable
+) TO '__TEST_DIR__/field_ids_5.avro' (
+	FIELD_IDS {
+		'manifest_entry': {
+			'__duckdb_field_id': 0
+		},
+		'data_file_not_nullable': {
+		    	'__duckdb_field_id': 2,
+		    	'__duckdb_nullable': false,
+		    	'content': {
+		    	    '__duckdb_field_id': 3,
+		    	    '__duckdb_nullable': false
+		    	}
+		},
+        'data_file_nullable': {
+                '__duckdb_field_id': 4,
+                'content': {
+                    '__duckdb_field_id': 5,
+                    '__duckdb_nullable': false
+                }
+        }
+	},
+	ROOT_NAME 'manifest_entry'
+);
+----
+<REGEX>:.*Cannot insert NULL to non-nullable field.*
+
+# other nested types
+statement ok
+COPY (select
+      	MAP {
+      		21: 'abc',
+      		42: 'test'
+      	} "field_map",
+      	[
+      		'a',
+      		'b',
+      		'c'
+      	] "field_list",
+      	{
+      		'a': 21,
+      		'b': True,
+      		'c': 1.234::FLOAT
+      	} "field_struct"
+) TO '__TEST_DIR__/nested_field_types.avro' (
+	FIELD_IDS {
+		'field_map': {
+		    'key': 0,
+		    'value': 1,
+		    '__duckdb_field_id': 2,
+		    '__duckdb_nullable': false
+		},
+		'field_list': {
+		    'element': 3,
+		    '__duckdb_field_id': 4,
+		    '__duckdb_nullable': false
+		},
+		'field_struct': {
+		    'a': 5,
+		    'b': 6,
+		    'c': 7,
+			'__duckdb_field_id': 507,
+			'__duckdb_nullable': false
+		}
+	},
+	ROOT_NAME 'manifest_file'
+);
