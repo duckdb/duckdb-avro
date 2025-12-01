@@ -7,6 +7,8 @@ namespace duckdb {
 
 namespace avro {
 
+constexpr const char *FieldID::DUCKDB_FIELD_ID;
+
 FieldID::FieldID() : set(false) {
 }
 
