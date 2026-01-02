@@ -1,7 +1,7 @@
 #include "avro_reader.hpp"
 #include "utf8proc_wrapper.hpp"
 #include "duckdb/storage/caching_file_system.hpp"
-#include "duckdb/common/file_system.hpp"
+#include "duckdb/common/allocator.hpp"
 #include "duckdb/common/multi_file/multi_file_data.hpp"
 
 namespace duckdb {
@@ -120,17 +120,37 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 
 AvroReader::AvroReader(ClientContext &context, OpenFileInfo file) : BaseFileReader(file) {
 	auto caching_file_system = CachingFileSystem::Get(context);
-
 	auto caching_file_handle = caching_file_system.OpenFile(this->file, FileOpenFlags::FILE_FLAGS_READ);
-	auto total_size = caching_file_handle->GetFileSize();
-	data_ptr_t data = nullptr;
 
-	buf_handle = caching_file_handle->Read(data, total_size);
-	auto buffer_data = buf_handle.Ptr();
+	Allocator &allocator = Allocator::Get(context);
 
-	D_ASSERT(buf_handle.IsValid());
-	D_ASSERT(buffer_data == data);
-	auto avro_reader = avro_reader_memory(const_char_ptr_cast(buffer_data), total_size);
+	constexpr idx_t CHUNK_SIZE = 32 * 1024; // 32KB chunks
+	file_buffer = make_uniq<AvroInMemoryBuffer>(allocator, CHUNK_SIZE);
+	file_size = 0;
+
+	// Read until EOF using CachingFileSystem (avoids HEAD request to get size, enables caching)
+	while (true) {
+		if (file_size + CHUNK_SIZE > file_buffer->GetCapacity()) {
+			file_buffer->ResizeAndCopy(NextPowerOfTwo(file_buffer->GetCapacity() * 2));
+		}
+
+		data_ptr_t chunk_data = nullptr;
+		idx_t chunk_size = CHUNK_SIZE;
+		auto chunk_handle = caching_file_handle->Read(chunk_data, chunk_size);
+
+		if (chunk_size == 0) {
+			break; // EOF
+		}
+
+		memcpy(file_buffer->GetData() + file_size, chunk_data, chunk_size);
+		file_size += chunk_size;
+	}
+
+	if (file_size == 0) {
+		throw InvalidInputException("Empty Avro file: %s", this->file.path);
+	}
+
+	auto avro_reader = avro_reader_memory(const_char_ptr_cast(file_buffer->GetData()), file_size);
 
 	if (avro_reader_reader(avro_reader, &reader)) {
 		throw InvalidInputException(avro_strerror());
