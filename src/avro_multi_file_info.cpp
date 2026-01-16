@@ -121,9 +121,10 @@ bool AvroReader::TryInitializeScan(ClientContext &context, GlobalTableFunctionSt
 	return true;
 }
 
-void AvroReader::Scan(ClientContext &context, GlobalTableFunctionState &global_state,
+AsyncResult AvroReader::Scan(ClientContext &context, GlobalTableFunctionState &global_state,
                       LocalTableFunctionState &local_state_p, DataChunk &chunk) {
 	Read(chunk);
+	return chunk.size() ? AsyncResult(SourceResultType::HAVE_MORE_OUTPUT) : AsyncResult(SourceResultType::FINISHED);
 }
 
 unique_ptr<NodeStatistics> AvroMultiFileInfo::GetCardinality(const MultiFileBindData &bind_data, idx_t file_count) {
