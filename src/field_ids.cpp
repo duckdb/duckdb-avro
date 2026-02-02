@@ -26,7 +26,7 @@ static case_insensitive_map_t<LogicalType> GetChildNameToTypeMap(const LogicalTy
 	case LogicalTypeId::LIST:
 		name_to_type_map.emplace("element", ListType::GetChildType(type));
 		break;
-	case LogicalTypeId::MAP:
+	case LogicalTypeId::MAP: {
 		child_list_t<LogicalType> key_value;
 		key_value.reserve(2);
 		key_value.emplace_back("key", MapType::KeyType(type));
@@ -34,6 +34,7 @@ static case_insensitive_map_t<LogicalType> GetChildNameToTypeMap(const LogicalTy
 		auto key_value_type = LogicalType::STRUCT(key_value);
 		name_to_type_map.emplace("key_value", key_value_type);
 		break;
+	}
 	case LogicalTypeId::STRUCT:
 		for (auto &child_type : StructType::GetChildTypes(type)) {
 			if (child_type.first == FieldID::DUCKDB_FIELD_ID) {
