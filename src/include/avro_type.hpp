@@ -72,9 +72,13 @@ public:
 
 				type_children.emplace_back(key.name, key.type);
 				type_children.emplace_back(value.name, value.type);
-				duckdb_type = LogicalType::MAP(LogicalType::STRUCT(std::move(type_children)));
-				children.push_back(std::move(key));
-				children.push_back(std::move(value));
+				auto key_value_type = LogicalType::STRUCT(std::move(type_children));
+				duckdb_type = LogicalType::MAP(key_value_type);
+
+				MultiFileColumnDefinition key_value("key_value", key_value_type);
+				key_value.children.push_back(std::move(key));
+				key_value.children.push_back(std::move(value));
+				children.push_back(key_value);
 			}
 			break;
 		}
