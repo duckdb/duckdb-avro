@@ -60,7 +60,9 @@ public:
 					auto &key_type = element.children[0].type;
 					auto &value_type = element.children[1].type;
 					duckdb_type = LogicalType::MAP(key_type, value_type);
-					children = std::move(element.children);
+					MultiFileColumnDefinition key_value("key_value", element.type);
+					key_value.children = std::move(element.children);
+					children.push_back(key_value);
 				} else {
 					duckdb_type = LogicalType::LIST(element.type);
 					children.push_back(std::move(element));
