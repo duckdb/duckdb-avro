@@ -55,7 +55,7 @@ public:
 		case LogicalTypeId::MAP:
 		case LogicalTypeId::LIST: {
 			if (avro_type.avro_type == AVRO_ARRAY) {
-				auto element = TransformAvroType("element", avro_type.children[0].second);
+				auto element = TransformAvroType("list", avro_type.children[0].second);
 				if (id == LogicalTypeId::MAP) {
 					auto &key_type = element.children[0].type;
 					auto &value_type = element.children[1].type;

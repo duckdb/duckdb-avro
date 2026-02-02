@@ -24,7 +24,7 @@ static case_insensitive_map_t<LogicalType> GetChildNameToTypeMap(const LogicalTy
 	case_insensitive_map_t<LogicalType> name_to_type_map;
 	switch (type.id()) {
 	case LogicalTypeId::LIST:
-		name_to_type_map.emplace("element", ListType::GetChildType(type));
+		name_to_type_map.emplace("list", ListType::GetChildType(type));
 		break;
 	case LogicalTypeId::MAP:
 		name_to_type_map.emplace("key", MapType::KeyType(type));
