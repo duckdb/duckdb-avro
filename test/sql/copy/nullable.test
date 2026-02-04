@@ -198,7 +198,7 @@ COPY (select
 		    '__duckdb_nullable': false
 		},
 		'field_list': {
-		    'element': 3,
+		    'list': 3,
 		    '__duckdb_field_id': 4,
 		    '__duckdb_nullable': false
 		},

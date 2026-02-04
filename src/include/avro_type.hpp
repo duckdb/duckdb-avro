@@ -55,12 +55,14 @@ public:
 		case LogicalTypeId::MAP:
 		case LogicalTypeId::LIST: {
 			if (avro_type.avro_type == AVRO_ARRAY) {
-				auto element = TransformAvroType("element", avro_type.children[0].second);
+				auto element = TransformAvroType("list", avro_type.children[0].second);
 				if (id == LogicalTypeId::MAP) {
 					auto &key_type = element.children[0].type;
 					auto &value_type = element.children[1].type;
 					duckdb_type = LogicalType::MAP(key_type, value_type);
-					children = std::move(element.children);
+					MultiFileColumnDefinition key_value("key_value", element.type);
+					key_value.children = std::move(element.children);
+					children.push_back(key_value);
 				} else {
 					duckdb_type = LogicalType::LIST(element.type);
 					children.push_back(std::move(element));
@@ -72,9 +74,13 @@ public:
 
 				type_children.emplace_back(key.name, key.type);
 				type_children.emplace_back(value.name, value.type);
-				duckdb_type = LogicalType::MAP(LogicalType::STRUCT(std::move(type_children)));
-				children.push_back(std::move(key));
-				children.push_back(std::move(value));
+				auto key_value_type = LogicalType::STRUCT(std::move(type_children));
+				duckdb_type = LogicalType::MAP(key_value_type);
+
+				MultiFileColumnDefinition key_value("key_value", key_value_type);
+				key_value.children.push_back(std::move(key));
+				key_value.children.push_back(std::move(value));
+				children.push_back(key_value);
 			}
 			break;
 		}

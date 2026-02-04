@@ -216,7 +216,7 @@ public:
 			// if the type is a map, we cannot union the elements with null
 			auto is_map = type.id() == LogicalTypeId::MAP;
 			if (field_id) {
-				auto it = field_id->children.find("element");
+				auto it = field_id->children.find("list");
 				if (it != field_id->children.end()) {
 					element_field_id = it->second;
 				}
@@ -236,13 +236,13 @@ public:
 				// written if the key/value types are unioned with null, other readers may crash when attempting to read
 				// our files (e.g python-iceberg)
 				yyjson_mut_obj_add_val(doc, object, "items",
-				                       CreateNestedType(GenerateSchemaName("element"), list_child, field_id, false));
+				                       CreateNestedType(GenerateSchemaName("list"), list_child, field_id, false));
 			} else {
 				auto union_type = yyjson_mut_obj_add_arr(doc, object, "items");
 				yyjson_mut_arr_add_strcpy(doc, union_type, "null");
 				if (list_child.IsNested()) {
 					yyjson_mut_arr_add_val(
-					    union_type, CreateNestedType(GenerateSchemaName("element"), list_child, element_field_id));
+					    union_type, CreateNestedType(GenerateSchemaName("list"), list_child, element_field_id));
 				} else {
 					yyjson_mut_arr_add_strcpy(doc, union_type, ConvertTypeToAvro(list_child).c_str());
 				}

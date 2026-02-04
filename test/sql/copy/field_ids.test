@@ -32,7 +32,7 @@ COPY (
 ) TO '__TEST_DIR__/partitions.avro' (
 	FIELD_IDS {
 		'partitions': {
-			'element': {
+			'list': {
 				'contains_null': 509,
 				'contains_nan': 518,
 				'lower_bound': 510,
