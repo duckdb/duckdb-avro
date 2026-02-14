@@ -11,6 +11,19 @@ namespace avro {
 
 //! NOTE: This is copied (but modified) from 'parquet_extension.cpp', ideally this lives in core DuckDB instead
 
+struct FieldID;
+
+struct ChildFieldIDs {
+public:
+	void Serialize(Serializer &serializer) const;
+	static ChildFieldIDs Deserialize(Deserializer &source);
+public:
+	ChildFieldIDs Copy() const;
+	case_insensitive_map_t<FieldID> &Ids();
+public:
+	unique_ptr<case_insensitive_map_t<FieldID>> ids;
+};
+
 struct FieldID {
 public:
 	static constexpr const auto DUCKDB_FIELD_ID = "__duckdb_field_id";
@@ -27,7 +40,7 @@ public:
 	bool set = false;
 	int32_t field_id;
 	bool nullable = true;
-	case_insensitive_map_t<FieldID> children;
+	ChildFieldIDs children;
 };
 
 struct FieldIDUtils {
@@ -35,7 +48,7 @@ public:
 	FieldIDUtils() = delete;
 
 public:
-	static case_insensitive_map_t<FieldID> ParseFieldIds(const Value &input, const vector<string> &names,
+	static ChildFieldIDs ParseFieldIds(const Value &input, const vector<string> &names,
 	                                                     const vector<LogicalType> &types);
 };
 
