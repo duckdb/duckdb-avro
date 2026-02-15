@@ -9,6 +9,13 @@ namespace avro {
 
 constexpr const char *FieldID::DUCKDB_FIELD_ID;
 
+case_insensitive_map_t<FieldID> &ChildFieldIDs::Ids() {
+	if (!ids) {
+		ids = make_uniq<case_insensitive_map_t<FieldID>>();
+	}
+	return *ids;
+}
+
 FieldID::FieldID() : set(false) {
 }
 
@@ -44,7 +51,7 @@ static case_insensitive_map_t<LogicalType> GetChildNameToTypeMap(const LogicalTy
 	return name_to_type_map;
 }
 
-static void GetFieldIDs(const Value &field_ids_value, case_insensitive_map_t<FieldID> &field_ids,
+static void GetFieldIDs(const Value &field_ids_value, ChildFieldIDs &field_ids_p,
                         unordered_set<uint32_t> &unique_field_ids,
                         const case_insensitive_map_t<LogicalType> &name_to_type_map) {
 	const auto &struct_type = field_ids_value.type();
@@ -54,6 +61,7 @@ static void GetFieldIDs(const Value &field_ids_value, case_insensitive_map_t<Fie
 		    FieldID::DUCKDB_FIELD_ID);
 	}
 	const auto &struct_children = StructValue::GetChildren(field_ids_value);
+	auto &field_ids = field_ids_p.Ids();
 	D_ASSERT(StructType::GetChildTypes(struct_type).size() == struct_children.size());
 	for (idx_t i = 0; i < struct_children.size(); i++) {
 		const auto &col_name = StringUtil::Lower(StructType::GetChildName(struct_type, i));
@@ -132,7 +140,7 @@ static void GetFieldIDs(const Value &field_ids_value, case_insensitive_map_t<Fie
 	}
 }
 
-case_insensitive_map_t<FieldID> FieldIDUtils::ParseFieldIds(const Value &input, const vector<string> &names,
+ChildFieldIDs FieldIDUtils::ParseFieldIds(const Value &input, const vector<string> &names,
                                                             const vector<LogicalType> &types) {
 	unordered_set<uint32_t> unique_field_ids;
 	case_insensitive_map_t<LogicalType> name_to_type_map;
@@ -143,7 +151,7 @@ case_insensitive_map_t<FieldID> FieldIDUtils::ParseFieldIds(const Value &input, 
 		name_to_type_map.emplace(names[col_idx], types[col_idx]);
 	}
 
-	case_insensitive_map_t<FieldID> result;
+	ChildFieldIDs result;
 	GetFieldIDs(input, result, unique_field_ids, name_to_type_map);
 	return result;
 }

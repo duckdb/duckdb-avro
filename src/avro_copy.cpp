@@ -200,8 +200,9 @@ public:
 				auto &child_type = it.second;
 				optional_ptr<avro::FieldID> child_field_id;
 				if (field_id) {
-					auto it = field_id->children.find(child_name);
-					if (it != field_id->children.end()) {
+					auto &children = field_id->children.Ids();
+					auto it = children.find(child_name);
+					if (it != children.end()) {
 						child_field_id = it->second;
 					}
 				}
@@ -216,8 +217,9 @@ public:
 			// if the type is a map, we cannot union the elements with null
 			auto is_map = type.id() == LogicalTypeId::MAP;
 			if (field_id) {
-				auto it = field_id->children.find("list");
-				if (it != field_id->children.end()) {
+				auto &children = field_id->children.Ids();
+				auto it = children.find("list");
+				if (it != children.end()) {
 					element_field_id = it->second;
 				}
 			}
@@ -266,8 +268,9 @@ public:
 			auto &name = names[i];
 			auto &type = types[i];
 			optional_ptr<avro::FieldID> field_id;
-			auto it = field_ids.find(name);
-			if (it != field_ids.end()) {
+			auto &children = field_ids.Ids();
+			auto it = children.find(name);
+			if (it != children.end()) {
 				field_id = it->second;
 			}
 			yyjson_mut_arr_add_val(array, CreateJSONType(name, type, field_id, true));
@@ -289,7 +292,7 @@ public:
 	const vector<LogicalType> &types;
 
 	string root_name = "root";
-	case_insensitive_map_t<avro::FieldID> field_ids;
+	avro::ChildFieldIDs field_ids;
 	idx_t generated_name_id = 0;
 	yyjson_mut_doc *doc = nullptr;
 	yyjson_mut_val *root_object;
