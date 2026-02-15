@@ -10,6 +10,9 @@ namespace avro {
 constexpr const char *FieldID::DUCKDB_FIELD_ID;
 
 case_insensitive_map_t<FieldID> &ChildFieldIDs::Ids() {
+	if (!ids) {
+		ids = make_uniq<case_insensitive_map_t<FieldID>>();
+	}
 	return *ids;
 }
 
