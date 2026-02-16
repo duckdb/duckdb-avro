@@ -2,6 +2,7 @@
 
 #include "duckdb/common/helper.hpp"
 #include "avro_type.hpp"
+#include "avro_copy.hpp"
 #include "duckdb/common/multi_file/base_file_reader.hpp"
 
 namespace duckdb {
@@ -32,7 +33,8 @@ public:
 	avro_value_t value;
 	unique_ptr<Vector> read_vec;
 
-	BufferHandle buf_handle;
+	unique_ptr<AvroInMemoryBuffer> file_buffer;
+	idx_t file_size = 0;
 	AvroType avro_type;
 	LogicalType duckdb_type;
 };

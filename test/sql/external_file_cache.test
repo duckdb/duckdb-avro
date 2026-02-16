@@ -31,8 +31,9 @@ FROM read_avro('test/bigdata.avro') ORDER BY c1 LIMIT 10
 statement ok
 from read_avro('test/userdata1.avro');
 
-query IIII
-from duckdb_external_file_cache() order by path;
+# Verify files are cached (chunked reading creates multiple cache entries per file)
+query II
+SELECT path, sum(nr_bytes) as total_bytes FROM duckdb_external_file_cache() GROUP BY path ORDER BY path;
 ----
-test/bigdata.avro	17647257	0	true
-test/userdata1.avro	93561	0	true
+test/bigdata.avro	17647257
+test/userdata1.avro	93561
