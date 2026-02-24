@@ -6,6 +6,7 @@
 #include "yyjson.hpp"
 #include "duckdb/common/printer.hpp"
 #include "field_ids.hpp"
+#include "duckdb/common/types/uuid.hpp"
 #include "errno.h"
 
 using namespace duckdb_yyjson; // NOLINT
@@ -45,6 +46,25 @@ static string ConvertTypeToAvro(const LogicalType &type) {
 		return "null";
 	case LogicalTypeId::STRUCT:
 		return "record";
+	case LogicalTypeId::DATE:
+		return "int";
+	case LogicalTypeId::TIME: {
+		return "long";
+	}
+	case LogicalTypeId::TIMESTAMP:
+	case LogicalTypeId::TIMESTAMP_MS: {
+		// captures
+		// timestamp-micros
+		return "long";
+	}
+	case LogicalTypeId::TIMESTAMP_TZ: {
+		// timestamp tz will capture
+		// local-timestamp-micros
+		return "long";
+	}
+	case LogicalTypeId::DECIMAL: {
+		return "fixed";
+	}
 	case LogicalTypeId::ENUM:
 		//! FIXME: this should be implemented at some point
 		throw NotImplementedException("Can't convert logical type '%s' to Avro type", type.ToString());
@@ -58,6 +78,89 @@ static string ConvertTypeToAvro(const LogicalType &type) {
 	};
 
 	//! FIXME: we don't have support for 'FIXED' currently (a fixed size blob)
+}
+
+static string GetTemporalLogicalType(const LogicalType &type) {
+	switch (type.id()) {
+	case LogicalTypeId::DATE:
+		return "date";
+	case LogicalTypeId::TIME: {
+		// TODO: avro has a difference between time millis and time micros
+		//       millis is type:int, micros type:long
+		//       I think we will only support micros type long for now
+		return "time-micros";
+	}
+	case LogicalTypeId::TIMESTAMP:
+	case LogicalTypeId::TIMESTAMP_MS: {
+		// captures
+		// timestamp-micros
+		return "timestamp-micros";
+	}
+	case LogicalTypeId::TIMESTAMP_TZ: {
+		// timestamp tz will capture
+		// local-timestamp-micros
+		return "timestamp-micros";
+	}
+	case LogicalTypeId::TIMESTAMP_NS: {
+		return "timestamp-nanos";
+	}
+	default:
+		throw NotImplementedException("Can't convert logical type '%s' to Avro temporal type", type.ToString());
+	}
+}
+
+static bool RequiresLogicalType(const LogicalType &type) {
+	return type.IsTemporal() || type.id() == LogicalTypeId::DECIMAL || type.id() == LogicalTypeId::UUID;
+}
+
+uint32_t MinBytesRequiredForDecimal(int32_t precision) {
+	// Number of bits needed: ceil(precision * log2(10)) + 1 (sign bit)
+	// log2(10) ~ 10/3, but more precisely we use the fact that
+	// 10^P requires ceil(P * log2(10)) bits.
+	// Exact bit counts per precision bracket:
+	static constexpr int32_t BITS_REQUIRED[] = {
+	    0,   // precision 0 (unused)
+	    4,   // 1  -> max 9
+	    7,   // 2  -> max 99
+	    10,  // 3  -> max 999
+	    14,  // 4  -> max 9999
+	    17,  // 5
+	    20,  // 6
+	    24,  // 7
+	    27,  // 8
+	    30,  // 9
+	    34,  // 10
+	    37,  // 11
+	    40,  // 12
+	    44,  // 13
+	    47,  // 14
+	    50,  // 15
+	    54,  // 16
+	    57,  // 17
+	    60,  // 18
+	    64,  // 19
+	    67,  // 20
+	    70,  // 21
+	    74,  // 22
+	    77,  // 23
+	    80,  // 24
+	    84,  // 25
+	    87,  // 26
+	    90,  // 27
+	    94,  // 28
+	    97,  // 29
+	    100, // 30
+	    103, // 31
+	    107, // 32
+	    110, // 33
+	    113, // 34
+	    117, // 35
+	    120, // 36
+	    123, // 37
+	    127, // 38
+	};
+	auto ret = (BITS_REQUIRED[precision] + 7) / 8; // ceil(bits / 8)
+	return ret;
 }
 
 static bool IsNamedSchema(const LogicalType &type) {
@@ -141,7 +244,7 @@ public:
 	yyjson_mut_val *CreateJSONType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
 	                               bool struct_field = false, bool union_null = true) {
 		yyjson_mut_val *object;
-		if (!type.IsNested()) {
+		if (!type.IsNested() && !RequiresLogicalType(type)) {
 			object = yyjson_mut_obj(doc);
 			yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
 			// {
@@ -155,7 +258,31 @@ public:
 				VerifyAvroName(name, type);
 				yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
 			}
-		} else {
+		}
+		if (type.IsTemporal()) {
+			object = CreateTemporalType(name, type, field_id);
+		}
+		if (type.id() == LogicalTypeId::DECIMAL) {
+			object = yyjson_mut_obj(doc);
+			auto scale = DecimalType::GetScale(type);
+			auto width = DecimalType::GetWidth(type);
+			yyjson_mut_obj_add_strcpy(doc, object, "type", "fixed");
+			// add temporary name type because duckdb-avro-c requires it
+			yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
+			yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "decimal");
+			yyjson_mut_obj_add_uint(doc, object, "scale", scale);
+			yyjson_mut_obj_add_uint(doc, object, "precision", width);
+			yyjson_mut_obj_add_uint(doc, object, "size", MinBytesRequiredForDecimal(width));
+		}
+		if (type.id() == LogicalTypeId::UUID) {
+			object = yyjson_mut_obj(doc);
+			yyjson_mut_obj_add_strcpy(doc, object, "type", "fixed");
+			// add temporary name type because duckdb-avro-c requires it
+			yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
+			yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "uuid");
+			yyjson_mut_obj_add_uint(doc, object, "size", 16);
+		}
+		if (type.IsNested()) {
 			object = CreateNestedType(name, type, field_id);
 		}
 
@@ -179,6 +306,19 @@ public:
 		}
 
 		return wrapper;
+	}
+
+	yyjson_mut_val *CreateTemporalType(const string &name, const LogicalType &type,
+	                                   optional_ptr<avro::FieldID> field_id) {
+		D_ASSERT(type.IsTemporal());
+		auto object = yyjson_mut_obj(doc);
+		yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
+		VerifyAvroName(name, type);
+		yyjson_mut_obj_add_strcpy(doc, object, "logicalType", GetTemporalLogicalType(type).c_str());
+		if (type == LogicalTypeId::TIMESTAMP_TZ) {
+			yyjson_mut_obj_add_bool(doc, object, "adjust-to-utc", true);
+		}
+		return object;
 	}
 
 	yyjson_mut_val *CreateNestedType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
@@ -243,8 +383,8 @@ public:
 				auto union_type = yyjson_mut_obj_add_arr(doc, object, "items");
 				yyjson_mut_arr_add_strcpy(doc, union_type, "null");
 				if (list_child.IsNested()) {
-					yyjson_mut_arr_add_val(
-					    union_type, CreateNestedType(GenerateSchemaName("list"), list_child, element_field_id));
+					yyjson_mut_arr_add_val(union_type,
+					                       CreateNestedType(GenerateSchemaName("list"), list_child, element_field_id));
 				} else {
 					yyjson_mut_arr_add_strcpy(doc, union_type, ConvertTypeToAvro(list_child).c_str());
 				}
@@ -462,8 +602,6 @@ static unique_ptr<GlobalFunctionData> WriteAvroInitializeGlobal(ClientContext &c
 	return std::move(res);
 }
 
-static idx_t PopulateValue(avro_value_t *target, const Value &val);
-
 static idx_t PopulateValue(avro_value_t *target, const Value &val) {
 	auto &type = val.type();
 
@@ -515,6 +653,117 @@ static idx_t PopulateValue(avro_value_t *target, const Value &val) {
 		auto str = val.GetValueUnsafe<string_t>();
 		avro_value_set_string_len(target, str.GetData(), str.GetSize() + 1);
 		return str.GetSize();
+	}
+	case LogicalTypeId::DATE: {
+		auto date = val.GetValueUnsafe<date_t>();
+		avro_value_set_int(target, Date::EpochDays(date));
+		return sizeof(int32_t);
+	}
+	case LogicalTypeId::TIME: {
+		auto date = val.GetValueUnsafe<dtime_t>();
+		avro_value_set_long(target, date.micros);
+		return sizeof(int64_t);
+	}
+	case LogicalTypeId::TIMESTAMP:
+	case LogicalTypeId::TIMESTAMP_MS: {
+		auto date = val.GetValueUnsafe<timestamp_t>();
+		avro_value_set_long(target, date.value);
+		return sizeof(int64_t);
+	}
+	case LogicalTypeId::TIMESTAMP_TZ: {
+		auto date = val.GetValueUnsafe<timestamp_tz_t>();
+
+		avro_value_set_long(target, date.value);
+		return sizeof(int64_t);
+	}
+	case LogicalTypeId::UUID: {
+		auto uuid = val.GetValueUnsafe<hugeint_t>();
+		uint8_t bytes[16];
+		BaseUUID::ToBlob(uuid, data_ptr_cast(bytes));
+		avro_value_set_fixed(target, bytes, 16);
+		return 16;
+	}
+	case LogicalTypeId::DECIMAL: {
+		// Avro expects the unscaled integer serialized as big-endian two's complement bytes. The physical value IS
+		// already the unscaled integer, you just need to convert byte order
+		uint8_t bytes[16];
+		idx_t byte_count;
+		switch (val.type().InternalType()) {
+		case PhysicalType::INT16: {
+			auto bytes_needed = MinBytesRequiredForDecimal(DecimalType::GetWidth(type));
+			int16_t scaled_int16 = val.GetValueUnsafe<int16_t>();
+			vector<uint8_t> big_endian_bytes;
+			auto int16_bytes = sizeof(int16_t);
+			// push back the last X bytes to big_endian_bytes
+			// where X = bytes_needed
+			for (int i = (int16_bytes - bytes_needed); i < int16_bytes; i++) {
+				uint8_t get_8 = static_cast<uint8_t>(static_cast<int16_t>(scaled_int16 >> ((int16_bytes - i - 1) * 8)));
+				big_endian_bytes.push_back(get_8);
+			}
+			for (int i = 0; i < bytes_needed; i++) {
+				bytes[i] = big_endian_bytes[i];
+			}
+			byte_count = bytes_needed;
+			break;
+		}
+		case PhysicalType::INT32: {
+			auto bytes_needed = MinBytesRequiredForDecimal(DecimalType::GetWidth(type));
+			int32_t scaled_int32 = val.GetValueUnsafe<int32_t>();
+			vector<uint8_t> big_endian_bytes;
+			auto int64_bytes = sizeof(int32_t);
+			// push back the last X bytes to big_endian_bytes
+			// where X = bytes_needed
+			for (int i = (int64_bytes - bytes_needed); i < int64_bytes; i++) {
+				uint8_t get_8 = static_cast<uint8_t>(static_cast<int32_t>(scaled_int32 >> ((int64_bytes - i - 1) * 8)));
+				big_endian_bytes.push_back(get_8);
+			}
+			for (int i = 0; i < bytes_needed; i++) {
+				bytes[i] = big_endian_bytes[i];
+			}
+			byte_count = bytes_needed;
+			break;
+		}
+		case PhysicalType::INT64: {
+			auto bytes_needed = MinBytesRequiredForDecimal(DecimalType::GetWidth(type));
+			int64_t unscaled_uint64 = val.GetValueUnsafe<int64_t>();
+			vector<uint8_t> big_endian_bytes;
+			auto int64_bytes = sizeof(int64_t);
+			// push back the last X bytes to big_endian_bytes
+			// where X = bytes_needed
+			for (int i = (int64_bytes - bytes_needed); i < int64_bytes; i++) {
+				uint8_t get_8 =
+				    static_cast<uint8_t>(static_cast<int64_t>(unscaled_uint64 >> ((int64_bytes - i - 1) * 8)));
+				big_endian_bytes.push_back(get_8);
+			}
+			for (int i = 0; i < bytes_needed; i++) {
+				bytes[i] = big_endian_bytes[i];
+			}
+			byte_count = bytes_needed;
+			break;
+		}
+		case PhysicalType::INT128: {
+			auto bytes_needed = MinBytesRequiredForDecimal(DecimalType::GetWidth(type));
+			hugeint_t unscaled_hugeint = val.GetValueUnsafe<hugeint_t>();
+			vector<uint8_t> big_endian_bytes;
+			auto huge_int_bytes = sizeof(hugeint_t);
+			// push back the last X bytes to big_endian_bytes
+			// where X = bytes_needed
+			for (int i = (huge_int_bytes - bytes_needed); i < huge_int_bytes; i++) {
+				uint8_t get_8 =
+				    static_cast<uint8_t>(static_cast<uhugeint_t>(unscaled_hugeint >> ((huge_int_bytes - i - 1) * 8)));
+				big_endian_bytes.push_back(get_8);
+			}
+			for (int i = 0; i < bytes_needed; i++) {
+				bytes[i] = big_endian_bytes[i];
+			}
+			byte_count = bytes_needed;
+			break;
+		}
+		default:
+			throw NotImplementedException("Unsupported decimal physical type");
+		}
+		avro_value_set_fixed(target, bytes, byte_count);
+		return byte_count;
 	}
 	case LogicalTypeId::ENUM: {
 		//! TODO: add support for ENUM
