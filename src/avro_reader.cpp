@@ -46,6 +46,11 @@ static LogicalType AvroLogicalTypeToLogicalType(avro_schema_t &avro_schema) {
 		}
 		return LogicalType::UUID;
 	}
+	if (logical_type == "time-millis" || logical_type == "timestamp-millis" ||
+	    logical_type == "local-timestamp-millis") {
+		throw NotImplementedException(
+		    "Avro logical type %s not supported. Please convert temporal types to micro first", logical_type);
+	}
 	throw NotImplementedException("Unknown Avro logical type %s", logical_type);
 }
 
