@@ -9,7 +9,7 @@ namespace duckdb {
 
 static LogicalType AvroLogicalTypeToLogicalType(avro_schema_t &avro_schema) {
 	auto logical_type_raw = avro_schema_logical_type(avro_schema);
-	if (!logical_type_raw) {
+	if (!logical_type_raw || avro_schema_array_is_map(avro_schema)) {
 		return LogicalType::INVALID;
 	}
 	string logical_type = logical_type_raw;
