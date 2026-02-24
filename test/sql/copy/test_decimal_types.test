@@ -1,0 +1,155 @@
+# name: test/sql/copy/test_decimal_types.test
+# group: [copy]
+
+require avro
+
+require icu
+
+statement ok
+COPY (
+    from values (12.23232::DECIMAL(18,5)), (NULL) t(decimal_col)
+) TO '__TEST_DIR__/decimal_type.avro';
+
+query I
+SELECT typeof(decimal_col) FROM read_avro('__TEST_DIR__/decimal_type.avro') LIMIT 1;
+----
+DECIMAL(18,5)
+
+query I
+SELECT decimal_col FROM read_avro('__TEST_DIR__/decimal_type.avro') ORDER BY decimal_col NULLS LAST;
+----
+12.23232
+NULL
+
+statement ok
+COPY (
+    from values (-12.23232::DECIMAL(18,5)), (NULL) t(decimal_col)
+) TO '__TEST_DIR__/decimal_type.avro';
+
+query I
+SELECT typeof(decimal_col) FROM read_avro('__TEST_DIR__/decimal_type.avro') LIMIT 1;
+----
+DECIMAL(18,5)
+
+query I
+SELECT decimal_col FROM read_avro('__TEST_DIR__/decimal_type.avro') ORDER BY decimal_col NULLS LAST;
+----
+-12.23232
+NULL
+
+
+statement ok
+COPY (
+    from values (1000000000.3::DECIMAL(20,1)), (NULL) t(decimal_col)
+) TO '__TEST_DIR__/decimal_type.avro';
+
+query I
+SELECT typeof(decimal_col) FROM read_avro('__TEST_DIR__/decimal_type.avro') LIMIT 1;
+----
+DECIMAL(20,1)
+
+query I
+SELECT decimal_col FROM read_avro('__TEST_DIR__/decimal_type.avro') ORDER BY decimal_col NULLS LAST;
+----
+1000000000.3
+NULL
+
+
+# check sign extensions on decimal scales > 18
+statement ok
+COPY (
+    from values (-1000000000.3::DECIMAL(20,1)), (NULL) t(decimal_col)
+) TO '__TEST_DIR__/decimal_type.avro';
+
+query I
+SELECT typeof(decimal_col) FROM read_avro('__TEST_DIR__/decimal_type.avro') LIMIT 1;
+----
+DECIMAL(20,1)
+
+query I
+SELECT decimal_col FROM read_avro('__TEST_DIR__/decimal_type.avro') ORDER BY decimal_col NULLS LAST;
+----
+-1000000000.3
+NULL
+
+
+
+statement ok
+COPY (
+    from values (1000000000.3::DECIMAL(19,1)), (NULL) t(decimal_col)
+) TO '__TEST_DIR__/decimal_type.avro';
+
+query I
+SELECT typeof(decimal_col) FROM read_avro('__TEST_DIR__/decimal_type.avro') LIMIT 1;
+----
+DECIMAL(19,1)
+
+query I
+SELECT decimal_col FROM read_avro('__TEST_DIR__/decimal_type.avro') ORDER BY decimal_col NULLS LAST;
+----
+1000000000.3
+NULL
+
+
+# check sign extensions on decimal scales > 18
+statement ok
+COPY (
+    from values (-1000000000.3::DECIMAL(19,1)), (NULL) t(decimal_col)
+) TO '__TEST_DIR__/decimal_type.avro';
+
+query I
+SELECT typeof(decimal_col) FROM read_avro('__TEST_DIR__/decimal_type.avro') LIMIT 1;
+----
+DECIMAL(19,1)
+
+
+# test different width types
+loop i 2 38
+
+statement ok
+COPY (
+    from values (1.3::DECIMAL(${i},1)), (NULL) t(decimal_col)
+) TO '__TEST_DIR__/decimal_type.avro';
+
+query I
+SELECT decimal_col FROM read_avro('__TEST_DIR__/decimal_type.avro') ORDER BY decimal_col NULLS LAST;
+----
+1.3
+NULL
+
+
+# check sign extensions on decimal scales > 18
+statement ok
+COPY (
+    from values (-1.3::DECIMAL(${i},1)), (NULL) t(decimal_col)
+) TO '__TEST_DIR__/decimal_type.avro';
+
+
+query I
+SELECT decimal_col FROM read_avro('__TEST_DIR__/decimal_type.avro') ORDER BY decimal_col NULLS LAST;
+----
+-1.3
+NULL
+
+endloop
+
+statement ok
+COPY (
+    select dec_9_4, dec_4_1, dec38_10, dec_18_6 from test_all_types()
+) TO '__TEST_DIR__/decimal_type.avro';
+
+query IIII
+SELECT  dec_9_4, dec_4_1, dec38_10, dec_18_6 FROM read_avro('__TEST_DIR__/decimal_type.avro') ORDER BY dec38_10 NULLS LAST;
+----
+-99999.9999	-999.9	-9999999999999999999999999999.9999999999	-999999999999.999999
+99999.9999	999.9	9999999999999999999999999999.9999999999	999999999999.999999
+NULL	NULL	NULL	NULL
+
+# check error on extreme width values > 38
+statement error
+COPY (
+    from values (-1.3::DECIMAL(10000,1)), (NULL) t(decimal_col)
+) TO '__TEST_DIR__/decimal_type.avro';
+----
+<REGEX>:.*DECIMAL type width must be between 1 and 38.*
+

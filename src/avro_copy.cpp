@@ -85,20 +85,11 @@ static string GetTemporalLogicalType(const LogicalType &type) {
 	case LogicalTypeId::DATE:
 		return "date";
 	case LogicalTypeId::TIME: {
-		// TODO: avro has a difference between time millis and time micros
-		//       millis is type:int, micros type:long
-		//       I think we will only support micros type long for now
 		return "time-micros";
 	}
 	case LogicalTypeId::TIMESTAMP:
-	case LogicalTypeId::TIMESTAMP_MS: {
-		// captures
-		// timestamp-micros
-		return "timestamp-micros";
-	}
+	case LogicalTypeId::TIMESTAMP_MS:
 	case LogicalTypeId::TIMESTAMP_TZ: {
-		// timestamp tz will capture
-		// local-timestamp-micros
 		return "timestamp-micros";
 	}
 	case LogicalTypeId::TIMESTAMP_NS: {
@@ -602,6 +593,18 @@ static unique_ptr<GlobalFunctionData> WriteAvroInitializeGlobal(ClientContext &c
 	return std::move(res);
 }
 
+template <typename T, typename ShiftT = T>
+static idx_t WriteDecimalAsFixedBytes(const Value &val, uint8_t *bytes, const LogicalType &type) {
+	auto bytes_needed = MinBytesRequiredForDecimal(DecimalType::GetWidth(type));
+	T value = val.GetValueUnsafe<T>();
+	auto type_bytes = static_cast<int>(sizeof(T));
+	auto start = type_bytes - static_cast<int>(bytes_needed);
+	for (int i = start; i < type_bytes; i++) {
+		bytes[i - start] = static_cast<uint8_t>(static_cast<ShiftT>(value >> ((type_bytes - i - 1) * 8)));
+	}
+	return bytes_needed;
+}
+
 static idx_t PopulateValue(avro_value_t *target, const Value &val) {
 	auto &type = val.type();
 
@@ -689,76 +692,18 @@ static idx_t PopulateValue(avro_value_t *target, const Value &val) {
 		uint8_t bytes[16];
 		idx_t byte_count;
 		switch (val.type().InternalType()) {
-		case PhysicalType::INT16: {
-			auto bytes_needed = MinBytesRequiredForDecimal(DecimalType::GetWidth(type));
-			int16_t scaled_int16 = val.GetValueUnsafe<int16_t>();
-			vector<uint8_t> big_endian_bytes;
-			auto int16_bytes = sizeof(int16_t);
-			// push back the last X bytes to big_endian_bytes
-			// where X = bytes_needed
-			for (int i = (int16_bytes - bytes_needed); i < int16_bytes; i++) {
-				uint8_t get_8 = static_cast<uint8_t>(static_cast<int16_t>(scaled_int16 >> ((int16_bytes - i - 1) * 8)));
-				big_endian_bytes.push_back(get_8);
-			}
-			for (int i = 0; i < bytes_needed; i++) {
-				bytes[i] = big_endian_bytes[i];
-			}
-			byte_count = bytes_needed;
+		case PhysicalType::INT16:
+			byte_count = WriteDecimalAsFixedBytes<int16_t>(val, bytes, type);
 			break;
-		}
-		case PhysicalType::INT32: {
-			auto bytes_needed = MinBytesRequiredForDecimal(DecimalType::GetWidth(type));
-			int32_t scaled_int32 = val.GetValueUnsafe<int32_t>();
-			vector<uint8_t> big_endian_bytes;
-			auto int64_bytes = sizeof(int32_t);
-			// push back the last X bytes to big_endian_bytes
-			// where X = bytes_needed
-			for (int i = (int64_bytes - bytes_needed); i < int64_bytes; i++) {
-				uint8_t get_8 = static_cast<uint8_t>(static_cast<int32_t>(scaled_int32 >> ((int64_bytes - i - 1) * 8)));
-				big_endian_bytes.push_back(get_8);
-			}
-			for (int i = 0; i < bytes_needed; i++) {
-				bytes[i] = big_endian_bytes[i];
-			}
-			byte_count = bytes_needed;
+		case PhysicalType::INT32:
+			byte_count = WriteDecimalAsFixedBytes<int32_t>(val, bytes, type);
 			break;
-		}
-		case PhysicalType::INT64: {
-			auto bytes_needed = MinBytesRequiredForDecimal(DecimalType::GetWidth(type));
-			int64_t unscaled_uint64 = val.GetValueUnsafe<int64_t>();
-			vector<uint8_t> big_endian_bytes;
-			auto int64_bytes = sizeof(int64_t);
-			// push back the last X bytes to big_endian_bytes
-			// where X = bytes_needed
-			for (int i = (int64_bytes - bytes_needed); i < int64_bytes; i++) {
-				uint8_t get_8 =
-				    static_cast<uint8_t>(static_cast<int64_t>(unscaled_uint64 >> ((int64_bytes - i - 1) * 8)));
-				big_endian_bytes.push_back(get_8);
-			}
-			for (int i = 0; i < bytes_needed; i++) {
-				bytes[i] = big_endian_bytes[i];
-			}
-			byte_count = bytes_needed;
+		case PhysicalType::INT64:
+			byte_count = WriteDecimalAsFixedBytes<int64_t>(val, bytes, type);
 			break;
-		}
-		case PhysicalType::INT128: {
-			auto bytes_needed = MinBytesRequiredForDecimal(DecimalType::GetWidth(type));
-			hugeint_t unscaled_hugeint = val.GetValueUnsafe<hugeint_t>();
-			vector<uint8_t> big_endian_bytes;
-			auto huge_int_bytes = sizeof(hugeint_t);
-			// push back the last X bytes to big_endian_bytes
-			// where X = bytes_needed
-			for (int i = (huge_int_bytes - bytes_needed); i < huge_int_bytes; i++) {
-				uint8_t get_8 =
-				    static_cast<uint8_t>(static_cast<uhugeint_t>(unscaled_hugeint >> ((huge_int_bytes - i - 1) * 8)));
-				big_endian_bytes.push_back(get_8);
-			}
-			for (int i = 0; i < bytes_needed; i++) {
-				bytes[i] = big_endian_bytes[i];
-			}
-			byte_count = bytes_needed;
+		case PhysicalType::INT128:
+			byte_count = WriteDecimalAsFixedBytes<hugeint_t, uhugeint_t>(val, bytes, type);
 			break;
-		}
 		default:
 			throw NotImplementedException("Unsupported decimal physical type");
 		}
