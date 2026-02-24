@@ -9,8 +9,18 @@ namespace duckdb {
 
 static LogicalType AvroLogicalTypeToLogicalType(avro_schema_t &avro_schema) {
 	auto logical_type_raw = avro_schema_logical_type(avro_schema);
-	if (!logical_type_raw || avro_schema_array_is_map(avro_schema)) {
+	if (!logical_type_raw) {
 		return LogicalType::INVALID;
+	}
+	// any nested types are handled switch case in TransformSchema
+	switch (avro_typeof(avro_schema)) {
+	case AVRO_ARRAY:
+	case AVRO_ENUM:
+	case AVRO_MAP:
+	case AVRO_RECORD:
+		return LogicalType::INVALID;
+	default:
+		break;
 	}
 	string logical_type = logical_type_raw;
 	if (logical_type == "date") {
