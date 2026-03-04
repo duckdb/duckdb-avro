@@ -1,5 +1,6 @@
 #include "avro_multi_file_info.hpp"
 #include "avro_reader.hpp"
+#include <avro.h>
 
 namespace duckdb {
 
@@ -125,6 +126,14 @@ AsyncResult AvroReader::Scan(ClientContext &context, GlobalTableFunctionState &g
                       LocalTableFunctionState &local_state_p, DataChunk &chunk) {
 	Read(chunk);
 	return chunk.size() ? AsyncResult(SourceResultType::HAVE_MORE_OUTPUT) : AsyncResult(SourceResultType::FINISHED);
+}
+
+string AvroReader::GetMetadataValue(const string &key) const {
+	auto res = avro_file_reader_get_metadata(reader, key.c_str());
+	if (!res) {
+		return string();
+	}
+	return res;
 }
 
 unique_ptr<NodeStatistics> AvroMultiFileInfo::GetCardinality(const MultiFileBindData &bind_data, idx_t file_count) {

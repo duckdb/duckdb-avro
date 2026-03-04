@@ -1,19 +1,19 @@
 {
-	"dependencies": [
-		"avro-c"
-	],
-	"vcpkg-configuration": {
-		"registries": [
-			{
-				"kind": "git",
-				"repository": "https://github.com/duckdb/vcpkg-duckdb-ports",
-				"baseline": "02558971ebafdbaa697a0704a3ed7ba365cd5495",
-				"packages": [
-					"vcpkg-cmake",
-					"avro-c"
-				]
-			}
-		]
-	},
-	"builtin-baseline": "ce613c41372b23b1f51333815feb3edd87ef8a8b"
+  "vcpkg-configuration": {
+    "registries": [
+      {
+        "kind": "git",
+        "baseline": "0f0b88b078684bf49ab721b9755e5c899337a046",
+        "repository": "https://github.com/tishj/vcpkg-duckdb-ports",
+        "packages": [
+          "vcpkg-cmake",
+          "avro-c"
+        ]
+      }
+    ]
+  },
+  "builtin-baseline": "84bab45d415d22042bd0b9081aea57f362da3f35",
+  "dependencies": [
+    "avro-c"
+  ]
 }
