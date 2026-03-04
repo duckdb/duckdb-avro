@@ -243,8 +243,8 @@ public:
 				auto union_type = yyjson_mut_obj_add_arr(doc, object, "items");
 				yyjson_mut_arr_add_strcpy(doc, union_type, "null");
 				if (list_child.IsNested()) {
-					yyjson_mut_arr_add_val(
-					    union_type, CreateNestedType(GenerateSchemaName("list"), list_child, element_field_id));
+					yyjson_mut_arr_add_val(union_type,
+					                       CreateNestedType(GenerateSchemaName("list"), list_child, element_field_id));
 				} else {
 					yyjson_mut_arr_add_strcpy(doc, union_type, ConvertTypeToAvro(list_child).c_str());
 				}

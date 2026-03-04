@@ -47,7 +47,7 @@ include_directories(src/include)
 
 set(EXTENSION_SOURCES
     src/avro_extension.cpp src/avro_reader.cpp src/avro_copy.cpp
-    src/field_ids.cpp src/avro_multi_file_info.cpp)
+    src/field_ids.cpp src/avro_multi_file_info.cpp src/avro_metadata.cpp)
 
 build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
 build_loadable_extension(${TARGET_NAME} " " ${EXTENSION_SOURCES})

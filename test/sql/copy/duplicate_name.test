@@ -1,3 +1,6 @@
+# name: test/sql/copy/duplicate_name.test
+# group: [copy]
+
 require avro
 
 statement ok

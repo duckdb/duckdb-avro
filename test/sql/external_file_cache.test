@@ -1,6 +1,6 @@
 # name: test/sql/external_file_cache.test
 # description: test avro extension and external file cache
-# group: [avro]
+# group: [sql]
 
 require avro
 
