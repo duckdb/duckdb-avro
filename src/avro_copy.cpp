@@ -52,6 +52,7 @@ static string ConvertTypeToAvro(const LogicalType &type) {
 		return "long";
 	}
 	case LogicalTypeId::TIMESTAMP:
+	case LogicalTypeId::TIMESTAMP_NS:
 	case LogicalTypeId::TIMESTAMP_MS: {
 		// captures
 		// timestamp-micros
@@ -668,6 +669,7 @@ static idx_t PopulateValue(avro_value_t *target, const Value &val) {
 		return sizeof(int64_t);
 	}
 	case LogicalTypeId::TIMESTAMP:
+	case LogicalTypeId::TIMESTAMP_NS:
 	case LogicalTypeId::TIMESTAMP_MS: {
 		auto date = val.GetValueUnsafe<timestamp_t>();
 		avro_value_set_long(target, date.value);
