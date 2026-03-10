@@ -44,7 +44,7 @@ static LogicalType AvroLogicalTypeToLogicalType(avro_schema_t &avro_schema) {
 	}
 	if (logical_type == "timestamp-nanos") {
 		auto adjust_to_utc = avro_schema_adjust_to_utc(avro_schema);
-		if (adjust_to_utc) {
+		if (adjust_to_utc > 0) {
 			throw NotImplementedException("Avro timestamp-nanos with adjust_to_utc not supported");
 		}
 		return LogicalType::TIMESTAMP_NS;
