@@ -235,52 +235,51 @@ public:
 
 	yyjson_mut_val *CreateJSONType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
 	                               bool struct_field = false, bool union_null = true) {
-		yyjson_mut_val *object;
-		if (!type.IsNested() && !RequiresLogicalType(type)) {
-			object = yyjson_mut_obj(doc);
-			yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
-			// {
-			//    "type": "bool"
-			//    < additional fields >
-			// }
-			if (field_id) {
-				yyjson_mut_obj_add_int(doc, object, "field-id", field_id->GetFieldId());
-			}
-			if (struct_field) {
-				VerifyAvroName(name, type);
-				yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
-			}
-		}
-		if (type.IsTemporal()) {
-			object = CreateTemporalType(name, type, field_id);
-		}
-		if (type.id() == LogicalTypeId::DECIMAL) {
-			object = yyjson_mut_obj(doc);
-			auto scale = DecimalType::GetScale(type);
-			auto width = DecimalType::GetWidth(type);
-			yyjson_mut_obj_add_strcpy(doc, object, "type", "fixed");
-			// add temporary name type because duckdb-avro-c requires it
-			yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
-			yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "decimal");
-			yyjson_mut_obj_add_uint(doc, object, "scale", scale);
-			yyjson_mut_obj_add_uint(doc, object, "precision", width);
-			yyjson_mut_obj_add_uint(doc, object, "size", MinBytesRequiredForDecimal(width));
-		}
-		if (type.id() == LogicalTypeId::UUID) {
-			object = yyjson_mut_obj(doc);
-			yyjson_mut_obj_add_strcpy(doc, object, "type", "fixed");
-			// add temporary name type because duckdb-avro-c requires it
-			yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
-			yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "uuid");
-			yyjson_mut_obj_add_uint(doc, object, "size", 16);
-		}
+		yyjson_mut_val *object = nullptr;
+
 		if (type.IsNested()) {
-			object = CreateNestedType(name, type, field_id);
+			object = CreateNestedType(name, type, field_id, union_null);
+		} else {
+			object = yyjson_mut_obj(doc);
+			if (type.IsTemporal()) {
+				VerifyAvroName(name, type);
+				yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
+				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", GetTemporalLogicalType(type).c_str());
+				if (type == LogicalTypeId::TIMESTAMP_TZ) {
+					yyjson_mut_obj_add_bool(doc, object, "adjust-to-utc", true);
+				}
+			} else if (type.id() == LogicalTypeId::DECIMAL) {
+				auto scale = DecimalType::GetScale(type);
+				auto width = DecimalType::GetWidth(type);
+				yyjson_mut_obj_add_strcpy(doc, object, "type", "fixed");
+				yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str()); // required for Avro "fixed" named type
+				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "decimal");
+				yyjson_mut_obj_add_uint(doc, object, "scale", scale);
+				yyjson_mut_obj_add_uint(doc, object, "precision", width);
+				yyjson_mut_obj_add_uint(doc, object, "size", MinBytesRequiredForDecimal(width));
+			} else if (type.id() == LogicalTypeId::UUID) {
+				yyjson_mut_obj_add_strcpy(doc, object, "type", "fixed");
+				yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str()); // required for Avro "fixed" named type
+				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "uuid");
+				yyjson_mut_obj_add_uint(doc, object, "size", 16);
+			} else {
+				// Simple primitive types: {"type": "int"}, {"type": "string"}, etc.
+				yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
+			}
+		}
+
+		if (struct_field && !union_null) {
+			VerifyAvroName(name, type);
+			yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
+		}
+		if (field_id && !union_null) {
+			yyjson_mut_obj_add_uint(doc, object, "field-id", field_id->GetFieldId());
 		}
 
 		if (!union_null) {
 			return object;
 		}
+
 		auto wrapper = yyjson_mut_obj(doc);
 		if (field_id) {
 			yyjson_mut_obj_add_int(doc, wrapper, "field-id", field_id->GetFieldId());
@@ -288,7 +287,6 @@ public:
 		if (struct_field) {
 			yyjson_mut_obj_add_strcpy(doc, wrapper, "name", name.c_str());
 		}
-
 		if (field_id && !field_id->nullable) {
 			yyjson_mut_obj_add_val(doc, wrapper, "type", object);
 		} else {
@@ -296,21 +294,7 @@ public:
 			yyjson_mut_arr_add_strcpy(doc, union_type, "null");
 			yyjson_mut_arr_add_val(union_type, object);
 		}
-
 		return wrapper;
-	}
-
-	yyjson_mut_val *CreateTemporalType(const string &name, const LogicalType &type,
-	                                   optional_ptr<avro::FieldID> field_id) {
-		D_ASSERT(type.IsTemporal());
-		auto object = yyjson_mut_obj(doc);
-		yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
-		VerifyAvroName(name, type);
-		yyjson_mut_obj_add_strcpy(doc, object, "logicalType", GetTemporalLogicalType(type).c_str());
-		if (type == LogicalTypeId::TIMESTAMP_TZ) {
-			yyjson_mut_obj_add_bool(doc, object, "adjust-to-utc", true);
-		}
-		return object;
 	}
 
 	yyjson_mut_val *CreateNestedType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
@@ -366,9 +350,9 @@ public:
 
 			auto &list_child = ListType::GetChildType(type);
 			if (is_map) {
-				// do not union null for first level of items in a map. When map types for iceberg manifeste files are
-				// written if the key/value types are unioned with null, other readers may crash when attempting to read
-				// our files (e.g python-iceberg)
+				// do not union null for first level of items in a map. When map types for iceberg manifeste files
+				// are written if the key/value types are unioned with null, other readers may crash when attempting
+				// to read our files (e.g python-iceberg)
 				yyjson_mut_obj_add_val(doc, object, "items",
 				                       CreateNestedType(GenerateSchemaName("list"), list_child, field_id, false));
 			} else {

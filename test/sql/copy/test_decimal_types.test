@@ -153,3 +153,14 @@ COPY (
 ----
 <REGEX>:.*DECIMAL type width must be between 1 and 38.*
 
+statement ok
+COPY(
+	Select {'a': 12.1234::DECIMAL(17,4), 'b': 12345.12345::DECIMAL(17,5)} struct_col
+) TO '__TEST_DIR__/test_decimal_struct.avro' (FORMAT AVRO);
+
+
+query I
+select * from read_avro('__TEST_DIR__/test_decimal_struct.avro');
+----
+{'a': 12.1234, 'b': 12345.12345}
+
