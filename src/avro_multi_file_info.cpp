@@ -122,7 +122,7 @@ bool AvroReader::TryInitializeScan(ClientContext &context, GlobalTableFunctionSt
 }
 
 AsyncResult AvroReader::Scan(ClientContext &context, GlobalTableFunctionState &global_state,
-                      LocalTableFunctionState &local_state_p, DataChunk &chunk) {
+                             LocalTableFunctionState &local_state_p, DataChunk &chunk) {
 	Read(chunk);
 	return chunk.size() ? AsyncResult(SourceResultType::HAVE_MORE_OUTPUT) : AsyncResult(SourceResultType::FINISHED);
 }

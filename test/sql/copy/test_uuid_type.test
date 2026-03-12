@@ -1,0 +1,29 @@
+# name: test/sql/copy/test_uuid_type.test
+# group: [copy]
+
+require avro
+
+require icu
+
+# ---- DATE ----
+
+statement ok
+create table uuid as from values (UUID()::UUID), (NULL) t(uuid_col);
+
+statement ok
+COPY (
+    from uuid
+) TO '__TEST_DIR__/uuid_type.avro';
+
+query I
+SELECT typeof(uuid_col) FROM read_avro('__TEST_DIR__/uuid_type.avro') LIMIT 1;
+----
+UUID
+
+query I nosort result_file
+SELECT uuid_col FROM read_avro('__TEST_DIR__/uuid_type.avro') ORDER BY uuid_col NULLS LAST;
+----
+
+query I nosort result_file
+select * from uuid;
+----
