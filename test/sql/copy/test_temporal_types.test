@@ -13,7 +13,7 @@ COPY (
 ) TO '__TEST_DIR__/date_type.avro';
 
 query I
-SELECT typeof(date_col) FROM read_avro('/Users/tomebergen/git/duckdb-avro/date_type.avro') LIMIT 1;
+SELECT typeof(date_col) FROM read_avro('__TEST_DIR__/date_type.avro') LIMIT 1;
 ----
 DATE
 
