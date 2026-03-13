@@ -2,6 +2,8 @@
 
 #include "duckdb/common/enums/file_compression_type.hpp"
 #include "duckdb/common/file_system.hpp"
+#include "duckdb/common/string_util.hpp"
+#include "duckdb/common/types.hpp"
 #include "duckdb/function/function.hpp"
 #include "yyjson.hpp"
 #include "duckdb/common/printer.hpp"
@@ -281,19 +283,36 @@ public:
 		}
 
 		auto wrapper = yyjson_mut_obj(doc);
-		if (field_id) {
-			yyjson_mut_obj_add_int(doc, wrapper, "field-id", field_id->GetFieldId());
-		}
 		if (struct_field) {
 			yyjson_mut_obj_add_strcpy(doc, wrapper, "name", name.c_str());
 		}
 		if (field_id && !field_id->nullable) {
-			yyjson_mut_obj_add_val(doc, wrapper, "type", object);
+			if (type.IsNested() || type.IsTemporal() || type.id() == LogicalTypeId::DECIMAL ||
+			    type.id() == LogicalTypeId::UUID) {
+				yyjson_mut_obj_add_val(doc, wrapper, "type", object);
+			} else {
+				yyjson_mut_obj_add_strcpy(doc, wrapper, "type", ConvertTypeToAvro(type).c_str());
+			}
 		} else {
 			auto union_type = yyjson_mut_obj_add_arr(doc, wrapper, "type");
 			yyjson_mut_arr_add_strcpy(doc, union_type, "null");
-			yyjson_mut_arr_add_val(union_type, object);
+			// if the type requires its own json object, the type array becomes
+			// ["null", {"logicalType": "UUID", ...}]
+			if (type.IsNested() || type.IsTemporal() || type.id() == LogicalTypeId::DECIMAL ||
+			    type.id() == LogicalTypeId::UUID) {
+				yyjson_mut_arr_add_val(union_type, object);
+			} else {
+				// If the type is a simple type, we just add it to the wrapper ["null", "int"]
+				yyjson_mut_arr_add_strcpy(doc, union_type, ConvertTypeToAvro(type).c_str());
+			}
+			string null_str = "null";
+			// object is allowed to be null, we set default to null
+			yyjson_mut_obj_add_null(doc, wrapper, "default");
 		}
+		if (field_id) {
+			yyjson_mut_obj_add_int(doc, wrapper, "field-id", field_id->GetFieldId());
+		}
+
 		return wrapper;
 	}
 
@@ -303,7 +322,9 @@ public:
 		auto object = yyjson_mut_obj(doc);
 		yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
 		VerifyAvroName(name, type);
-		yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
+		if (type.id() != LogicalTypeId::LIST) {
+			yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
+		}
 		switch (type.id()) {
 		case LogicalTypeId::STRUCT: {
 			auto &struct_children = StructType::GetChildTypes(type);
@@ -339,11 +360,7 @@ public:
 					element_field_id = it->second;
 				}
 			}
-			if (type.id() == LogicalTypeId::LIST) {
-				if (element_field_id) {
-					yyjson_mut_obj_add_int(doc, object, "element-id", element_field_id->GetFieldId());
-				}
-			} else {
+			if (type.id() != LogicalTypeId::LIST) {
 				D_ASSERT(type.id() == LogicalTypeId::MAP);
 				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "map");
 			}
@@ -356,13 +373,31 @@ public:
 				yyjson_mut_obj_add_val(doc, object, "items",
 				                       CreateNestedType(GenerateSchemaName("list"), list_child, field_id, false));
 			} else {
-				auto union_type = yyjson_mut_obj_add_arr(doc, object, "items");
-				yyjson_mut_arr_add_strcpy(doc, union_type, "null");
-				if (list_child.IsNested()) {
-					yyjson_mut_arr_add_val(union_type,
-					                       CreateNestedType(GenerateSchemaName("list"), list_child, element_field_id));
+				if (element_field_id->nullable) {
+					auto type_arr = yyjson_mut_obj_add_arr(doc, object, "items");
+					yyjson_mut_arr_add_strcpy(doc, type_arr, "null");
+
+					if (list_child.IsNested()) {
+						yyjson_mut_arr_add_val(
+						    type_arr, CreateNestedType(GenerateSchemaName("list"), list_child, element_field_id));
+					} else {
+						yyjson_mut_arr_add_strcpy(doc, type_arr, ConvertTypeToAvro(list_child).c_str());
+					}
 				} else {
-					yyjson_mut_arr_add_strcpy(doc, union_type, ConvertTypeToAvro(list_child).c_str());
+					// child elements are not nullable.
+					if (list_child.IsNested()) {
+						auto schema_name = GenerateSchemaName("list");
+						if (element_field_id) {
+							schema_name = StringUtil::Format("r%d", element_field_id->GetFieldId());
+						}
+						yyjson_mut_obj_add_val(doc, object, "items",
+						                       CreateNestedType(schema_name, list_child, element_field_id));
+					} else {
+						yyjson_mut_obj_add_str(doc, object, "type", ConvertTypeToAvro(list_child).c_str());
+					}
+				}
+				if (element_field_id) {
+					yyjson_mut_obj_add_int(doc, object, "element-id", element_field_id->GetFieldId());
 				}
 			}
 			break;
@@ -496,7 +531,6 @@ WriteAvroBindData::WriteAvroBindData(CopyFunctionBindInput &input, const vector<
 		throw InvalidConfigurationException("The following option(s) are not recognized: %s",
 		                                    StringUtil::Join(unrecognized_options, ", "));
 	}
-
 	if (avro_schema_from_json_length(json_schema.c_str(), json_schema.size(), &schema)) {
 		throw InvalidInputException(avro_strerror());
 	}
@@ -520,6 +554,103 @@ WriteAvroLocalState::~WriteAvroLocalState() {
 WriteAvroGlobalState::~WriteAvroGlobalState() {
 	//! NOTE: the 'writer' and 'datum_writer' do not need to be closed, they are owned by the file_writer
 	avro_file_writer_close(file_writer);
+}
+
+// ---------------------------------------------------------------------------
+// PatchAvroSchema: replaces the avro.schema value in an already-written avro
+// file header (in memory) with a supplied JSON string.
+//
+// The avro C library re-serializes avro_schema_t back to JSON when writing the
+// file header, expanding shorthand primitive types ("int") into verbose objects
+// ({"type":"int"}).  By the time avro_file_writer_create_from_writers_with_metadata
+// returns, the header bytes are already in the memory buffer but have not yet
+// been flushed to disk.  We rebuild the header here with our own schema JSON
+// (which uses the compact shorthand form) before WriteData is called.
+//
+// Avro file header layout:
+//   4 bytes  magic  "Obj\x01"
+//   map      key/value metadata pairs (zigzag-encoded block count, then entries)
+//   1 byte   0x00   end-of-map marker
+//   16 bytes sync marker
+// ---------------------------------------------------------------------------
+static vector<uint8_t> PatchAvroSchema(const uint8_t *data, idx_t size, const string &clean_schema) {
+	// --- helpers for reading zigzag-encoded longs ---
+	auto read_long = [](const uint8_t *d, idx_t &pos) -> int64_t {
+		uint64_t n = 0;
+		int shift = 0;
+		while (true) {
+			uint8_t b = d[pos++];
+			n |= static_cast<uint64_t>(b & 0x7f) << shift;
+			shift += 7;
+			if (!(b & 0x80)) {
+				break;
+			}
+		}
+		return static_cast<int64_t>((n >> 1) ^ -(n & 1));
+	};
+	auto read_bytes = [&](const uint8_t *d, idx_t &pos) -> vector<uint8_t> {
+		auto len = read_long(d, pos);
+		vector<uint8_t> result(d + pos, d + pos + len);
+		pos += static_cast<idx_t>(len);
+		return result;
+	};
+
+	// --- helpers for writing zigzag-encoded longs and byte strings ---
+	auto write_long = [](vector<uint8_t> &out, int64_t val) {
+		uint64_t n = static_cast<uint64_t>((val << 1) ^ (val >> 63));
+		do {
+			uint8_t b = n & 0x7f;
+			n >>= 7;
+			out.push_back(n ? (b | 0x80) : b);
+		} while (n);
+	};
+	auto write_bytes = [&](vector<uint8_t> &out, const uint8_t *bytes, idx_t len) {
+		write_long(out, static_cast<int64_t>(len));
+		out.insert(out.end(), bytes, bytes + len);
+	};
+	auto write_string = [&](vector<uint8_t> &out, const string &s) {
+		write_bytes(out, reinterpret_cast<const uint8_t *>(s.data()), s.size());
+	};
+
+	idx_t pos = 0;
+
+	// Copy magic bytes verbatim
+	D_ASSERT(size >= 4 && data[0] == 'O' && data[1] == 'b' && data[2] == 'j' && data[3] == 0x01);
+	vector<uint8_t> out(data, data + 4);
+	pos = 4;
+
+	// Read and re-emit metadata map, replacing avro.schema value
+	vector<pair<vector<uint8_t>, vector<uint8_t>>> entries;
+	while (true) {
+		int64_t block_count = read_long(data, pos);
+		if (block_count == 0) {
+			break;
+		}
+		for (int64_t i = 0; i < block_count; i++) {
+			auto key = read_bytes(data, pos);
+			auto val = read_bytes(data, pos);
+			entries.emplace_back(std::move(key), std::move(val));
+		}
+	}
+
+	// Emit all entries as a single block, patching avro.schema
+	write_long(out, static_cast<int64_t>(entries.size()));
+	for (auto &kv : entries) {
+		write_bytes(out, kv.first.data(), kv.first.size());
+		string key_str(kv.first.begin(), kv.first.end());
+		if (key_str == "avro.schema") {
+			write_string(out, clean_schema);
+		} else {
+			write_bytes(out, kv.second.data(), kv.second.size());
+		}
+	}
+	out.push_back(0x00); // end-of-map
+
+	// Copy sync marker verbatim (16 bytes)
+	D_ASSERT(pos + 16 <= size);
+	out.insert(out.end(), data + pos, data + pos + 16);
+
+	return out;
 }
 
 WriteAvroGlobalState::WriteAvroGlobalState(ClientContext &context, FunctionData &bind_data_p, FileSystem &fs,
@@ -558,6 +689,10 @@ WriteAvroGlobalState::WriteAvroGlobalState(ClientContext &context, FunctionData 
 
 	auto written_bytes = avro_writer_tell(writer);
 	WriteData(memory_buffer.GetData(), written_bytes);
+	// Replace the avro C library's verbose schema ({"type":"int"} etc.) with
+	// the compact schema generated by DuckDB (uses shorthand "int" etc.).
+	// auto patched_header = PatchAvroSchema(memory_buffer.GetData(), written_bytes, bind_data.json_schema);
+	// WriteData(patched_header.data(), patched_header.size());
 	avro_writer_memory_set_dest(writer, (const char *)memory_buffer.GetData(), memory_buffer.GetCapacity());
 }
 
