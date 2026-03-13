@@ -65,6 +65,7 @@ static string ConvertTypeToAvro(const LogicalType &type) {
 		// local-timestamp-micros
 		return "long";
 	}
+	case LogicalTypeId::UUID:
 	case LogicalTypeId::DECIMAL: {
 		return "fixed";
 	}
@@ -280,9 +281,11 @@ public:
 				yyjson_mut_obj_add_uint(doc, type_val, "scale", scale);
 				yyjson_mut_obj_add_uint(doc, type_val, "precision", width);
 				yyjson_mut_obj_add_uint(doc, type_val, "size", MinBytesRequiredForDecimal(width));
+				yyjson_mut_obj_add_strcpy(doc, type_val, "name", name.c_str());
 			} else if (type.id() == LogicalTypeId::UUID) {
 				type_val = WrapTypeInObject(doc, type_val);
 				yyjson_mut_obj_add_strcpy(doc, type_val, "logicalType", "uuid");
+				yyjson_mut_obj_add_strcpy(doc, type_val, "name", name.c_str());
 				yyjson_mut_obj_add_uint(doc, type_val, "size", 16);
 			}
 		}
@@ -308,8 +311,37 @@ public:
 		}
 
 		if (is_named) {
-			type_val = WrapTypeInObject(doc, type_val);
-			yyjson_mut_obj_add_strcpy(doc, type_val, "name", name.c_str());
+			if ((type.IsNested() || RequiresLogicalType(type)) && !union_null) {
+				// we add the name directly to the object
+				// the type is not unioned with null, so currently type_val looks like
+				//  {
+				// 		"logicalType": "timestamp-millis"
+				// 		"type": "long"
+				// 	}
+				// we create a {"name": "..."} object, then add our type key value to it.
+				auto wrapper = yyjson_mut_obj(doc);
+				yyjson_mut_obj_add_strcpy(doc, wrapper, "name", name.c_str());
+				yyjson_mut_obj_add_val(doc, wrapper, "type", type_val);
+				type_val = wrapper;
+			} else if (type.IsNested() || RequiresLogicalType(type)) {
+				// the type requires the form {type: "type"} and the type_val has already been wrapped
+				// so type_val looks like 
+				// { 
+				// 	type : [
+				// 		"null", 
+				// 		{
+				// 		  logicalType: "timestamp-millis", 
+				// 		  "type": "long"
+				// 		}
+				// 	]
+				// }
+				// we can just add the name to the type_val
+				yyjson_mut_obj_add_strcpy(doc, type_val, "name", name.c_str());
+			} else {
+				// primitive type, we don't care if it has been unioned with Null
+				type_val = WrapTypeInObject(doc, type_val);
+				yyjson_mut_obj_add_strcpy(doc, type_val, "name", name.c_str());
+			}
 		}
 		if (field_id) {
 			type_val = WrapTypeInObject(doc, type_val);
@@ -375,7 +407,7 @@ public:
 				yyjson_mut_obj_add_val(doc, object, "items",
 				                       CreateNestedType(GenerateSchemaName("list"), list_child, field_id, false));
 			} else {
-				if (element_field_id->nullable) {
+				if (element_field_id && element_field_id->nullable) {
 					auto type_arr = yyjson_mut_obj_add_arr(doc, object, "items");
 					yyjson_mut_arr_add_strcpy(doc, type_arr, "null");
 
@@ -395,7 +427,7 @@ public:
 						yyjson_mut_obj_add_val(doc, object, "items",
 						                       CreateNestedType(schema_name, list_child, element_field_id));
 					} else {
-						yyjson_mut_obj_add_str(doc, object, "type", ConvertTypeToAvro(list_child).c_str());
+						yyjson_mut_obj_add_str(doc, object, "items", ConvertTypeToAvro(list_child).c_str());
 					}
 				}
 				if (element_field_id) {
