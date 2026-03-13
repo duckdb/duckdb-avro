@@ -162,6 +162,8 @@ static bool IsNamedSchema(const LogicalType &type) {
 	//! NOTE: 'fixed' is also part of this, but we don't have that type in DuckDB
 	case LogicalTypeId::STRUCT:
 	case LogicalTypeId::ENUM:
+	case LogicalTypeId::UUID:
+	case LogicalTypeId::DECIMAL:
 		return true;
 	default:
 		return false;
@@ -211,7 +213,7 @@ public:
 	}
 
 public:
-	void VerifyAvroName(const string &name, const LogicalType &type) {
+	bool VerifyAvroName(const string &name, const LogicalType &type) {
 		D_ASSERT(!name.empty());
 		for (idx_t i = 0; i < name.size(); i++) {
 			if (!(isalpha(name[i]) || name[i] == '_' || (i && isdigit(name[i])))) {
@@ -221,7 +223,7 @@ public:
 			}
 		}
 		if (!IsNamedSchema(type)) {
-			return;
+			return false;
 		}
 		auto res = named_schemas.insert(name);
 		if (!res.second) {
@@ -229,91 +231,91 @@ public:
 			                      "'fixed' types have to be distinct",
 			                      name);
 		}
+		return true;
 	}
 
 	string GenerateSchemaName(const string &base) {
 		return StringUtil::Format("%s%d", base, generated_name_id++);
 	}
 
+	bool IsJSONObject(yyjson_mut_val *val) {
+		auto type = yyjson_mut_get_type(val);
+		return type == YYJSON_TYPE_OBJ;
+	}
+
+	yyjson_mut_val *WrapTypeInObject(yyjson_mut_doc *doc, yyjson_mut_val *type_val) {
+		if (IsJSONObject(type_val)) {
+			return type_val;
+		}
+		auto object = yyjson_mut_obj(doc);
+		yyjson_mut_obj_add_val(doc, object, "type", type_val);
+		return object;
+	}
+
 	yyjson_mut_val *CreateJSONType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
 	                               bool struct_field = false, bool union_null = true) {
-		yyjson_mut_val *object = nullptr;
+		yyjson_mut_val *type_val = nullptr;
 
+		bool is_named;
 		if (type.IsNested()) {
-			object = CreateNestedType(name, type, field_id, union_null);
+			is_named = struct_field;
+			type_val = CreateNestedType(name, type, field_id, union_null);
 		} else {
-			object = yyjson_mut_obj(doc);
+			is_named = VerifyAvroName(name, type);
+			if (!is_named) {
+				is_named = struct_field;
+			}
+			type_val = yyjson_mut_strcpy(doc, ConvertTypeToAvro(type).c_str());
 			if (type.IsTemporal()) {
-				VerifyAvroName(name, type);
-				yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
-				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", GetTemporalLogicalType(type).c_str());
+				type_val = WrapTypeInObject(doc, type_val);
+				yyjson_mut_obj_add_strcpy(doc, type_val, "logicalType", GetTemporalLogicalType(type).c_str());
 				if (type == LogicalTypeId::TIMESTAMP_TZ) {
-					yyjson_mut_obj_add_bool(doc, object, "adjust-to-utc", true);
+					yyjson_mut_obj_add_bool(doc, type_val, "adjust-to-utc", true);
 				}
 			} else if (type.id() == LogicalTypeId::DECIMAL) {
+				type_val = WrapTypeInObject(doc, type_val);
 				auto scale = DecimalType::GetScale(type);
 				auto width = DecimalType::GetWidth(type);
-				yyjson_mut_obj_add_strcpy(doc, object, "type", "fixed");
-				yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str()); // required for Avro "fixed" named type
-				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "decimal");
-				yyjson_mut_obj_add_uint(doc, object, "scale", scale);
-				yyjson_mut_obj_add_uint(doc, object, "precision", width);
-				yyjson_mut_obj_add_uint(doc, object, "size", MinBytesRequiredForDecimal(width));
+				yyjson_mut_obj_add_strcpy(doc, type_val, "logicalType", "decimal");
+				yyjson_mut_obj_add_uint(doc, type_val, "scale", scale);
+				yyjson_mut_obj_add_uint(doc, type_val, "precision", width);
+				yyjson_mut_obj_add_uint(doc, type_val, "size", MinBytesRequiredForDecimal(width));
 			} else if (type.id() == LogicalTypeId::UUID) {
-				yyjson_mut_obj_add_strcpy(doc, object, "type", "fixed");
-				yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str()); // required for Avro "fixed" named type
-				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "uuid");
-				yyjson_mut_obj_add_uint(doc, object, "size", 16);
-			} else {
-				// Simple primitive types: {"type": "int"}, {"type": "string"}, etc.
-				yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
+				type_val = WrapTypeInObject(doc, type_val);
+				yyjson_mut_obj_add_strcpy(doc, type_val, "logicalType", "uuid");
+				yyjson_mut_obj_add_uint(doc, type_val, "size", 16);
 			}
 		}
 
-		if (struct_field && !union_null) {
-			VerifyAvroName(name, type);
-			yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
-		}
-		if (field_id && !union_null) {
-			yyjson_mut_obj_add_uint(doc, object, "field-id", field_id->GetFieldId());
-		}
-
-		if (!union_null) {
-			return object;
-		}
-
-		auto wrapper = yyjson_mut_obj(doc);
-		if (struct_field) {
-			yyjson_mut_obj_add_strcpy(doc, wrapper, "name", name.c_str());
-		}
 		if (field_id && !field_id->nullable) {
-			if (type.IsNested() || type.IsTemporal() || type.id() == LogicalTypeId::DECIMAL ||
-			    type.id() == LogicalTypeId::UUID) {
-				yyjson_mut_obj_add_val(doc, wrapper, "type", object);
-			} else {
-				yyjson_mut_obj_add_strcpy(doc, wrapper, "type", ConvertTypeToAvro(type).c_str());
+			if (union_null) {
+				//! NOTE: preserves old behavior of always wrapping in object if 'union_null' was true
+				type_val = WrapTypeInObject(doc, type_val);
 			}
-		} else {
+			union_null = false;
+		}
+
+		if (union_null) {
+			auto wrapper = yyjson_mut_obj(doc);
 			auto union_type = yyjson_mut_obj_add_arr(doc, wrapper, "type");
 			yyjson_mut_arr_add_strcpy(doc, union_type, "null");
 			// if the type requires its own json object, the type array becomes
 			// ["null", {"logicalType": "UUID", ...}]
-			if (type.IsNested() || type.IsTemporal() || type.id() == LogicalTypeId::DECIMAL ||
-			    type.id() == LogicalTypeId::UUID) {
-				yyjson_mut_arr_add_val(union_type, object);
-			} else {
-				// If the type is a simple type, we just add it to the wrapper ["null", "int"]
-				yyjson_mut_arr_add_strcpy(doc, union_type, ConvertTypeToAvro(type).c_str());
-			}
-			string null_str = "null";
+			yyjson_mut_arr_add_val(union_type, type_val);
 			// object is allowed to be null, we set default to null
 			yyjson_mut_obj_add_null(doc, wrapper, "default");
-		}
-		if (field_id) {
-			yyjson_mut_obj_add_int(doc, wrapper, "field-id", field_id->GetFieldId());
+			type_val = wrapper;
 		}
 
-		return wrapper;
+		if (is_named) {
+			type_val = WrapTypeInObject(doc, type_val);
+			yyjson_mut_obj_add_strcpy(doc, type_val, "name", name.c_str());
+		}
+		if (field_id) {
+			type_val = WrapTypeInObject(doc, type_val);
+			yyjson_mut_obj_add_uint(doc, type_val, "field-id", field_id->GetFieldId());
+		}
+		return type_val;
 	}
 
 	yyjson_mut_val *CreateNestedType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
