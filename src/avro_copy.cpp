@@ -303,12 +303,11 @@ public:
 			auto &list_child = ListType::GetChildType(type);
 			D_ASSERT(list_child.id() == LogicalTypeId::STRUCT);
 
-			auto element_field_id = GetChildFieldIdByName(field_id, "list");
-			if (!GetMapKeyValueIds(element_field_id, key_value_ids)) {
-				map_items_val = CreateJSONType(list_child, element_field_id);
+			if (!GetMapKeyValueIds(field_id, key_value_ids)) {
+				map_items_val = CreateJSONType(list_child, field_id);
 			} else {
 				auto preset_schema_name = StringUtil::Format("k%d_v%d", key_value_ids.key_id, key_value_ids.value_id);
-				map_items_val = CreateJSONType(list_child, element_field_id, preset_schema_name.c_str());
+				map_items_val = CreateJSONType(list_child, field_id, preset_schema_name.c_str());
 			}
 			yyjson_mut_obj_add_val(doc, type_val, "items", map_items_val);
 		} else if (type.IsTemporal()) {
