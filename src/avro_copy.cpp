@@ -2,6 +2,8 @@
 
 #include "duckdb/common/enums/file_compression_type.hpp"
 #include "duckdb/common/file_system.hpp"
+#include "duckdb/common/string_util.hpp"
+#include "duckdb/common/types.hpp"
 #include "duckdb/function/function.hpp"
 #include "yyjson.hpp"
 #include "duckdb/common/printer.hpp"
@@ -63,6 +65,7 @@ static string ConvertTypeToAvro(const LogicalType &type) {
 		// local-timestamp-micros
 		return "long";
 	}
+	case LogicalTypeId::UUID:
 	case LogicalTypeId::DECIMAL: {
 		return "fixed";
 	}
@@ -99,10 +102,6 @@ static string GetTemporalLogicalType(const LogicalType &type) {
 	default:
 		throw NotImplementedException("Can't convert logical type '%s' to Avro temporal type", type.ToString());
 	}
-}
-
-static bool RequiresLogicalType(const LogicalType &type) {
-	return type.IsTemporal() || type.id() == LogicalTypeId::DECIMAL || type.id() == LogicalTypeId::UUID;
 }
 
 uint32_t MinBytesRequiredForDecimal(int32_t precision) {
@@ -160,6 +159,8 @@ static bool IsNamedSchema(const LogicalType &type) {
 	//! NOTE: 'fixed' is also part of this, but we don't have that type in DuckDB
 	case LogicalTypeId::STRUCT:
 	case LogicalTypeId::ENUM:
+	case LogicalTypeId::UUID:
+	case LogicalTypeId::DECIMAL:
 		return true;
 	default:
 		return false;
@@ -167,6 +168,12 @@ static bool IsNamedSchema(const LogicalType &type) {
 }
 
 struct JSONSchemaGenerator {
+private:
+	struct MapKeyValueIds {
+		int64_t key_id;
+		int64_t value_id;
+	};
+
 public:
 	JSONSchemaGenerator(const vector<string> &names, const vector<LogicalType> &types) : names(names), types(types) {
 		doc = yyjson_mut_doc_new(nullptr);
@@ -209,7 +216,7 @@ public:
 	}
 
 public:
-	void VerifyAvroName(const string &name, const LogicalType &type) {
+	void VerifyAvroName(const string &name) {
 		D_ASSERT(!name.empty());
 		for (idx_t i = 0; i < name.size(); i++) {
 			if (!(isalpha(name[i]) || name[i] == '_' || (i && isdigit(name[i])))) {
@@ -218,159 +225,123 @@ public:
 				                            name);
 			}
 		}
-		if (!IsNamedSchema(type)) {
-			return;
-		}
-		auto res = named_schemas.insert(name);
-		if (!res.second) {
-			throw BinderException("Avro schema by the name of '%s' already exists, names of 'record', 'enum' and "
-			                      "'fixed' types have to be distinct",
-			                      name);
-		}
 	}
 
 	string GenerateSchemaName(const string &base) {
-		return StringUtil::Format("%s%d", base, generated_name_id++);
+		auto res = StringUtil::Format("%s%d", base, generated_name_id++);
+		VerifyAvroName(res);
+		VerifyNamedSchemaUniqueness(res);
+		return res;
 	}
 
-	yyjson_mut_val *CreateJSONType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
-	                               bool struct_field = false, bool union_null = true) {
-		yyjson_mut_val *object = nullptr;
-
-		if (type.IsNested()) {
-			object = CreateNestedType(name, type, field_id, union_null);
-		} else {
-			object = yyjson_mut_obj(doc);
-			if (type.IsTemporal()) {
-				VerifyAvroName(name, type);
-				yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
-				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", GetTemporalLogicalType(type).c_str());
-				if (type == LogicalTypeId::TIMESTAMP_TZ) {
-					yyjson_mut_obj_add_bool(doc, object, "adjust-to-utc", true);
-				}
-			} else if (type.id() == LogicalTypeId::DECIMAL) {
-				auto scale = DecimalType::GetScale(type);
-				auto width = DecimalType::GetWidth(type);
-				yyjson_mut_obj_add_strcpy(doc, object, "type", "fixed");
-				yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str()); // required for Avro "fixed" named type
-				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "decimal");
-				yyjson_mut_obj_add_uint(doc, object, "scale", scale);
-				yyjson_mut_obj_add_uint(doc, object, "precision", width);
-				yyjson_mut_obj_add_uint(doc, object, "size", MinBytesRequiredForDecimal(width));
-			} else if (type.id() == LogicalTypeId::UUID) {
-				yyjson_mut_obj_add_strcpy(doc, object, "type", "fixed");
-				yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str()); // required for Avro "fixed" named type
-				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "uuid");
-				yyjson_mut_obj_add_uint(doc, object, "size", 16);
-			} else {
-				// Simple primitive types: {"type": "int"}, {"type": "string"}, etc.
-				yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
-			}
-		}
-
-		if (struct_field && !union_null) {
-			VerifyAvroName(name, type);
-			yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
-		}
-		if (field_id && !union_null) {
-			yyjson_mut_obj_add_uint(doc, object, "field-id", field_id->GetFieldId());
-		}
-
-		if (!union_null) {
-			return object;
-		}
-
-		auto wrapper = yyjson_mut_obj(doc);
-		if (field_id) {
-			yyjson_mut_obj_add_int(doc, wrapper, "field-id", field_id->GetFieldId());
-		}
-		if (struct_field) {
-			yyjson_mut_obj_add_strcpy(doc, wrapper, "name", name.c_str());
-		}
-		if (field_id && !field_id->nullable) {
-			yyjson_mut_obj_add_val(doc, wrapper, "type", object);
-		} else {
-			auto union_type = yyjson_mut_obj_add_arr(doc, wrapper, "type");
-			yyjson_mut_arr_add_strcpy(doc, union_type, "null");
-			yyjson_mut_arr_add_val(union_type, object);
-		}
-		return wrapper;
+	bool IsJSONObject(yyjson_mut_val *val) {
+		auto type = yyjson_mut_get_type(val);
+		return type == YYJSON_TYPE_OBJ;
 	}
 
-	yyjson_mut_val *CreateNestedType(const string &name, const LogicalType &type, optional_ptr<avro::FieldID> field_id,
-	                                 bool union_null = true) {
-		D_ASSERT(type.IsNested());
+	yyjson_mut_val *WrapTypeInObject(yyjson_mut_doc *doc, yyjson_mut_val *type_val) {
+		if (IsJSONObject(type_val)) {
+			return type_val;
+		}
 		auto object = yyjson_mut_obj(doc);
-		yyjson_mut_obj_add_strcpy(doc, object, "type", ConvertTypeToAvro(type).c_str());
-		VerifyAvroName(name, type);
-		yyjson_mut_obj_add_strcpy(doc, object, "name", name.c_str());
-		switch (type.id()) {
-		case LogicalTypeId::STRUCT: {
+		yyjson_mut_obj_add_val(doc, object, "type", type_val);
+		return object;
+	}
+
+	yyjson_mut_val *CreateJSONType(const LogicalType &type, optional_ptr<avro::FieldID> field_id,
+	                               const char *preset_schema_name = nullptr) {
+		auto avro_type_str = ConvertTypeToAvro(type);
+		auto type_val = yyjson_mut_strcpy(doc, avro_type_str.c_str());
+		auto type_id = type.id();
+
+		if (type_id == LogicalTypeId::STRUCT) {
+			type_val = WrapTypeInObject(doc, type_val);
 			auto &struct_children = StructType::GetChildTypes(type);
-			auto fields = yyjson_mut_obj_add_arr(doc, object, "fields");
+			auto fields = yyjson_mut_obj_add_arr(doc, type_val, "fields");
 			for (auto &it : struct_children) {
 				auto &child_name = it.first;
 				if (StringUtil::CIEquals(child_name, "__duckdb_empty_struct_marker")) {
 					continue;
 				}
 				auto &child_type = it.second;
-				optional_ptr<avro::FieldID> child_field_id;
-				if (field_id) {
-					auto &children = field_id->children.Ids();
-					auto it = children.find(child_name);
-					if (it != children.end()) {
-						child_field_id = it->second;
-					}
-				}
-				yyjson_mut_arr_add_val(fields,
-				                       CreateJSONType(child_name, child_type, child_field_id, true, union_null));
+				auto child_field_id = GetChildFieldIdByName(field_id, child_name);
+
+				auto struct_field = CreateStructField(child_name, child_type, child_field_id);
+				yyjson_mut_arr_add_val(fields, struct_field);
 			}
-			break;
-		}
-		case LogicalTypeId::MAP:
-		case LogicalTypeId::LIST: {
-			optional_ptr<avro::FieldID> element_field_id;
-			// if the type is a map, we cannot union the elements with null
-			auto is_map = type.id() == LogicalTypeId::MAP;
-			if (field_id) {
-				auto &children = field_id->children.Ids();
-				auto it = children.find("list");
-				if (it != children.end()) {
-					element_field_id = it->second;
-				}
-			}
-			if (type.id() == LogicalTypeId::LIST) {
-				if (element_field_id) {
-					yyjson_mut_obj_add_int(doc, object, "element-id", element_field_id->GetFieldId());
-				}
-			} else {
-				D_ASSERT(type.id() == LogicalTypeId::MAP);
-				yyjson_mut_obj_add_strcpy(doc, object, "logicalType", "map");
-			}
+		} else if (type_id == LogicalTypeId::LIST) {
+			type_val = WrapTypeInObject(doc, type_val);
 
 			auto &list_child = ListType::GetChildType(type);
-			if (is_map) {
-				// do not union null for first level of items in a map. When map types for iceberg manifeste files
-				// are written if the key/value types are unioned with null, other readers may crash when attempting
-				// to read our files (e.g python-iceberg)
-				yyjson_mut_obj_add_val(doc, object, "items",
-				                       CreateNestedType(GenerateSchemaName("list"), list_child, field_id, false));
+			auto element_field_id = GetChildFieldIdByName(field_id, "list");
+			yyjson_mut_val *items_type_val;
+			if (list_child.id() == LogicalTypeId::STRUCT && element_field_id) {
+				auto preset_schema_name = StringUtil::Format("r%d", element_field_id->GetFieldId());
+				items_type_val = CreateJSONType(list_child, element_field_id, preset_schema_name.c_str());
 			} else {
-				auto union_type = yyjson_mut_obj_add_arr(doc, object, "items");
-				yyjson_mut_arr_add_strcpy(doc, union_type, "null");
-				if (list_child.IsNested()) {
-					yyjson_mut_arr_add_val(union_type,
-					                       CreateNestedType(GenerateSchemaName("list"), list_child, element_field_id));
-				} else {
-					yyjson_mut_arr_add_strcpy(doc, union_type, ConvertTypeToAvro(list_child).c_str());
-				}
+				items_type_val = CreateJSONType(list_child, element_field_id);
 			}
-			break;
-		}
-		default:
+
+			if (!element_field_id || element_field_id->nullable) {
+				auto union_array = yyjson_mut_arr(doc);
+				yyjson_mut_arr_add_strcpy(doc, union_array, "null");
+				yyjson_mut_arr_add_val(union_array, items_type_val);
+				items_type_val = union_array;
+			}
+			yyjson_mut_obj_add_val(doc, type_val, "items", items_type_val);
+
+			if (element_field_id) {
+				yyjson_mut_obj_add_int(doc, type_val, "element-id", element_field_id->GetFieldId());
+			}
+		} else if (type_id == LogicalTypeId::MAP) {
+			type_val = WrapTypeInObject(doc, type_val);
+
+			yyjson_mut_obj_add_strcpy(doc, type_val, "logicalType", "map");
+
+			yyjson_mut_val *map_items_val;
+			MapKeyValueIds key_value_ids;
+			auto &list_child = ListType::GetChildType(type);
+			D_ASSERT(list_child.id() == LogicalTypeId::STRUCT);
+
+			if (!GetMapKeyValueIds(field_id, key_value_ids)) {
+				map_items_val = CreateJSONType(list_child, field_id);
+			} else {
+				auto preset_schema_name = StringUtil::Format("k%d_v%d", key_value_ids.key_id, key_value_ids.value_id);
+				map_items_val = CreateJSONType(list_child, field_id, preset_schema_name.c_str());
+			}
+			yyjson_mut_obj_add_val(doc, type_val, "items", map_items_val);
+		} else if (type.IsTemporal()) {
+			type_val = WrapTypeInObject(doc, type_val);
+			yyjson_mut_obj_add_strcpy(doc, type_val, "logicalType", GetTemporalLogicalType(type).c_str());
+			if (type == LogicalTypeId::TIMESTAMP_TZ) {
+				yyjson_mut_obj_add_bool(doc, type_val, "adjust-to-utc", true);
+			}
+		} else if (type_id == LogicalTypeId::DECIMAL) {
+			type_val = WrapTypeInObject(doc, type_val);
+			auto scale = DecimalType::GetScale(type);
+			auto width = DecimalType::GetWidth(type);
+			yyjson_mut_obj_add_strcpy(doc, type_val, "logicalType", "decimal");
+			yyjson_mut_obj_add_uint(doc, type_val, "scale", scale);
+			yyjson_mut_obj_add_uint(doc, type_val, "precision", width);
+			yyjson_mut_obj_add_uint(doc, type_val, "size", MinBytesRequiredForDecimal(width));
+		} else if (type_id == LogicalTypeId::UUID) {
+			type_val = WrapTypeInObject(doc, type_val);
+			yyjson_mut_obj_add_strcpy(doc, type_val, "logicalType", "uuid");
+			yyjson_mut_obj_add_uint(doc, type_val, "size", 16);
+		} else if (type.IsNested()) {
 			throw NotImplementedException("Can't convert nested type '%s' to Avro", type.ToString());
 		}
-		return object;
+
+		if (IsNamedSchema(type)) {
+			D_ASSERT(IsJSONObject(type_val));
+			if (preset_schema_name) {
+				yyjson_mut_obj_add_strcpy(doc, type_val, "name", preset_schema_name);
+			} else {
+				auto named_schema = GenerateSchemaName(avro_type_str);
+				yyjson_mut_obj_add_strcpy(doc, type_val, "name", named_schema.c_str());
+			}
+		}
+		return type_val;
 	}
 
 	string GenerateJSON() {
@@ -389,7 +360,7 @@ public:
 			if (it != children.end()) {
 				field_id = it->second;
 			}
-			yyjson_mut_arr_add_val(array, CreateJSONType(name, type, field_id, true));
+			yyjson_mut_arr_add_val(array, CreateStructField(name, type, field_id));
 		}
 
 		//! Write the result to a string
@@ -401,6 +372,62 @@ public:
 		auto res = string(data);
 		free(data);
 		return res;
+	}
+
+private:
+	void VerifyNamedSchemaUniqueness(const string &name) {
+		auto res = named_schemas.insert(name);
+		if (!res.second) {
+			throw BinderException("Avro schema by the name of '%s' already exists, names of 'record', 'enum' and "
+			                      "'fixed' types have to be distinct",
+			                      name);
+		}
+	}
+
+	yyjson_mut_val *CreateStructField(const string &name, const LogicalType &type,
+	                                  optional_ptr<avro::FieldID> field_id) {
+		auto struct_field = yyjson_mut_obj(doc);
+		const char *struct_name = name.c_str();
+		auto struct_field_type = CreateJSONType(type, field_id, struct_name);
+		if (!field_id || field_id->nullable) {
+			auto union_array = yyjson_mut_arr(doc);
+			yyjson_mut_arr_add_strcpy(doc, union_array, "null");
+			yyjson_mut_arr_add_val(union_array, struct_field_type);
+			struct_field_type = union_array;
+		}
+		yyjson_mut_obj_add_val(doc, struct_field, "type", struct_field_type);
+		if (field_id) {
+			yyjson_mut_obj_add_uint(doc, struct_field, "field-id", field_id->GetFieldId());
+		}
+		yyjson_mut_obj_add_strcpy(doc, struct_field, "name", name.c_str());
+		return struct_field;
+	}
+
+	optional_ptr<avro::FieldID> GetChildFieldIdByName(optional_ptr<avro::FieldID> parent, const string &name) {
+		if (!parent) {
+			return nullptr;
+		}
+		auto &children = parent->children.Ids();
+		auto it = children.find(name);
+		if (it != children.end()) {
+			return it->second;
+		}
+		return nullptr;
+	}
+
+	bool GetMapKeyValueIds(optional_ptr<avro::FieldID> field_id, MapKeyValueIds &ids) {
+		if (!field_id) {
+			return false;
+		}
+
+		auto key = GetChildFieldIdByName(field_id, "key");
+		auto value = GetChildFieldIdByName(field_id, "value");
+		if (key && value) {
+			ids.key_id = key->GetFieldId();
+			ids.value_id = value->GetFieldId();
+			return true;
+		}
+		return false;
 	}
 
 public:
@@ -496,7 +523,6 @@ WriteAvroBindData::WriteAvroBindData(CopyFunctionBindInput &input, const vector<
 		throw InvalidConfigurationException("The following option(s) are not recognized: %s",
 		                                    StringUtil::Join(unrecognized_options, ", "));
 	}
-
 	if (avro_schema_from_json_length(json_schema.c_str(), json_schema.size(), &schema)) {
 		throw InvalidInputException(avro_strerror());
 	}
