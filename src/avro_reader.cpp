@@ -555,6 +555,7 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 }
 
 void AvroReader::Read(DataChunk &output) {
+	read_vec = make_uniq<Vector>(duckdb_type);
 	idx_t out_idx = 0;
 
 	while (avro_file_reader_read_value(reader, &value) == 0) {
