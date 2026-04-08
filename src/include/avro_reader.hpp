@@ -24,13 +24,13 @@ public:
 
 	bool TryInitializeScan(ClientContext &context, GlobalTableFunctionState &gstate,
 	                       LocalTableFunctionState &lstate) override;
-	AsyncResult Scan(ClientContext &context, GlobalTableFunctionState &global_state, LocalTableFunctionState &local_state,
-	          DataChunk &chunk) override;
+	AsyncResult Scan(ClientContext &context, GlobalTableFunctionState &global_state,
+	                 LocalTableFunctionState &local_state, DataChunk &chunk) override;
 
 public:
 	avro_file_reader_t reader;
 	avro_value_t value;
-	unique_ptr<Vector> read_vec;
+	DataChunk read_chunk;
 
 	BufferHandle buf_handle;
 	AvroType avro_type;
