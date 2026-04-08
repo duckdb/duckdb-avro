@@ -30,7 +30,7 @@ public:
 public:
 	avro_file_reader_t reader;
 	avro_value_t value;
-	unique_ptr<Vector> read_vec;
+	DataChunk read_chunk;
 
 	BufferHandle buf_handle;
 	AvroType avro_type;
