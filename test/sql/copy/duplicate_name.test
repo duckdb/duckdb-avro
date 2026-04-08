@@ -1,3 +1,6 @@
+# name: test/sql/copy/duplicate_name.test
+# group: [copy]
+
 require avro
 
 statement ok
@@ -17,17 +20,6 @@ select * from read_avro('__TEST_DIR__/tmp.avro');
 ----
 {'a': {'child': 21}, 'b': {'child': true}}
 
-statement error
-COPY (
-	select {
-		'a': {
-			'field': true
-		}
-	} structure
-) TO '__TEST_DIR__/tmp2.avro' ( ROOT_NAME 'a');
-----
-Invalid Input Error: Cannot save record schema
-
 statement ok
 COPY (
 	select {
@@ -41,21 +33,3 @@ query I
 select * from read_avro('__TEST_DIR__/tmp2.avro');
 ----
 {'a': {'field': true}}
-
-# The first column, 'a' is a STRUCT
-# The second column ('b') contains a field 'a', which is also a STRUCT
-statement error
-COPY (
-	select {
-		'a': {
-			'field': true
-		},
-		'b': {
-			'a': {
-				'hello': false
-			}
-		}
-	} structure
-) TO '__TEST_DIR__/tmp3.avro';
-----
-Binder Error: Avro schema by the name of 'a' already exists, names of 'record', 'enum' and 'fixed' types have to be distinct

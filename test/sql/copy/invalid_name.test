@@ -1,6 +1,9 @@
+# name: test/sql/copy/invalid_name.test
+# group: [copy]
+
 require avro
 
 statement error
 COPY (select range(10000)) TO '__TEST_DIR__/tmp.avro';
 ----
-is not a valid Avro identifier
+Invalid Avro identifier
