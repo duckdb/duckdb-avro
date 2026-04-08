@@ -6,3 +6,6 @@
 	path = extension-ci-tools
 	url = https://github.com/duckdb/extension-ci-tools
 	branch = main
+[submodule "third_party/avro-c"]
+	path = third_party/avro-c
+	url = https://github.com/duckdb/duckdb-avro-c
