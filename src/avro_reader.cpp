@@ -203,7 +203,7 @@ AvroReader::AvroReader(ClientContext &context, OpenFileInfo file) : BaseFileRead
 	avro_type = TransformSchema(avro_schema, {});
 	auto root = AvroType::TransformAvroType(root_name, avro_type);
 	duckdb_type = root.type;
-	read_vec = make_uniq<Vector>(duckdb_type);
+	read_chunk.Initialize(context, {duckdb_type}, STANDARD_VECTOR_SIZE);
 
 	auto interface = avro_generic_class_from_schema(avro_schema);
 	avro_generic_value_new(interface, &value);
@@ -556,9 +556,12 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 
 void AvroReader::Read(DataChunk &output) {
 	idx_t out_idx = 0;
+	read_chunk.Reset();
 
+	D_ASSERT(read_chunk.ColumnCount() == 1);
+	auto &read_vec = read_chunk.data[0];
 	while (avro_file_reader_read_value(reader, &value) == 0) {
-		TransformValue(&value, avro_type, *read_vec, out_idx++);
+		TransformValue(&value, avro_type, read_vec, out_idx++);
 		if (out_idx == STANDARD_VECTOR_SIZE) {
 			break;
 		}
@@ -570,10 +573,10 @@ void AvroReader::Read(DataChunk &output) {
 				continue; // to be filled in later
 			}
 			output.data[col_idx].Reference(
-			    *StructVector::GetEntries(*read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
+			    *StructVector::GetEntries(read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
 		}
 	} else {
-		output.data[column_indexes[0].GetPrimaryIndex()].Reference(*read_vec);
+		output.data[column_indexes[0].GetPrimaryIndex()].Reference(read_vec);
 	}
 	output.SetCardinality(out_idx);
 }
