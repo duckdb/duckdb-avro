@@ -92,8 +92,10 @@ public:
 
 		data = nullptr;
 		Allocate(new_capacity);
-		memcpy(data, old_data, old_capacity);
-		allocator.FreeData(old_data, old_capacity);
+		if (old_capacity) {
+			memcpy(data, old_data, old_capacity);
+			allocator.FreeData(old_data, old_capacity);
+		}
 	}
 	data_ptr_t GetData() {
 		return data;
