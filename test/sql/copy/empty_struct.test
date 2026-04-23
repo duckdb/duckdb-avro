@@ -8,7 +8,7 @@ COPY (
 	select {
 		'__duckdb_empty_struct_marker': NULL
 	} empty_partition
-) TO '__TEST_DIR__/empty_struct.avro' (
+) TO '{TEST_DIR}/empty_struct.avro' (
 	FIELD_IDS {
 		'empty_partition': {
 			'__duckdb_field_id': 102
@@ -18,6 +18,6 @@ COPY (
 );
 
 query I
-from read_avro('__TEST_DIR__/empty_struct.avro')
+from read_avro('{TEST_DIR}/empty_struct.avro')
 ----
 NULL
