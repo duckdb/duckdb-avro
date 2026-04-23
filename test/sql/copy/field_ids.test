@@ -7,7 +7,7 @@ COPY (
 		'b': NULL,
 		'c': 'test'
 	} field1
-) TO '__TEST_DIR__/field_ids.avro' (
+) TO '{TEST_DIR}/field_ids.avro' (
 	FIELD_IDS {
 		'field1': {
 			'a': 100,
@@ -29,7 +29,7 @@ COPY (
 			'upper_bound': 'blob blob blob'
 		}
 	] partitions
-) TO '__TEST_DIR__/partitions.avro' (
+) TO '{TEST_DIR}/partitions.avro' (
 	FIELD_IDS {
 		'partitions': {
 			'list': {

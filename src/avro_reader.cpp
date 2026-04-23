@@ -1,6 +1,11 @@
+#include "duckdb/common/vector/flat_vector.hpp"
+#include "duckdb/common/vector/list_vector.hpp"
+#include "duckdb/common/vector/map_vector.hpp"
+#include "duckdb/common/vector/struct_vector.hpp"
+#include "duckdb/common/vector/string_vector.hpp"
+#include "duckdb/common/vector/union_vector.hpp"
 #include "avro_reader.hpp"
 #include "utf8proc_wrapper.hpp"
-#include "duckdb/storage/caching_file_system.hpp"
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/common/multi_file/multi_file_data.hpp"
 
@@ -71,7 +76,7 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 	case AVRO_ENUM: {
 		auto size = avro_schema_enum_number_of_symbols(avro_schema);
 		Vector levels(LogicalType::VARCHAR, size);
-		auto levels_data = FlatVector::GetData<string_t>(levels);
+		auto levels_data = FlatVector::GetDataMutable<string_t>(levels);
 		for (idx_t enum_idx = 0; enum_idx < static_cast<idx_t>(size); enum_idx++) {
 			levels_data[enum_idx] = StringVector::AddString(levels, avro_schema_enum_get(avro_schema, enum_idx));
 		}
@@ -119,18 +124,15 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 }
 
 AvroReader::AvroReader(ClientContext &context, OpenFileInfo file) : BaseFileReader(file) {
-	auto caching_file_system = CachingFileSystem::Get(context);
+	auto &fs = FileSystem::GetFileSystem(context);
+	FileOpenFlags flags = FileFlags::FILE_FLAGS_READ;
+	flags.SetCachingMode(CachingMode::ALWAYS_CACHE);
+	auto file_handle = fs.OpenFile(this->file.path, flags);
+	auto total_size = fs.GetFileSize(*file_handle);
 
-	auto caching_file_handle = caching_file_system.OpenFile(this->file, FileOpenFlags::FILE_FLAGS_READ);
-	auto total_size = caching_file_handle->GetFileSize();
-	data_ptr_t data = nullptr;
-
-	buf_handle = caching_file_handle->Read(data, total_size);
-	auto buffer_data = buf_handle.Ptr();
-
-	D_ASSERT(buf_handle.IsValid());
-	D_ASSERT(buffer_data == data);
-	auto avro_reader = avro_reader_memory(const_char_ptr_cast(buffer_data), total_size);
+	buf_data = Allocator::DefaultAllocator().Allocate(total_size);
+	fs.Read(*file_handle, buf_data.get(), total_size, 0);
+	auto avro_reader = avro_reader_memory(const_char_ptr_cast(buf_data.get()), total_size);
 
 	if (avro_reader_reader(avro_reader, &reader)) {
 		throw InvalidInputException(avro_strerror());
@@ -171,29 +173,29 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 		if (avro_value_get_boolean(avro_val, &bool_val)) {
 			throw InvalidInputException(avro_strerror());
 		}
-		FlatVector::GetData<uint8_t>(target)[out_idx] = bool_val != 0;
+		FlatVector::GetDataMutable<uint8_t>(target)[out_idx] = bool_val != 0;
 		break;
 	}
 	case LogicalTypeId::INTEGER: {
-		if (avro_value_get_int(avro_val, &FlatVector::GetData<int32_t>(target)[out_idx])) {
+		if (avro_value_get_int(avro_val, &FlatVector::GetDataMutable<int32_t>(target)[out_idx])) {
 			throw InvalidInputException(avro_strerror());
 		}
 		break;
 	}
 	case LogicalTypeId::BIGINT: {
-		if (avro_value_get_long(avro_val, &FlatVector::GetData<int64_t>(target)[out_idx])) {
+		if (avro_value_get_long(avro_val, &FlatVector::GetDataMutable<int64_t>(target)[out_idx])) {
 			throw InvalidInputException(avro_strerror());
 		}
 		break;
 	}
 	case LogicalTypeId::FLOAT: {
-		if (avro_value_get_float(avro_val, &FlatVector::GetData<float>(target)[out_idx])) {
+		if (avro_value_get_float(avro_val, &FlatVector::GetDataMutable<float>(target)[out_idx])) {
 			throw InvalidInputException(avro_strerror());
 		}
 		break;
 	}
 	case LogicalTypeId::DOUBLE: {
-		if (avro_value_get_double(avro_val, &FlatVector::GetData<double>(target)[out_idx])) {
+		if (avro_value_get_double(avro_val, &FlatVector::GetDataMutable<double>(target)[out_idx])) {
 			throw InvalidInputException(avro_strerror());
 		}
 		break;
@@ -206,7 +208,7 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 			if (avro_value_get_fixed(avro_val, &fixed_data, &fixed_size)) {
 				throw InvalidInputException(avro_strerror());
 			}
-			FlatVector::GetData<string_t>(target)[out_idx] =
+			FlatVector::GetDataMutable<string_t>(target)[out_idx] =
 			    StringVector::AddStringOrBlob(target, const_char_ptr_cast(fixed_data), fixed_size);
 			break;
 		}
@@ -215,7 +217,7 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 			if (avro_value_grab_bytes(avro_val, &blob_buf)) {
 				throw InvalidInputException(avro_strerror());
 			}
-			FlatVector::GetData<string_t>(target)[out_idx] =
+			FlatVector::GetDataMutable<string_t>(target)[out_idx] =
 			    StringVector::AddStringOrBlob(target, const_char_ptr_cast(blob_buf.buf), blob_buf.size);
 			blob_buf.free(&blob_buf);
 			break;
@@ -235,7 +237,7 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 		if (Utf8Proc::Analyze(const_char_ptr_cast(str_buf.buf), str_buf.size - 1) == UnicodeType::INVALID) {
 			throw InvalidInputException("Avro file contains invalid unicode string");
 		}
-		FlatVector::GetData<string_t>(target)[out_idx] =
+		FlatVector::GetDataMutable<string_t>(target)[out_idx] =
 		    StringVector::AddString(target, const_char_ptr_cast(str_buf.buf), str_buf.size - 1);
 		str_buf.free(&str_buf);
 		break;
@@ -254,7 +256,7 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 				throw InvalidInputException(avro_strerror());
 			}
 			TransformValue(&child_value, avro_type.children[child_idx].second,
-			               *StructVector::GetEntries(target)[child_idx], out_idx);
+			               StructVector::GetEntries(target)[child_idx], out_idx);
 		}
 		break;
 	}
@@ -278,13 +280,13 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 		if (target.GetType().id() == LogicalTypeId::UNION) {
 			auto duckdb_child_index = avro_type.union_child_map.at(discriminant).GetIndex();
 			auto &tags = UnionVector::GetTags(target);
-			FlatVector::GetData<union_tag_t>(tags)[out_idx] = duckdb_child_index;
+			FlatVector::GetDataMutable<union_tag_t>(tags)[out_idx] = duckdb_child_index;
 			auto &union_vector = UnionVector::GetMember(target, duckdb_child_index);
 
 			// orrrrrrrrrrrrr
 			for (idx_t child_idx = 1; child_idx < StructVector::GetEntries(target).size(); child_idx++) {
 				if (child_idx != duckdb_child_index + 1) { // duckdb child index is bigger because of the tag
-					FlatVector::SetNull(*StructVector::GetEntries(target)[child_idx], out_idx, true);
+					FlatVector::SetNull(StructVector::GetEntries(target)[child_idx], out_idx, true);
 				}
 			}
 
@@ -308,13 +310,13 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 
 		switch (enum_type) {
 		case PhysicalType::UINT8:
-			FlatVector::GetData<uint8_t>(target)[out_idx] = enum_val;
+			FlatVector::GetDataMutable<uint8_t>(target)[out_idx] = enum_val;
 			break;
 		case PhysicalType::UINT16:
-			FlatVector::GetData<uint16_t>(target)[out_idx] = enum_val;
+			FlatVector::GetDataMutable<uint16_t>(target)[out_idx] = enum_val;
 			break;
 		case PhysicalType::UINT32:
-			FlatVector::GetData<uint32_t>(target)[out_idx] = enum_val;
+			FlatVector::GetDataMutable<uint32_t>(target)[out_idx] = enum_val;
 			break;
 		default:
 			throw InternalException("Unsupported Enum Internal Type");
@@ -333,7 +335,7 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 		ListVector::Reserve(target, child_offset + list_len);
 
 		if (avro_type.avro_type == AVRO_ARRAY) {
-			auto &child_vector = ListVector::GetEntry(target);
+			auto &child_vector = ListVector::GetChildMutable(target);
 
 			for (idx_t child_idx = 0; child_idx < list_len; child_idx++) {
 				avro_value_t child_value;
@@ -351,7 +353,7 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 			(void)key_type;
 			auto &value_type = avro_type.children[1].second;
 			D_ASSERT(key_vector.GetType().id() == LogicalTypeId::VARCHAR);
-			auto string_ptr = FlatVector::GetData<string_t>(key_vector);
+			auto string_ptr = FlatVector::GetDataMutable<string_t>(key_vector);
 			for (idx_t entry_idx = 0; entry_idx < list_len; entry_idx++) {
 				avro_value child_value;
 				const char *map_key;
@@ -363,7 +365,7 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 				TransformValue(&child_value, value_type, value_vector, child_offset + entry_idx);
 			}
 		}
-		auto list_vector_data = ListVector::GetData(target);
+		auto list_vector_data = FlatVector::GetDataMutable<list_entry_t>(target);
 		list_vector_data[out_idx].length = list_len;
 		list_vector_data[out_idx].offset = child_offset;
 		ListVector::SetListSize(target, child_offset + list_len);
@@ -391,7 +393,7 @@ void AvroReader::Read(DataChunk &output) {
 				continue; // to be filled in later
 			}
 			output.data[col_idx].Reference(
-			    *StructVector::GetEntries(*read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
+			    StructVector::GetEntries(*read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
 		}
 	} else {
 		output.data[column_indexes[0].GetPrimaryIndex()].Reference(*read_vec);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "duckdb/common/allocator.hpp"
 #include "duckdb/common/helper.hpp"
 #include "avro_type.hpp"
 #include "duckdb/common/multi_file/base_file_reader.hpp"
@@ -32,7 +33,7 @@ public:
 	avro_value_t value;
 	unique_ptr<Vector> read_vec;
 
-	BufferHandle buf_handle;
+	AllocatedData buf_data;
 	AvroType avro_type;
 	LogicalType duckdb_type;
 };

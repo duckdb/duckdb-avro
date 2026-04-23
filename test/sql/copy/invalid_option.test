@@ -3,7 +3,7 @@ require avro
 statement error
 COPY (
 	select 42 a
-) TO '__TEST_DIR__/test2.avro' (
+) TO '{TEST_DIR}/test2.avro' (
 	NOT_RECOGNIZED,
 	ROOT_NAME 'test'
 );
@@ -13,7 +13,7 @@ Invalid Configuration Error: The following option(s) are not recognized: key: 'N
 statement error
 COPY (
 	select 42 a
-) TO '__TEST_DIR__/test3.avro' (
+) TO '{TEST_DIR}/test3.avro' (
 	NOT_RECOGNIZED 'with_value',
 	ROOT_NAME 'test'
 );

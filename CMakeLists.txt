@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.10)
 # Set extension name here
 set(TARGET_NAME avro)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 if (EMSCRIPTEN)
   # _LINKED_LIBS influences only Wasm compilation
   # it's unclear why this is needed, but somehow global symbols aren't properly exported otherwise

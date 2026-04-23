@@ -10,10 +10,10 @@ COPY (
 			'child': true
 		}
 	} my_struct
-) TO '__TEST_DIR__/tmp.avro';
+) TO '{TEST_DIR}/tmp.avro';
 
 query I
-select * from read_avro('__TEST_DIR__/tmp.avro');
+select * from read_avro('{TEST_DIR}/tmp.avro');
 ----
 {'a': {'child': 21}, 'b': {'child': true}}
 
@@ -24,7 +24,7 @@ COPY (
 			'field': true
 		}
 	} structure
-) TO '__TEST_DIR__/tmp2.avro' ( ROOT_NAME 'a');
+) TO '{TEST_DIR}/tmp2.avro' ( ROOT_NAME 'a');
 ----
 Invalid Input Error: Cannot save record schema
 
@@ -35,10 +35,10 @@ COPY (
 			'field': true
 		}
 	} structure
-) TO '__TEST_DIR__/tmp2.avro' ( ROOT_NAME 'root_a');
+) TO '{TEST_DIR}/tmp2.avro' ( ROOT_NAME 'root_a');
 
 query I
-select * from read_avro('__TEST_DIR__/tmp2.avro');
+select * from read_avro('{TEST_DIR}/tmp2.avro');
 ----
 {'a': {'field': true}}
 
@@ -56,6 +56,6 @@ COPY (
 			}
 		}
 	} structure
-) TO '__TEST_DIR__/tmp3.avro';
+) TO '{TEST_DIR}/tmp3.avro';
 ----
 Binder Error: Avro schema by the name of 'a' already exists, names of 'record', 'enum' and 'fixed' types have to be distinct
