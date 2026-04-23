@@ -335,7 +335,7 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 		ListVector::Reserve(target, child_offset + list_len);
 
 		if (avro_type.avro_type == AVRO_ARRAY) {
-			auto &child_vector = ListVector::GetEntry(target);
+			auto &child_vector = ListVector::GetChildMutable(target);
 
 			for (idx_t child_idx = 0; child_idx < list_len; child_idx++) {
 				avro_value_t child_value;
