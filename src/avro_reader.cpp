@@ -70,6 +70,10 @@ static LogicalType AvroLogicalTypeToLogicalType(avro_schema_t &avro_schema, bool
 			throw NotImplementedException("Avro logical type timestamp-millis not supported. Use "
 			                              "convert_millis_to_micro=true to automatically convert to microseconds");
 		}
+		auto adjust_to_utc = avro_schema_adjust_to_utc(avro_schema);
+		if (adjust_to_utc > 0) {
+			return LogicalType::TIMESTAMP_TZ;
+		}
 		return LogicalType::TIMESTAMP;
 	}
 	if (logical_type == "local-timestamp-millis") {
