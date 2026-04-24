@@ -2,13 +2,15 @@
 
 #include "duckdb/common/helper.hpp"
 #include "avro_type.hpp"
+#include "avro_multi_file_info.hpp"
 #include "duckdb/common/multi_file/base_file_reader.hpp"
 
 namespace duckdb {
 
 class AvroReader : public BaseFileReader {
 public:
-	AvroReader(ClientContext &context, const OpenFileInfo file);
+	AvroReader(ClientContext &context, const OpenFileInfo file,
+	           const AvroFileReaderOptions &options = AvroFileReaderOptions());
 
 	~AvroReader() {
 		avro_value_decref(&value);
