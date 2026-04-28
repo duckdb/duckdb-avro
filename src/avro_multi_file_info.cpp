@@ -1,5 +1,7 @@
 #include "avro_multi_file_info.hpp"
 #include "avro_reader.hpp"
+#include "duckdb/common/string_util.hpp"
+#include "duckdb/common/types/value.hpp"
 
 namespace duckdb {
 
@@ -21,28 +23,38 @@ bool AvroMultiFileInfo::ParseCopyOption(ClientContext &context, const string &ke
 
 bool AvroMultiFileInfo::ParseOption(ClientContext &context, const string &key, const Value &val,
                                     MultiFileOptions &file_options, BaseFileReaderOptions &options) {
-	// We currently do not have any options for the scanner, so we always return false
+	auto &avro_options = options.Cast<AvroFileReaderOptions>();
+	auto loption = StringUtil::Lower(key);
+	if (loption == "convert_millis_to_micro") {
+		avro_options.convert_millis_to_micro = BooleanValue::Get(val.DefaultCastAs(LogicalType::BOOLEAN));
+		return true;
+	}
 	return false;
 }
 
 struct AvroMultiFileData final : public TableFunctionData {
 public:
 	AvroMultiFileData() = default;
+	AvroFileReaderOptions options;
 };
 
 unique_ptr<TableFunctionData> AvroMultiFileInfo::InitializeBindData(MultiFileBindData &multi_file_data,
                                                                     unique_ptr<BaseFileReaderOptions> options_p) {
-	return make_uniq<AvroMultiFileData>();
+	auto result = make_uniq<AvroMultiFileData>();
+	if (options_p) {
+		result->options = options_p->Cast<AvroFileReaderOptions>();
+	}
+	return result;
 }
 
 void AvroMultiFileInfo::BindReader(ClientContext &context, vector<LogicalType> &return_types, vector<string> &names,
                                    MultiFileBindData &bind_data) {
-	AvroFileReaderOptions options;
 	if (bind_data.file_options.union_by_name) {
 		throw NotImplementedException("'union_by_name' not implemented for Avro reader yet");
 	}
-	bind_data.reader_bind = bind_data.multi_file_reader->BindReader(context, return_types, names, *bind_data.file_list,
-	                                                                bind_data, options, bind_data.file_options);
+	auto &avro_data = bind_data.bind_data->Cast<AvroMultiFileData>();
+	bind_data.reader_bind = bind_data.multi_file_reader->BindReader(
+	    context, return_types, names, *bind_data.file_list, bind_data, avro_data.options, bind_data.file_options);
 	D_ASSERT(names.size() == return_types.size());
 }
 
@@ -98,13 +110,14 @@ shared_ptr<BaseFileReader> AvroMultiFileInfo::CreateReader(ClientContext &contex
 shared_ptr<BaseFileReader> AvroMultiFileInfo::CreateReader(ClientContext &context, GlobalTableFunctionState &gstate_p,
                                                            const OpenFileInfo &file, idx_t file_idx,
                                                            const MultiFileBindData &bind_data) {
-	return make_shared_ptr<AvroReader>(context, file);
+	auto &avro_data = bind_data.bind_data->Cast<AvroMultiFileData>();
+	return make_shared_ptr<AvroReader>(context, file, avro_data.options);
 }
 
 shared_ptr<BaseFileReader> AvroMultiFileInfo::CreateReader(ClientContext &context, const OpenFileInfo &file,
                                                            BaseFileReaderOptions &options,
                                                            const MultiFileOptions &file_options) {
-	return make_shared_ptr<AvroReader>(context, file);
+	return make_shared_ptr<AvroReader>(context, file, options.Cast<AvroFileReaderOptions>());
 }
 
 bool AvroReader::TryInitializeScan(ClientContext &context, GlobalTableFunctionState &gstate_p,

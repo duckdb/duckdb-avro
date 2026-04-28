@@ -20,7 +20,7 @@ public:
 public:
 	bool operator==(const AvroType &other) const {
 		return duckdb_type == other.duckdb_type && avro_type == other.avro_type && children == other.children &&
-		       union_child_map == other.union_child_map;
+		       union_child_map == other.union_child_map && is_timestamp_millis == other.is_timestamp_millis;
 	}
 	const bool HasFieldId() const {
 		return field_id != NumericLimits<int32_t>::Maximum();
@@ -137,6 +137,7 @@ public:
 	child_list_t<AvroType> children;
 	unordered_map<idx_t, optional_idx> union_child_map;
 	int32_t field_id = NumericLimits<int32_t>::Maximum();
+	bool is_timestamp_millis = false;
 };
 
 } // namespace duckdb
