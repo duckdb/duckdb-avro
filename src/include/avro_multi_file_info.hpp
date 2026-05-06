@@ -12,10 +12,7 @@
 
 namespace duckdb {
 
-class AvroFileReaderOptions : public BaseFileReaderOptions {
-public:
-	bool convert_millis_to_micro = false;
-};
+class AvroFileReaderOptions : public BaseFileReaderOptions {};
 
 struct AvroMultiFileInfo : MultiFileReaderInterface {
 	static unique_ptr<MultiFileReaderInterface> CreateInterface(ClientContext &context);

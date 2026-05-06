@@ -20,7 +20,6 @@ static void LoadInternal(ExtensionLoader &loader) {
 	// Register a scalar function
 	auto table_function = MultiFileFunction<AvroMultiFileInfo>("read_avro");
 	table_function.projection_pushdown = true;
-	table_function.named_parameters["convert_millis_to_micro"] = LogicalType::BOOLEAN;
 	loader.RegisterFunction(MultiFileReader::CreateFunctionSet(table_function));
 	loader.RegisterFunction(AvroCopyFunction::Create());
 }

@@ -1,6 +1,5 @@
 #include "avro_multi_file_info.hpp"
 #include "avro_reader.hpp"
-#include "duckdb/common/string_util.hpp"
 #include "duckdb/common/types/value.hpp"
 
 namespace duckdb {
@@ -23,12 +22,6 @@ bool AvroMultiFileInfo::ParseCopyOption(ClientContext &context, const string &ke
 
 bool AvroMultiFileInfo::ParseOption(ClientContext &context, const string &key, const Value &val,
                                     MultiFileOptions &file_options, BaseFileReaderOptions &options) {
-	auto &avro_options = options.Cast<AvroFileReaderOptions>();
-	auto loption = StringUtil::Lower(key);
-	if (loption == "convert_millis_to_micro") {
-		avro_options.convert_millis_to_micro = BooleanValue::Get(val.DefaultCastAs(LogicalType::BOOLEAN));
-		return true;
-	}
 	return false;
 }
 
