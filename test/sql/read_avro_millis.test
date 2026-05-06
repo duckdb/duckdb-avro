@@ -12,21 +12,13 @@ SET TimeZone = 'CET';
 statement ok
 PRAGMA enable_verification
 
-# without the option, timestamp-millis should produce a helpful error
-statement error
-SELECT * FROM read_avro('test/timestamp_millis.avro');
-----
-convert_millis_to_micro=true
-
-# with the option, timestamps are returned as TIMESTAMP (microseconds)
 query I
-SELECT column_type FROM (DESCRIBE FROM read_avro('test/timestamp_millis.avro', convert_millis_to_micro=true)) WHERE column_name = 'ts';
+SELECT column_type FROM (DESCRIBE FROM read_avro('test/timestamp_millis.avro')) WHERE column_name = 'ts';
 ----
 TIMESTAMP
 
-# millisecond values are correctly scaled to microseconds
 query I
-SELECT ts FROM read_avro('test/timestamp_millis.avro', convert_millis_to_micro=true) order by ts NULLS FIRST;
+SELECT ts FROM read_avro('test/timestamp_millis.avro') order by ts NULLS FIRST;
 ----
 NULL
 0001-01-01 00:00:00
@@ -37,7 +29,7 @@ NULL
 
 
 query I
-SELECT ts from read_avro('test/timestamptz_millis.avro', convert_millis_to_micro=true)  order by ts NULLS FIRST;
+SELECT ts from read_avro('test/timestamptz_millis.avro') order by ts NULLS FIRST;
 ----
 NULL
 0001-01-01 00:17:30+00:17
@@ -48,7 +40,7 @@ NULL
 10000-01-01 00:59:59+01
 
 query I
-SELECT ts from read_avro('test/time_millis.avro', convert_millis_to_micro=true) order by ts NULLS FIRST;
+SELECT ts from read_avro('test/time_millis.avro') order by ts NULLS FIRST;
 ----
 NULL
 00:00:00
@@ -57,7 +49,7 @@ NULL
 
 
 query I
-select ts from read_avro('test/localtimestamp-millis.avro', convert_millis_to_micro=true) order by ts NULLS FIRST;
+select ts from read_avro('test/localtimestamp-millis.avro') order by ts NULLS FIRST;
 ----
 NULL
 0001-12-31 (BC) 22:00:00
@@ -65,4 +57,3 @@ NULL
 2023-12-31 12:00:00
 2024-06-15 12:30:45.123
 10000-01-01 04:59:59
-
