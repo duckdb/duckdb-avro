@@ -150,9 +150,9 @@ public:
 	unique_ptr<FileHandle> handle;
 
 	//! The writer for the file
-	avro_writer_t writer;
-	avro_writer_t datum_writer;
-	avro_file_writer_t file_writer;
+	avro_writer_t writer = nullptr;
+	avro_writer_t datum_writer = nullptr;
+	avro_file_writer_t file_writer = nullptr;
 };
 
 struct WriteAvroLocalState : public LocalFunctionData {

@@ -402,8 +402,16 @@ WriteAvroLocalState::~WriteAvroLocalState() {
 }
 
 WriteAvroGlobalState::~WriteAvroGlobalState() {
+	//! Cleanup normally happens in WriteAvroFinalize. This is the safety-net path for when
+	//! Finalize wasn't called (e.g. an error occurred during sink). We deliberately do NOT
+	//! Close() the file handle here: the destructor runs in error paths too, and silently
+	//! committing partial output to a remote object store is worse than leaving the (uncommitted)
+	//! handle to be cleaned up by the FS layer.
 	//! NOTE: the 'writer' and 'datum_writer' do not need to be closed, they are owned by the file_writer
-	avro_file_writer_close(file_writer);
+	if (file_writer) {
+		avro_file_writer_close(file_writer);
+		file_writer = nullptr;
+	}
 }
 
 WriteAvroGlobalState::WriteAvroGlobalState(ClientContext &context, FunctionData &bind_data_p, FileSystem &fs,
@@ -640,7 +648,28 @@ static void WriteAvroCombine(ExecutionContext &context, FunctionData &bind_data,
 }
 
 static void WriteAvroFinalize(ClientContext &context, FunctionData &bind_data, GlobalFunctionData &gstate) {
-	return;
+	auto &global_state = gstate.Cast<WriteAvroGlobalState>();
+	if (!global_state.file_writer) {
+		return;
+	}
+	//! Closing the avro file writer flushes any data still buffered in the avro library state
+	//! into the in-memory `writer` buffer. WriteAvroSink already drains after every chunk, so
+	//! in practice there's nothing left to write here, but call avro_writer_tell() before
+	//! avro_file_writer_close() because the close frees the writer.
+	auto pending_bytes = avro_writer_tell(global_state.writer);
+	if (pending_bytes > 0) {
+		global_state.WriteData(global_state.memory_buffer.GetData(), pending_bytes);
+	}
+	avro_file_writer_close(global_state.file_writer);
+	global_state.file_writer = nullptr;
+	//! Explicitly close the underlying file handle. Some filesystems (notably ADLS Gen2 via
+	//! abfss://) treat Write() calls as uncommitted appends and only commit on Close()/Sync().
+	//! Without this call the file is left at 0 bytes server-side, and the next reader fails
+	//! parsing it. Mirrors what BufferedFileWriter::Close() (parquet) and CSVWriter::Close()
+	//! do in their finalize paths.
+	if (global_state.handle) {
+		global_state.handle->Close();
+	}
 }
 
 CopyFunctionExecutionMode WriteAvroExecutionMode(bool preserve_insertion_order, bool supports_batch_index) {
