@@ -846,7 +846,15 @@ static void WriteAvroCombine(ExecutionContext &context, FunctionData &bind_data,
 }
 
 static void WriteAvroFinalize(ClientContext &context, FunctionData &bind_data, GlobalFunctionData &gstate) {
-	return;
+	auto &global_state = gstate.Cast<WriteAvroGlobalState>();
+	//! WriteAvroSink has already flushed every block to the file handle, so there is no
+	//! more data to write here. We only need to close the handle, which is required for
+	//! stores that commit on Close() (e.g. Azure DFS / OneLake, where Write() Appends
+	//! staged bytes that only become visible after Flush(Close=true)). Local FS, S3, and
+	//! Azure Blob are unaffected because their writes commit incrementally.
+	if (global_state.handle) {
+		global_state.handle->Close();
+	}
 }
 
 CopyFunctionExecutionMode WriteAvroExecutionMode(bool preserve_insertion_order, bool supports_batch_index) {
