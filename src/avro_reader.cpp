@@ -9,7 +9,7 @@
 
 namespace duckdb {
 
-static LogicalType AvroLogicalTypeToLogicalType(avro_schema_t &avro_schema, bool convert_millis_to_micro) {
+static LogicalType AvroLogicalTypeToLogicalType(avro_schema_t &avro_schema) {
 	auto logical_type_raw = avro_schema_logical_type(avro_schema);
 	if (!logical_type_raw) {
 		return LogicalType::INVALID;
@@ -59,17 +59,9 @@ static LogicalType AvroLogicalTypeToLogicalType(avro_schema_t &avro_schema, bool
 		return LogicalType::UUID;
 	}
 	if (logical_type == "time-millis") {
-		if (!convert_millis_to_micro) {
-			throw NotImplementedException("Avro logical type time-millis not supported. Use "
-			                              "convert_millis_to_micro=true to automatically convert to microseconds");
-		}
 		return LogicalType::TIME;
 	}
 	if (logical_type == "timestamp-millis") {
-		if (!convert_millis_to_micro) {
-			throw NotImplementedException("Avro logical type timestamp-millis not supported. Use "
-			                              "convert_millis_to_micro=true to automatically convert to microseconds");
-		}
 		auto adjust_to_utc = avro_schema_adjust_to_utc(avro_schema);
 		if (adjust_to_utc > 0) {
 			return LogicalType::TIMESTAMP_TZ;
@@ -77,18 +69,13 @@ static LogicalType AvroLogicalTypeToLogicalType(avro_schema_t &avro_schema, bool
 		return LogicalType::TIMESTAMP;
 	}
 	if (logical_type == "local-timestamp-millis") {
-		if (!convert_millis_to_micro) {
-			throw NotImplementedException("Avro logical type local-timestamp-millis not supported. Use "
-			                              "convert_millis_to_micro=true to automatically convert to microseconds");
-		}
 		return LogicalType::TIMESTAMP;
 	}
 	throw NotImplementedException("Unknown Avro logical type %s", logical_type);
 }
 
-static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string> parent_schema_names,
-                                bool convert_millis_to_micro) {
-	auto duckdb_logical_type = AvroLogicalTypeToLogicalType(avro_schema, convert_millis_to_micro);
+static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string> parent_schema_names) {
+	auto duckdb_logical_type = AvroLogicalTypeToLogicalType(avro_schema);
 	bool has_logical_type = duckdb_logical_type != LogicalType::INVALID;
 
 	auto raw_lt = avro_schema_logical_type(avro_schema);
@@ -125,7 +112,7 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 		unordered_map<idx_t, optional_idx> union_child_map;
 		for (idx_t child_idx = 0; child_idx < num_children; child_idx++) {
 			auto child_schema = avro_schema_union_branch(avro_schema, child_idx);
-			auto child_type = TransformSchema(child_schema, parent_schema_names, convert_millis_to_micro);
+			auto child_type = TransformSchema(child_schema, parent_schema_names);
 			union_children.push_back(
 			    std::pair<std::string, AvroType>(StringUtil::Format("u%llu", child_idx), std::move(child_type)));
 			if (child_type.duckdb_type.id() != LogicalTypeId::SQLNULL) {
@@ -150,7 +137,7 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 		child_list_t<AvroType> struct_children;
 		for (idx_t child_idx = 0; child_idx < num_children; child_idx++) {
 			auto child_schema = avro_schema_record_field_get_by_index(avro_schema, child_idx);
-			auto child_type = TransformSchema(child_schema, parent_schema_names, convert_millis_to_micro);
+			auto child_type = TransformSchema(child_schema, parent_schema_names);
 			child_type.field_id = avro_schema_record_field_id(avro_schema, child_idx);
 			auto child_name = avro_schema_record_field_name(avro_schema, child_idx);
 			if (!child_name || strlen(child_name) == 0) {
@@ -178,7 +165,7 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 	case AVRO_ARRAY: {
 		auto child_schema = avro_schema_array_items(avro_schema);
 		auto element_id = avro_schema_array_element_id(avro_schema);
-		auto child_type = TransformSchema(child_schema, parent_schema_names, convert_millis_to_micro);
+		auto child_type = TransformSchema(child_schema, parent_schema_names);
 		child_type.field_id = element_id;
 		child_list_t<AvroType> list_children;
 		list_children.push_back(std::pair<std::string, AvroType>("list_entry", std::move(child_type)));
@@ -195,7 +182,7 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 
 		AvroType key_type(AVRO_STRING, LogicalTypeId::VARCHAR);
 		key_type.field_id = key_id;
-		auto value_type = TransformSchema(child_schema, parent_schema_names, convert_millis_to_micro);
+		auto value_type = TransformSchema(child_schema, parent_schema_names);
 		value_type.field_id = value_id;
 
 		child_list_t<AvroType> map_children;
@@ -205,7 +192,7 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 	}
 	case AVRO_LINK: {
 		auto target = avro_schema_link_target(avro_schema);
-		return TransformSchema(target, parent_schema_names, convert_millis_to_micro);
+		return TransformSchema(target, parent_schema_names);
 	}
 	default:
 		throw NotImplementedException("Unknown Avro Type %s", avro_schema_type_name(avro_schema));
@@ -235,7 +222,7 @@ AvroReader::AvroReader(ClientContext &context, OpenFileInfo file, const AvroFile
 	auto schema_name = avro_schema_name(avro_schema);
 	string root_name = schema_name ? schema_name : "avro_schema";
 
-	avro_type = TransformSchema(avro_schema, {}, options.convert_millis_to_micro);
+	avro_type = TransformSchema(avro_schema, {});
 	auto root = AvroType::TransformAvroType(root_name, avro_type);
 	duckdb_type = root.type;
 	read_chunk.Initialize(context, {duckdb_type}, STANDARD_VECTOR_SIZE);
