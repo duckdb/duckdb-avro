@@ -8,27 +8,108 @@
 #include "utf8proc_wrapper.hpp"
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/common/multi_file/multi_file_data.hpp"
+#include "duckdb/common/types/uuid.hpp"
+#include "duckdb/common/types/interval.hpp"
+#include "duckdb/common/operator/multiply.hpp"
 
 namespace duckdb {
 
+static LogicalType AvroLogicalTypeToLogicalType(avro_schema_t &avro_schema) {
+	auto logical_type_raw = avro_schema_logical_type(avro_schema);
+	if (!logical_type_raw) {
+		return LogicalType::INVALID;
+	}
+	// any nested types are handled switch case in TransformSchema
+	switch (avro_typeof(avro_schema)) {
+	case AVRO_ARRAY:
+	case AVRO_ENUM:
+	case AVRO_MAP:
+	case AVRO_RECORD:
+		return LogicalType::INVALID;
+	default:
+		break;
+	}
+	string logical_type = logical_type_raw;
+	if (logical_type == "date") {
+		return LogicalType::DATE;
+	}
+	if (logical_type == "decimal") {
+		auto scale = avro_schema_scale(avro_schema);
+		auto precision = avro_schema_precision(avro_schema);
+		return LogicalType::DECIMAL(precision, scale);
+	}
+	if (logical_type == "time-micros") {
+		return LogicalType::TIME;
+	}
+	if (logical_type == "timestamp-micros") {
+		auto adjust_to_utc = avro_schema_adjust_to_utc(avro_schema);
+		// -1 doesn't exist
+		if (adjust_to_utc > 0) {
+			return LogicalType::TIMESTAMP_TZ;
+		}
+		return LogicalType::TIMESTAMP;
+	}
+	if (logical_type == "timestamp-nanos") {
+		auto adjust_to_utc = avro_schema_adjust_to_utc(avro_schema);
+		if (adjust_to_utc > 0) {
+			throw NotImplementedException("Avro timestamp-nanos with adjust_to_utc not supported");
+		}
+		return LogicalType::TIMESTAMP_NS;
+	}
+	if (logical_type == "uuid") {
+		auto size = avro_schema_fixed_size(avro_schema);
+		if (size != 16) {
+			throw InvalidConfigurationException("logical type is uuid, but size != 16");
+		}
+		return LogicalType::UUID;
+	}
+	if (logical_type == "time-millis") {
+		return LogicalType::TIME;
+	}
+	if (logical_type == "timestamp-millis") {
+		auto adjust_to_utc = avro_schema_adjust_to_utc(avro_schema);
+		if (adjust_to_utc > 0) {
+			return LogicalType::TIMESTAMP_TZ;
+		}
+		return LogicalType::TIMESTAMP;
+	}
+	if (logical_type == "local-timestamp-millis") {
+		return LogicalType::TIMESTAMP;
+	}
+	throw NotImplementedException("Unknown Avro logical type %s", logical_type);
+}
+
 static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string> parent_schema_names) {
+	auto duckdb_logical_type = AvroLogicalTypeToLogicalType(avro_schema);
+	bool has_logical_type = duckdb_logical_type != LogicalType::INVALID;
+
+	auto raw_lt = avro_schema_logical_type(avro_schema);
+	bool is_millis = raw_lt && (string(raw_lt) == "timestamp-millis" || string(raw_lt) == "time-millis" ||
+	                            string(raw_lt) == "local-timestamp-millis");
+
 	switch (avro_typeof(avro_schema)) {
 	case AVRO_NULL:
 		return AvroType(AVRO_NULL, LogicalType::SQLNULL);
 	case AVRO_BOOLEAN:
 		return AvroType(AVRO_BOOLEAN, LogicalType::BOOLEAN);
-	case AVRO_INT32:
-		return AvroType(AVRO_INT32, LogicalType::INTEGER);
-	case AVRO_INT64:
-		return AvroType(AVRO_INT64, LogicalType::BIGINT);
+	case AVRO_INT32: {
+		AvroType result(AVRO_INT32, has_logical_type ? duckdb_logical_type : LogicalType::INTEGER);
+		result.is_timestamp_millis = is_millis;
+		return result;
+	}
+	case AVRO_INT64: {
+		AvroType result(AVRO_INT64, has_logical_type ? duckdb_logical_type : LogicalType::BIGINT);
+		result.is_timestamp_millis = is_millis;
+		return result;
+	}
 	case AVRO_FLOAT:
-		return AvroType(AVRO_FLOAT, LogicalType::FLOAT);
+		return AvroType(AVRO_FLOAT, has_logical_type ? duckdb_logical_type : LogicalType::FLOAT);
 	case AVRO_DOUBLE:
-		return AvroType(AVRO_DOUBLE, LogicalType::DOUBLE);
+		return AvroType(AVRO_DOUBLE, has_logical_type ? duckdb_logical_type : LogicalType::DOUBLE);
 	case AVRO_BYTES:
-		return AvroType(AVRO_BYTES, LogicalType::BLOB);
+		return AvroType(AVRO_BYTES, has_logical_type ? duckdb_logical_type : LogicalType::BLOB);
 	case AVRO_STRING:
-		return AvroType(AVRO_STRING, LogicalType::VARCHAR);
+		return AvroType(AVRO_STRING, has_logical_type ? duckdb_logical_type : LogicalType::VARCHAR);
 	case AVRO_UNION: {
 		auto num_children = avro_schema_union_size(avro_schema);
 		child_list_t<AvroType> union_children;
@@ -80,11 +161,11 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 		for (idx_t enum_idx = 0; enum_idx < static_cast<idx_t>(size); enum_idx++) {
 			levels_data[enum_idx] = StringVector::AddString(levels, avro_schema_enum_get(avro_schema, enum_idx));
 		}
-		levels.Verify(size);
+		levels.Verify();
 		return AvroType(AVRO_ENUM, LogicalType::ENUM(levels, size));
 	}
 	case AVRO_FIXED: {
-		return AvroType(AVRO_FIXED, LogicalType::BLOB);
+		return AvroType(AVRO_FIXED, has_logical_type ? duckdb_logical_type : LogicalType::BLOB);
 	}
 	case AVRO_ARRAY: {
 		auto child_schema = avro_schema_array_items(avro_schema);
@@ -123,16 +204,19 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 	}
 }
 
-AvroReader::AvroReader(ClientContext &context, OpenFileInfo file) : BaseFileReader(file) {
+AvroReader::AvroReader(ClientContext &context, OpenFileInfo file, const AvroFileReaderOptions &options)
+    : BaseFileReader(file) {
 	auto &fs = FileSystem::GetFileSystem(context);
-	FileOpenFlags flags = FileFlags::FILE_FLAGS_READ;
-	flags.SetCachingMode(CachingMode::ALWAYS_CACHE);
-	auto file_handle = fs.OpenFile(this->file.path, flags);
-	auto total_size = fs.GetFileSize(*file_handle);
 
-	buf_data = Allocator::DefaultAllocator().Allocate(total_size);
-	fs.Read(*file_handle, buf_data.get(), total_size, 0);
-	auto avro_reader = avro_reader_memory(const_char_ptr_cast(buf_data.get()), total_size);
+	FileOpenFlags flags = FileFlags::FILE_FLAGS_READ;
+	flags.SetCachingMode(CachingMode::CACHE_REMOTE_ONLY);
+	auto file_handle = fs.OpenFile(this->file, flags);
+	auto total_size = file_handle->GetFileSize();
+
+	auto local_buffer = Allocator::DefaultAllocator().Allocate(total_size);
+	fs.Read(*file_handle, local_buffer.get(), total_size);
+
+	auto avro_reader = avro_reader_memory(const_char_ptr_cast(local_buffer.get()), total_size);
 
 	if (avro_reader_reader(avro_reader, &reader)) {
 		throw InvalidInputException(avro_strerror());
@@ -145,7 +229,7 @@ AvroReader::AvroReader(ClientContext &context, OpenFileInfo file) : BaseFileRead
 	avro_type = TransformSchema(avro_schema, {});
 	auto root = AvroType::TransformAvroType(root_name, avro_type);
 	duckdb_type = root.type;
-	read_vec = make_uniq<Vector>(duckdb_type);
+	read_chunk.Initialize(context, {duckdb_type}, STANDARD_VECTOR_SIZE);
 
 	auto interface = avro_generic_class_from_schema(avro_schema);
 	avro_generic_value_new(interface, &value);
@@ -176,16 +260,43 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 		FlatVector::GetDataMutable<uint8_t>(target)[out_idx] = bool_val != 0;
 		break;
 	}
+	case LogicalTypeId::DATE:
 	case LogicalTypeId::INTEGER: {
 		if (avro_value_get_int(avro_val, &FlatVector::GetDataMutable<int32_t>(target)[out_idx])) {
 			throw InvalidInputException(avro_strerror());
 		}
 		break;
 	}
+	case LogicalTypeId::TIME: {
+		int64_t result;
+		if (avro_type.is_timestamp_millis) {
+			// time-millis: stored as int32 (ms since midnight), scale to µs
+			int32_t raw_val;
+			if (avro_value_get_int(avro_val, &raw_val)) {
+				throw InvalidInputException(avro_strerror());
+			}
+			// no thread of overflow since raw value is int32_t
+			result = static_cast<int64_t>(raw_val) * Interval::MICROS_PER_MSEC;
+		} else {
+			if (avro_value_get_long(avro_val, &result)) {
+				throw InvalidInputException(avro_strerror());
+			}
+		}
+		FlatVector::GetDataMutable<int64_t>(target)[out_idx] = result;
+		break;
+	}
+	case LogicalTypeId::TIMESTAMP:
+	case LogicalTypeId::TIMESTAMP_TZ:
+	case LogicalTypeId::TIMESTAMP_NS:
 	case LogicalTypeId::BIGINT: {
-		if (avro_value_get_long(avro_val, &FlatVector::GetDataMutable<int64_t>(target)[out_idx])) {
+		int64_t raw_val;
+		if (avro_value_get_long(avro_val, &raw_val)) {
 			throw InvalidInputException(avro_strerror());
 		}
+		FlatVector::GetDataMutable<int64_t>(target)[out_idx] =
+		    avro_type.is_timestamp_millis ? MultiplyOperatorOverflowCheck::Operation<int64_t, int64_t, int64_t>(
+		                                        raw_val, Interval::MICROS_PER_MSEC)
+		                                  : raw_val;
 		break;
 	}
 	case LogicalTypeId::FLOAT: {
@@ -197,6 +308,120 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 	case LogicalTypeId::DOUBLE: {
 		if (avro_value_get_double(avro_val, &FlatVector::GetDataMutable<double>(target)[out_idx])) {
 			throw InvalidInputException(avro_strerror());
+		}
+		break;
+	}
+	case LogicalTypeId::UUID: {
+		size_t fixed_size = 16;
+		const void *fixed_data;
+		if (avro_value_get_fixed(avro_val, &fixed_data, &fixed_size)) {
+			throw InvalidInputException(avro_strerror());
+		}
+		FlatVector::GetDataMutable<hugeint_t>(target)[out_idx] = BaseUUID::FromBlob(const_data_ptr_cast(fixed_data));
+		break;
+	}
+	case LogicalTypeId::DECIMAL: {
+		// decimals should never be more than 16
+		const uint8_t bytes_data[16] = {};
+		const void *ptr = bytes_data;
+		size_t bytes_size;
+		avro_wrapped_buffer bytes_buf = AVRO_WRAPPED_BUFFER_EMPTY;
+
+		if (avro_type.avro_type == AVRO_BYTES) {
+			if (avro_value_grab_bytes(avro_val, &bytes_buf)) {
+				throw InvalidInputException(avro_strerror());
+			}
+			ptr = bytes_buf.buf;
+			bytes_size = bytes_buf.size;
+		} else { // AVRO_FIXED
+			if (avro_value_get_fixed(avro_val, &ptr, &bytes_size)) {
+				throw InvalidInputException(avro_strerror());
+			}
+		}
+
+		auto raw = const_data_ptr_cast(ptr);
+		// Sign bit is in the MSB of the first byte
+		bool negative = bytes_size > 0 && (raw[0] & 0x80);
+
+		switch (avro_type.duckdb_type.InternalType()) {
+		case PhysicalType::INT16: {
+			uint16_t result = negative ? 0xFFFF : 0;
+			for (idx_t i = 0; i < bytes_size; i++) {
+				result = (result << 8) | raw[i];
+			}
+			FlatVector::GetDataMutable<int16_t>(target)[out_idx] = (int16_t)result;
+			break;
+		}
+		case PhysicalType::INT32: {
+			uint32_t result = negative ? 0xFFFFFFFF : 0;
+			for (idx_t i = 0; i < bytes_size; i++) {
+				result = (result << 8) | raw[i];
+			}
+			FlatVector::GetDataMutable<int32_t>(target)[out_idx] = (int32_t)result;
+			break;
+		}
+		case PhysicalType::INT64: {
+			uint64_t result = negative ? ~0ULL : 0;
+			for (idx_t i = 0; i < bytes_size; i++) {
+				result = (result << 8) | raw[i];
+			}
+			FlatVector::GetDataMutable<int64_t>(target)[out_idx] = (int64_t)result;
+			break;
+		}
+		case PhysicalType::INT128: {
+			int64_t upper_val = 0;
+			uint64_t lower_val = 0;
+
+			// Calculate how many bytes go into upper and lower parts
+			idx_t upper_bytes;
+			if (bytes_size == 8) {
+				int64_t lower_val_signed = 0;
+				for (idx_t i = 0; i < bytes_size; i++) {
+					int64_t raw_byte = raw[i];
+					lower_val_signed |= (raw_byte << ((7 - i) * 8));
+				}
+				upper_bytes = 0;
+				auto ret = hugeint_t(lower_val_signed);
+				FlatVector::GetDataMutable<hugeint_t>(target)[out_idx] = ret;
+				break;
+			} else {
+				upper_bytes = (bytes_size <= sizeof(uint64_t)) ? bytes_size : (bytes_size - sizeof(uint64_t));
+			}
+
+			// Read upper part (big-endian)
+			// TODO: upper part might be sign extended bti.
+			for (idx_t i = 0; i < upper_bytes; i++) {
+				upper_val = (upper_val << 8) | raw[i];
+			}
+
+			// Handle sign extension for negative numbers
+			if (bytes_size > 0 && (raw[0] & 0x80)) {
+				// Fill remaining bytes with 1s for negative numbers
+				if (upper_bytes < sizeof(int64_t)) {
+					// Create a mask with 1s in the upper bits that need to be filled
+					int64_t mask = ((int64_t)1 << ((sizeof(int64_t) - upper_bytes) * 8)) - 1;
+					mask = mask << (upper_bytes * 8);
+					upper_val |= mask;
+				}
+			}
+
+			// Read lower part if there are remaining bytes
+			if (bytes_size > sizeof(int64_t)) {
+				for (idx_t i = upper_bytes; i < bytes_size; i++) {
+					lower_val = (lower_val << 8) | raw[i];
+				}
+			}
+
+			auto ret = hugeint_t(upper_val, lower_val);
+			FlatVector::GetDataMutable<hugeint_t>(target)[out_idx] = ret;
+			break;
+		}
+		default:
+			throw NotImplementedException("Unsupported decimal physical type");
+		}
+
+		if (avro_type.avro_type == AVRO_BYTES) {
+			bytes_buf.free(&bytes_buf);
 		}
 		break;
 	}
@@ -379,9 +604,12 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 
 void AvroReader::Read(DataChunk &output) {
 	idx_t out_idx = 0;
+	read_chunk.Reset();
 
+	D_ASSERT(read_chunk.ColumnCount() == 1);
+	auto &read_vec = read_chunk.data[0];
 	while (avro_file_reader_read_value(reader, &value) == 0) {
-		TransformValue(&value, avro_type, *read_vec, out_idx++);
+		TransformValue(&value, avro_type, read_vec, out_idx++);
 		if (out_idx == STANDARD_VECTOR_SIZE) {
 			break;
 		}
@@ -393,10 +621,10 @@ void AvroReader::Read(DataChunk &output) {
 				continue; // to be filled in later
 			}
 			output.data[col_idx].Reference(
-			    StructVector::GetEntries(*read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
+			    StructVector::GetEntries(read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
 		}
 	} else {
-		output.data[column_indexes[0].GetPrimaryIndex()].Reference(*read_vec);
+		output.data[column_indexes[0].GetPrimaryIndex()].Reference(read_vec);
 	}
 	output.SetCardinality(out_idx);
 }

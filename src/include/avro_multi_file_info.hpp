@@ -12,7 +12,6 @@
 
 namespace duckdb {
 
-//! We might have avro specific options one day
 class AvroFileReaderOptions : public BaseFileReaderOptions {};
 
 struct AvroMultiFileInfo : MultiFileReaderInterface {

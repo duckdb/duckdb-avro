@@ -1,3 +1,6 @@
+# name: test/sql/copy/large_list_struct_coverage.test_slow
+# group: [copy]
+
 require avro
 
 statement ok

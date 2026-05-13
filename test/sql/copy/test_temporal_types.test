@@ -1,0 +1,155 @@
+# name: test/sql/copy/test_temporal_types.test
+# group: [copy]
+
+require avro
+
+require icu
+
+# ---- DATE ----
+
+statement ok
+COPY (
+    from values ('2024-01-15'::DATE), (NULL) t(date_col)
+) TO '__TEST_DIR__/date_type.avro';
+
+query I
+SELECT typeof(date_col) FROM read_avro('__TEST_DIR__/date_type.avro') LIMIT 1;
+----
+DATE
+
+query I
+SELECT date_col FROM read_avro('__TEST_DIR__/date_type.avro') ORDER BY date_col NULLS LAST;
+----
+2024-01-15
+NULL
+
+# ---- TIME ----
+
+statement ok
+COPY (
+    from values ('12:34:56'::TIME), (NULL) t(time_col)
+) TO '__TEST_DIR__/time_type.avro';
+
+query I
+SELECT typeof(time_col) FROM read_avro('__TEST_DIR__/time_type.avro') LIMIT 1;
+----
+TIME
+
+query I
+SELECT time_col FROM read_avro('__TEST_DIR__/time_type.avro') ORDER BY time_col NULLS LAST;
+----
+12:34:56
+NULL
+
+# ---- TIMESTAMP ----
+
+statement ok
+COPY (
+    FROM VALUES ('2024-01-15 12:34:56'::TIMESTAMP), (NULL) t(ts_col)
+) TO '__TEST_DIR__/timestamp_type.avro';
+
+query I
+SELECT typeof(ts_col) FROM read_avro('__TEST_DIR__/timestamp_type.avro') LIMIT 1;
+----
+TIMESTAMP
+
+query I
+SELECT ts_col FROM read_avro('__TEST_DIR__/timestamp_type.avro') ORDER BY ts_col NULLS LAST;
+----
+2024-01-15 12:34:56
+NULL
+
+# ---- TIMESTAMP WITH TIME ZONE ----
+
+statement ok
+SET TimeZone = 'UTC';
+
+statement ok
+COPY (
+    FROM VALUES ('2024-01-15 12:34:56+00'::TIMESTAMPTZ), (NULL)  t(tstz_col)
+) TO '__TEST_DIR__/timestamptz_type.avro';
+
+query I
+SELECT typeof(tstz_col) FROM read_avro('__TEST_DIR__/timestamptz_type.avro') LIMIT 1;
+----
+TIMESTAMP WITH TIME ZONE
+
+query I
+SELECT tstz_col FROM read_avro('__TEST_DIR__/timestamptz_type.avro') ORDER BY tstz_col NULLS LAST;
+----
+2024-01-15 12:34:56+00
+NULL
+
+statement ok
+SET TimeZone = 'CET';
+
+statement ok
+COPY (
+    FROM VALUES ('2024-01-15 12:34:56'::TIMESTAMPTZ), (NULL)  t(tstz_col)
+) TO '__TEST_DIR__/timestamptz_type.avro';
+
+query I
+    SELECT typeof(tstz_col) FROM read_avro('__TEST_DIR__/timestamptz_type.avro') LIMIT 1;
+----
+TIMESTAMP WITH TIME ZONE
+
+# we get the same value back with the correct timezone info (+1 for CET)
+query I
+SELECT tstz_col FROM read_avro('__TEST_DIR__/timestamptz_type.avro') ORDER BY tstz_col NULLS LAST;
+----
+2024-01-15 12:34:56+01
+NULL
+
+# Test Timestamp NS
+
+statement ok
+COPY (
+	select timestamp_ns '1992-01-01 11:30:00.123456789' a
+) TO '__TEST_DIR__/timestamp_ns.avro' (FORMAT AVRO);
+
+query I
+from read_avro('__TEST_DIR__/timestamp_ns.avro')
+----
+1992-01-01 11:30:00.123456789
+
+
+query I
+select column_type from (describe (from read_avro('__TEST_DIR__/timestamp_ns.avro')));
+----
+TIMESTAMP_NS
+
+# ---- All temporal types together, including NULLs ----
+
+statement ok
+SET TimeZone = 'UTC';
+
+statement ok
+COPY (
+    SELECT
+        '2024-01-15'::DATE        AS date_col,
+        '12:34:56'::TIME          AS time_col,
+        '2024-01-15 12:34:56'::TIMESTAMP    AS ts_col,
+        '2024-01-15 12:34:56+00'::TIMESTAMPTZ AS tstz_col,
+		'2023-01-15 12:12:12.123456789'::TIMESTAMP_NS as ts_ns_col
+    UNION ALL
+    SELECT
+        NULL::DATE,
+        NULL::TIME,
+        NULL::TIMESTAMP,
+        NULL::TIMESTAMPTZ,
+		NULL::TIMESTAMP_NS
+) TO '__TEST_DIR__/all_temporal_types.avro';
+
+query IIIII
+SELECT typeof(date_col), typeof(time_col), typeof(ts_col), typeof(tstz_col), typeof(ts_ns_col)
+FROM read_avro('__TEST_DIR__/all_temporal_types.avro')
+LIMIT 1;
+----
+DATE	TIME	TIMESTAMP	TIMESTAMP WITH TIME ZONE	TIMESTAMP_NS
+
+query IIIII
+SELECT * FROM read_avro('__TEST_DIR__/all_temporal_types.avro')
+ORDER BY date_col NULLS LAST;
+----
+2024-01-15	12:34:56	2024-01-15 12:34:56	2024-01-15 12:34:56+00	2023-01-15 12:12:12.123456789
+NULL	NULL	NULL	NULL	NULL

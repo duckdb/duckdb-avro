@@ -141,7 +141,7 @@ static void GetFieldIDs(const Value &field_ids_value, ChildFieldIDs &field_ids_p
 }
 
 ChildFieldIDs FieldIDUtils::ParseFieldIds(const Value &input, const vector<string> &names,
-                                                            const vector<LogicalType> &types) {
+                                          const vector<LogicalType> &types) {
 	unordered_set<uint32_t> unique_field_ids;
 	case_insensitive_map_t<LogicalType> name_to_type_map;
 	for (idx_t col_idx = 0; col_idx < names.size(); col_idx++) {
