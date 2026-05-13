@@ -631,7 +631,7 @@ void AvroReader::Read(DataChunk &output) {
 	} else {
 		output.data[column_indexes[0].GetPrimaryIndex()].Reference(read_vec);
 	}
-	output.SetCardinality(out_idx);
+	output.SetChildCardinality(out_idx);
 }
 
 } // namespace duckdb

@@ -8,7 +8,7 @@ COPY (
 	ROOT_NAME 'test'
 );
 ----
-Invalid Configuration Error: The following option(s) are not recognized: key: 'NOT_RECOGNIZED'
+Invalid Configuration Error: The following option(s) are not recognized: key: 'not_recognized'
 
 statement error
 COPY (
@@ -18,4 +18,4 @@ COPY (
 	ROOT_NAME 'test'
 );
 ----
-Invalid Configuration Error: The following option(s) are not recognized: key: 'NOT_RECOGNIZED' with value: 'with_value'
+Invalid Configuration Error: The following option(s) are not recognized: key: 'not_recognized' with value: 'with_value'
