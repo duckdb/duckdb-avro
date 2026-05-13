@@ -6,8 +6,8 @@
 		"registries": [
 			{
 				"kind": "git",
-				"repository": "https://github.com/tishj/vcpkg-duckdb-ports",
-				"baseline": "969fecc9cc7c1518f43df0479369e99a4da520b2",
+				"repository": "https://github.com/duckdb/vcpkg-duckdb-ports",
+				"baseline": "f13de79b66345fe31d3f9c119517613023d194a8",
 				"packages": [
 					"vcpkg-cmake",
 					"avro-c"
