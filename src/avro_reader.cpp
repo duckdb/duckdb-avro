@@ -625,11 +625,7 @@ void AvroReader::Read(DataChunk &output) {
 				continue; // to be filled in later
 			}
 			output.data[col_idx].Reference(
-<<<<<<< HEAD
-			    StructVector::GetEntries(read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
-=======
 			    StructVector::GetEntries(*read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
->>>>>>> 3fe0cb5 (apply 0001-vector-fix.patch)
 		}
 	} else {
 		output.data[column_indexes[0].GetPrimaryIndex()].Reference(read_vec);
