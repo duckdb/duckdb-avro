@@ -218,7 +218,7 @@ AvroReader::AvroReader(ClientContext &context, OpenFileInfo file, const AvroFile
 	auto file_handle = fs.OpenFile(this->file, flags);
 	auto total_size = file_handle->GetFileSize();
 
-	auto local_buffer = Allocator::DefaultAllocator().Allocate(total_size);
+	local_buffer = Allocator::DefaultAllocator().Allocate(total_size);
 	fs.Read(*file_handle, local_buffer.get(), total_size);
 
 	auto avro_reader = avro_reader_memory(const_char_ptr_cast(local_buffer.get()), total_size);
