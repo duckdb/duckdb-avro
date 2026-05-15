@@ -219,9 +219,10 @@ AvroReader::AvroReader(ClientContext &context, OpenFileInfo file) : BaseFileRead
 	auto file_handle = fs.OpenFile(this->file.path, flags);
 	auto total_size = fs.GetFileSize(*file_handle);
 
-	buf_data = Allocator::DefaultAllocator().Allocate(total_size);
-	fs.Read(*file_handle, buf_data.get(), total_size, 0);
-	auto avro_reader = avro_reader_memory(const_char_ptr_cast(buf_data.get()), total_size);
+	local_buffer = Allocator::DefaultAllocator().Allocate(total_size);
+	fs.Read(*file_handle, local_buffer.get(), total_size);
+
+	auto avro_reader = avro_reader_memory(const_char_ptr_cast(local_buffer.get()), total_size);
 
 	if (avro_reader_reader(avro_reader, &reader)) {
 		throw InvalidInputException(avro_strerror());
