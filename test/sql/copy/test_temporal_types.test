@@ -10,15 +10,15 @@ require icu
 statement ok
 COPY (
     from values ('2024-01-15'::DATE), (NULL) t(date_col)
-) TO '__TEST_DIR__/date_type.avro';
+) TO '{TEST_DIR}/date_type.avro';
 
 query I
-SELECT typeof(date_col) FROM read_avro('__TEST_DIR__/date_type.avro') LIMIT 1;
+SELECT typeof(date_col) FROM read_avro('{TEST_DIR}/date_type.avro') LIMIT 1;
 ----
 DATE
 
 query I
-SELECT date_col FROM read_avro('__TEST_DIR__/date_type.avro') ORDER BY date_col NULLS LAST;
+SELECT date_col FROM read_avro('{TEST_DIR}/date_type.avro') ORDER BY date_col NULLS LAST;
 ----
 2024-01-15
 NULL
@@ -28,15 +28,15 @@ NULL
 statement ok
 COPY (
     from values ('12:34:56'::TIME), (NULL) t(time_col)
-) TO '__TEST_DIR__/time_type.avro';
+) TO '{TEST_DIR}/time_type.avro';
 
 query I
-SELECT typeof(time_col) FROM read_avro('__TEST_DIR__/time_type.avro') LIMIT 1;
+SELECT typeof(time_col) FROM read_avro('{TEST_DIR}/time_type.avro') LIMIT 1;
 ----
 TIME
 
 query I
-SELECT time_col FROM read_avro('__TEST_DIR__/time_type.avro') ORDER BY time_col NULLS LAST;
+SELECT time_col FROM read_avro('{TEST_DIR}/time_type.avro') ORDER BY time_col NULLS LAST;
 ----
 12:34:56
 NULL
@@ -46,15 +46,15 @@ NULL
 statement ok
 COPY (
     FROM VALUES ('2024-01-15 12:34:56'::TIMESTAMP), (NULL) t(ts_col)
-) TO '__TEST_DIR__/timestamp_type.avro';
+) TO '{TEST_DIR}/timestamp_type.avro';
 
 query I
-SELECT typeof(ts_col) FROM read_avro('__TEST_DIR__/timestamp_type.avro') LIMIT 1;
+SELECT typeof(ts_col) FROM read_avro('{TEST_DIR}/timestamp_type.avro') LIMIT 1;
 ----
 TIMESTAMP
 
 query I
-SELECT ts_col FROM read_avro('__TEST_DIR__/timestamp_type.avro') ORDER BY ts_col NULLS LAST;
+SELECT ts_col FROM read_avro('{TEST_DIR}/timestamp_type.avro') ORDER BY ts_col NULLS LAST;
 ----
 2024-01-15 12:34:56
 NULL
@@ -67,15 +67,15 @@ SET TimeZone = 'UTC';
 statement ok
 COPY (
     FROM VALUES ('2024-01-15 12:34:56+00'::TIMESTAMPTZ), (NULL)  t(tstz_col)
-) TO '__TEST_DIR__/timestamptz_type.avro';
+) TO '{TEST_DIR}/timestamptz_type.avro';
 
 query I
-SELECT typeof(tstz_col) FROM read_avro('__TEST_DIR__/timestamptz_type.avro') LIMIT 1;
+SELECT typeof(tstz_col) FROM read_avro('{TEST_DIR}/timestamptz_type.avro') LIMIT 1;
 ----
 TIMESTAMP WITH TIME ZONE
 
 query I
-SELECT tstz_col FROM read_avro('__TEST_DIR__/timestamptz_type.avro') ORDER BY tstz_col NULLS LAST;
+SELECT tstz_col FROM read_avro('{TEST_DIR}/timestamptz_type.avro') ORDER BY tstz_col NULLS LAST;
 ----
 2024-01-15 12:34:56+00
 NULL
@@ -86,16 +86,16 @@ SET TimeZone = 'CET';
 statement ok
 COPY (
     FROM VALUES ('2024-01-15 12:34:56'::TIMESTAMPTZ), (NULL)  t(tstz_col)
-) TO '__TEST_DIR__/timestamptz_type.avro';
+) TO '{TEST_DIR}/timestamptz_type.avro';
 
 query I
-    SELECT typeof(tstz_col) FROM read_avro('__TEST_DIR__/timestamptz_type.avro') LIMIT 1;
+    SELECT typeof(tstz_col) FROM read_avro('{TEST_DIR}/timestamptz_type.avro') LIMIT 1;
 ----
 TIMESTAMP WITH TIME ZONE
 
 # we get the same value back with the correct timezone info (+1 for CET)
 query I
-SELECT tstz_col FROM read_avro('__TEST_DIR__/timestamptz_type.avro') ORDER BY tstz_col NULLS LAST;
+SELECT tstz_col FROM read_avro('{TEST_DIR}/timestamptz_type.avro') ORDER BY tstz_col NULLS LAST;
 ----
 2024-01-15 12:34:56+01
 NULL
@@ -105,16 +105,16 @@ NULL
 statement ok
 COPY (
 	select timestamp_ns '1992-01-01 11:30:00.123456789' a
-) TO '__TEST_DIR__/timestamp_ns.avro' (FORMAT AVRO);
+) TO '{TEST_DIR}/timestamp_ns.avro' (FORMAT AVRO);
 
 query I
-from read_avro('__TEST_DIR__/timestamp_ns.avro')
+from read_avro('{TEST_DIR}/timestamp_ns.avro')
 ----
 1992-01-01 11:30:00.123456789
 
 
 query I
-select column_type from (describe (from read_avro('__TEST_DIR__/timestamp_ns.avro')));
+select column_type from (describe (from read_avro('{TEST_DIR}/timestamp_ns.avro')));
 ----
 TIMESTAMP_NS
 
@@ -138,17 +138,17 @@ COPY (
         NULL::TIMESTAMP,
         NULL::TIMESTAMPTZ,
 		NULL::TIMESTAMP_NS
-) TO '__TEST_DIR__/all_temporal_types.avro';
+) TO '{TEST_DIR}/all_temporal_types.avro';
 
 query IIIII
 SELECT typeof(date_col), typeof(time_col), typeof(ts_col), typeof(tstz_col), typeof(ts_ns_col)
-FROM read_avro('__TEST_DIR__/all_temporal_types.avro')
+FROM read_avro('{TEST_DIR}/all_temporal_types.avro')
 LIMIT 1;
 ----
 DATE	TIME	TIMESTAMP	TIMESTAMP WITH TIME ZONE	TIMESTAMP_NS
 
 query IIIII
-SELECT * FROM read_avro('__TEST_DIR__/all_temporal_types.avro')
+SELECT * FROM read_avro('{TEST_DIR}/all_temporal_types.avro')
 ORDER BY date_col NULLS LAST;
 ----
 2024-01-15	12:34:56	2024-01-15 12:34:56	2024-01-15 12:34:56+00	2023-01-15 12:12:12.123456789
