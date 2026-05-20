@@ -214,7 +214,7 @@ AvroReader::AvroReader(ClientContext &context, OpenFileInfo file, const AvroFile
 	auto &fs = FileSystem::GetFileSystem(context);
 
 	FileOpenFlags flags = FileFlags::FILE_FLAGS_READ;
-	flags.SetCachingMode(CachingMode::CACHE_REMOTE_ONLY);
+	flags.SetCachingMode(CachingMode::ALWAYS_CACHE);
 	auto file_handle = fs.OpenFile(this->file, flags);
 	auto total_size = file_handle->GetFileSize();
 
