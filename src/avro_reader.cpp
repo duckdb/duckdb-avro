@@ -216,8 +216,8 @@ AvroReader::AvroReader(ClientContext &context, OpenFileInfo file) : BaseFileRead
 	auto &fs = FileSystem::GetFileSystem(context);
 	FileOpenFlags flags = FileFlags::FILE_FLAGS_READ;
 	flags.SetCachingMode(CachingMode::ALWAYS_CACHE);
-	auto file_handle = fs.OpenFile(this->file.path, flags);
-	auto total_size = fs.GetFileSize(*file_handle);
+	auto file_handle = fs.OpenFile(this->file, flags);
+	auto total_size = file_handle->GetFileSize();
 
 	local_buffer = Allocator::DefaultAllocator().Allocate(total_size);
 	fs.Read(*file_handle, local_buffer.get(), total_size);
