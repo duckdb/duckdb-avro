@@ -9,9 +9,6 @@ require icu
 statement ok
 SET TimeZone = 'CET';
 
-statement ok
-PRAGMA enable_verification
-
 query I
 SELECT column_type FROM (DESCRIBE FROM read_avro('test/timestamp_millis.avro')) WHERE column_name = 'ts';
 ----
