@@ -17,9 +17,11 @@ struct ChildFieldIDs {
 public:
 	void Serialize(Serializer &serializer) const;
 	static ChildFieldIDs Deserialize(Deserializer &source);
+
 public:
 	ChildFieldIDs Copy() const;
 	case_insensitive_map_t<FieldID> &Ids();
+
 public:
 	unique_ptr<case_insensitive_map_t<FieldID>> ids;
 };
@@ -49,7 +51,7 @@ public:
 
 public:
 	static ChildFieldIDs ParseFieldIds(const Value &input, const vector<string> &names,
-	                                                     const vector<LogicalType> &types);
+	                                   const vector<LogicalType> &types);
 };
 
 } // namespace avro
