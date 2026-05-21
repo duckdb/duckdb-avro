@@ -16,7 +16,7 @@ find_path(
   PATHS "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
   PATH_SUFFIXES avro REQUIRED)
 
-if(WIN32) # endless screaming
+if(MSVC) # endless screaming
   find_library(AVRO_LIBRARY avro.lib REQUIRED)
   find_library(JANSSON_LIBRARY jansson.lib REQUIRED)
   find_library(LZMA_LIBRARY lzma.lib REQUIRED)
