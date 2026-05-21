@@ -4,9 +4,6 @@
 
 require avro
 
-statement ok
-PRAGMA enable_verification
-
 # usual suspect, the userdata1 file
 query II
 select column_name, column_type from (DESCRIBE FROM read_avro('test/userdata1.avro'));
