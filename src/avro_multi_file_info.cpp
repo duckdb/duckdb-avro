@@ -37,7 +37,7 @@ unique_ptr<TableFunctionData> AvroMultiFileInfo::InitializeBindData(MultiFileBin
 	if (options_p) {
 		result->options = options_p->Cast<AvroFileReaderOptions>();
 	}
-	return result;
+	return std::move(result);
 }
 
 void AvroMultiFileInfo::BindReader(ClientContext &context, vector<LogicalType> &return_types, vector<string> &names,
