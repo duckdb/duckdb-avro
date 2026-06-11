@@ -32,7 +32,7 @@ struct AvroMultiFileInfo : MultiFileReaderInterface {
 	//! This is where the actual binding must happen, so in this function we either:
 	//! 1. union_by_name = False. We set the schema/name depending on the first file
 	//! 2. union_by_name = True.
-	void BindReader(ClientContext &context, vector<LogicalType> &return_types, vector<string> &names,
+	void BindReader(ClientContext &context, vector<LogicalType> &return_types, vector<Identifier> &names,
 	                MultiFileBindData &bind_data) override;
 
 	optional_idx MaxThreads(const MultiFileBindData &bind_data_p, const MultiFileGlobalState &global_state,

@@ -123,7 +123,7 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 		for (idx_t child_idx = 0; child_idx < num_children; child_idx++) {
 			auto child_schema = avro_schema_union_branch(avro_schema, child_idx);
 			auto child_type = TransformSchema(child_schema, parent_schema_names);
-			union_children.push_back(
+			union_children.emplace_back(
 			    std::pair<std::string, AvroType>(StringUtil::Format("u%llu", child_idx), std::move(child_type)));
 			if (child_type.duckdb_type.id() != LogicalTypeId::SQLNULL) {
 				union_child_map[child_idx] = non_null_child_idx++;
@@ -154,7 +154,7 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 				throw InvalidInputException("Empty avro field name");
 			}
 
-			struct_children.push_back(std::pair<std::string, AvroType>(child_name, std::move(child_type)));
+			struct_children.emplace_back(std::pair<std::string, AvroType>(child_name, std::move(child_type)));
 		}
 
 		return AvroType(AVRO_RECORD, LogicalTypeId::STRUCT, std::move(struct_children));
@@ -178,7 +178,7 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 		auto child_type = TransformSchema(child_schema, parent_schema_names);
 		child_type.field_id = element_id;
 		child_list_t<AvroType> list_children;
-		list_children.push_back(std::pair<std::string, AvroType>("list_entry", std::move(child_type)));
+		list_children.emplace_back(std::pair<std::string, AvroType>("list_entry", std::move(child_type)));
 		bool is_map = avro_schema_array_is_map(avro_schema);
 		if (is_map) {
 			return AvroType(AVRO_ARRAY, LogicalTypeId::MAP, std::move(list_children));
@@ -196,8 +196,8 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 		value_type.field_id = value_id;
 
 		child_list_t<AvroType> map_children;
-		map_children.push_back(std::pair<std::string, AvroType>("key_entry", std::move(key_type)));
-		map_children.push_back(std::pair<std::string, AvroType>("value_entry", std::move(value_type)));
+		map_children.emplace_back(std::pair<std::string, AvroType>("key_entry", std::move(key_type)));
+		map_children.emplace_back(std::pair<std::string, AvroType>("value_entry", std::move(value_type)));
 		return AvroType(AVRO_MAP, LogicalTypeId::MAP, std::move(map_children));
 	}
 	case AVRO_LINK: {

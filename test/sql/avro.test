@@ -146,7 +146,7 @@ NULL
 query II
 select column_name, column_type from (DESCRIBE FROM read_avro('test/primitive_types.avro'));
 ----
-null	INTEGER
+null	"NULL"
 boolean	BOOLEAN
 int	INTEGER
 long	BIGINT
@@ -312,7 +312,7 @@ Recursive Avro types not supported: LongList
 query II
 select column_name, column_type from (DESCRIBE FROM read_avro('test/broken_record.avro'));
 ----
-n	INTEGER
+n	"NULL"
 
 query I
 FROM read_avro('test/broken_record.avro')
@@ -387,7 +387,7 @@ select column_name, column_type from (DESCRIBE FROM read_avro('test/4551fe85-feb
 ----
 status	INTEGER
 snapshot_id	BIGINT
-data_file	STRUCT(file_path VARCHAR, file_format VARCHAR, "partition" INTEGER, record_count BIGINT, file_size_in_bytes BIGINT, block_size_in_bytes BIGINT, file_ordinal INTEGER, sort_columns INTEGER[], column_sizes MAP(INTEGER, BIGINT), value_counts MAP(INTEGER, BIGINT), null_value_counts MAP(INTEGER, BIGINT), lower_bounds MAP(INTEGER, BLOB), upper_bounds MAP(INTEGER, BLOB), key_metadata BLOB, split_offsets BIGINT[])
+data_file	STRUCT(file_path VARCHAR, file_format VARCHAR, "partition" "NULL", record_count BIGINT, file_size_in_bytes BIGINT, block_size_in_bytes BIGINT, file_ordinal INTEGER, sort_columns INTEGER[], column_sizes MAP(INTEGER, BIGINT), value_counts MAP(INTEGER, BIGINT), null_value_counts MAP(INTEGER, BIGINT), lower_bounds MAP(INTEGER, BLOB), upper_bounds MAP(INTEGER, BLOB), key_metadata BLOB, split_offsets BIGINT[])
 
 # usual suspect, the userdata1 file, this time with a wildcard
 query II

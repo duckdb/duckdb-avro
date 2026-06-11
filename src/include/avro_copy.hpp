@@ -13,7 +13,7 @@ struct AvroCopyFunction {
 
 struct WriteAvroBindData : public FunctionData {
 public:
-	WriteAvroBindData(CopyFunctionBindInput &input, const vector<string> &names, const vector<LogicalType> &types);
+	WriteAvroBindData(CopyFunctionBindInput &input, const vector<Identifier> &names, const vector<LogicalType> &types);
 	WriteAvroBindData() {
 	}
 	virtual ~WriteAvroBindData();
