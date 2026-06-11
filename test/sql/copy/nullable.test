@@ -28,7 +28,7 @@ COPY (
 # insert null into non-nullable field
 statement error
 COPY (
-	select NULL field1
+	select NULL::INTEGER field1
 ) TO '{TEST_DIR}/field_ids_error.avro' (
 	FIELD_IDS {
 		'field1': {'__duckdb_field_id': 301, '__duckdb_nullable': false},
