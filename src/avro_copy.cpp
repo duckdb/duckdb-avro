@@ -260,13 +260,13 @@ public:
 			auto fields = yyjson_mut_obj_add_arr(doc, type_val, "fields");
 			for (auto &it : struct_children) {
 				auto &child_name = it.first;
-				if (StringUtil::CIEquals(child_name, "__duckdb_empty_struct_marker")) {
+				if (child_name == "__duckdb_empty_struct_marker") {
 					continue;
 				}
 				auto &child_type = it.second;
-				auto child_field_id = GetChildFieldIdByName(field_id, child_name);
+				auto child_field_id = GetChildFieldIdByName(field_id, child_name.GetIdentifierName());
 
-				auto struct_field = CreateStructField(child_name, child_type, child_field_id);
+				auto struct_field = CreateStructField(child_name.GetIdentifierName(), child_type, child_field_id);
 				yyjson_mut_arr_add_val(fields, struct_field);
 			}
 		} else if (type_id == LogicalTypeId::LIST) {
@@ -473,7 +473,7 @@ static string CreateJSONMetadata(const case_insensitive_map_t<vector<Value>> &op
 	for (idx_t i = 0; i < children.size(); i++) {
 		auto &child = children[i];
 		auto &child_name = child_types[i].first;
-		metadata[child_name] = child.ToString();
+		metadata[child_name.GetIdentifierName()] = child.ToString();
 	}
 
 	std::unique_ptr<yyjson_mut_doc, YyjsonDocDeleter> doc_p(yyjson_mut_doc_new(nullptr));
@@ -497,14 +497,14 @@ static string CreateJSONMetadata(const case_insensitive_map_t<vector<Value>> &op
 	return res;
 }
 
-WriteAvroBindData::WriteAvroBindData(CopyFunctionBindInput &input, const vector<string> &names,
+WriteAvroBindData::WriteAvroBindData(CopyFunctionBindInput &input, const vector<Identifier> &names,
                                      const vector<LogicalType> &types)
-    : names(names), types(types) {
+    : names(IdentifiersToStrings(names)), types(types) {
 
 	case_insensitive_set_t recognized;
 
 	json_metadata = CreateJSONMetadata(input.info.options, recognized);
-	json_schema = CreateJSONSchema(input.info.options, names, types, recognized);
+	json_schema = CreateJSONSchema(input.info.options, this->names, types, recognized);
 
 	vector<string> unrecognized_options;
 	for (auto &option : input.info.options) {
@@ -588,7 +588,7 @@ WriteAvroGlobalState::WriteAvroGlobalState(ClientContext &context, FunctionData 
 }
 
 static unique_ptr<FunctionData> WriteAvroBind(ClientContext &context, CopyFunctionBindInput &input,
-                                              const vector<string> &names, const vector<LogicalType> &sql_types) {
+                                              const vector<Identifier> &names, const vector<LogicalType> &sql_types) {
 	auto res = make_uniq<WriteAvroBindData>(input, names, sql_types);
 	return std::move(res);
 }
@@ -748,7 +748,7 @@ static idx_t PopulateValue(avro_value_t *target, const Value &val) {
 		auto &child_types = StructType::GetChildTypes(val.type());
 		idx_t struct_value_size = 0;
 		for (idx_t i = 0; i < struct_values.size(); i++) {
-			if (StringUtil::CIEquals(child_types[i].first, "__duckdb_empty_struct_marker")) {
+			if (child_types[i].first == "__duckdb_empty_struct_marker") {
 				continue;
 			}
 			const char *unused_name;

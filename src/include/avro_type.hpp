@@ -44,7 +44,7 @@ public:
 		case LogicalTypeId::STRUCT: {
 			child_list_t<LogicalType> type_children;
 			for (auto &child : avro_type.children) {
-				auto child_col = TransformAvroType(child.first, child.second);
+				auto child_col = TransformAvroType(child.first.GetIdentifierName(), child.second);
 				type_children.emplace_back(child_col.name, child_col.type);
 				children.push_back(std::move(child_col));
 			}
@@ -89,11 +89,11 @@ public:
 				if (child.second.duckdb_type == LogicalTypeId::SQLNULL) {
 					continue;
 				}
-				auto member = TransformAvroType(child.first, child.second);
+				auto member = TransformAvroType(child.first.GetIdentifierName(), child.second);
 				children.push_back(std::move(member));
 			}
 			if (children.size() == 1) {
-				children[0].name = name;
+				children[0].name = Identifier(name);
 
 				if (avro_type.HasFieldId()) {
 					children[0].identifier = Value::INTEGER(avro_type.GetFieldId());

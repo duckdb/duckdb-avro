@@ -37,10 +37,10 @@ unique_ptr<TableFunctionData> AvroMultiFileInfo::InitializeBindData(MultiFileBin
 	if (options_p) {
 		result->options = options_p->Cast<AvroFileReaderOptions>();
 	}
-	return result;
+	return std::move(result);
 }
 
-void AvroMultiFileInfo::BindReader(ClientContext &context, vector<LogicalType> &return_types, vector<string> &names,
+void AvroMultiFileInfo::BindReader(ClientContext &context, vector<LogicalType> &return_types, vector<Identifier> &names,
                                    MultiFileBindData &bind_data) {
 	if (bind_data.file_options.union_by_name) {
 		throw NotImplementedException("'union_by_name' not implemented for Avro reader yet");
