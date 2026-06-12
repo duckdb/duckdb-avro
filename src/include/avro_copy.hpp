@@ -134,11 +134,19 @@ public:
 	void WriteData(const_data_ptr_t data, idx_t size) {
 		lock_guard<mutex> flock(lock);
 		handle->Write((void *)data, size);
+		bytes_written += size;
 	}
 
 	idx_t FileSize() {
 		lock_guard<mutex> flock(lock);
 		return handle->GetFileSize();
+	}
+
+	//! Total bytes written to the output file. Tracked incrementally in WriteData so it remains valid
+	//! after the handle is closed (used to report WRITTEN_FILE_STATISTICS without re-stat-ing the
+	//! file, which would be a network round trip on object stores).
+	idx_t BytesWritten() const {
+		return bytes_written;
 	}
 
 public:
@@ -155,6 +163,9 @@ public:
 	avro_writer_t writer;
 	avro_writer_t datum_writer;
 	avro_file_writer_t file_writer;
+
+	//! Running total of bytes written to the file (see BytesWritten()).
+	idx_t bytes_written = 0;
 };
 
 struct WriteAvroLocalState : public LocalFunctionData {

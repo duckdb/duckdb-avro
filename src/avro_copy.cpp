@@ -862,6 +862,14 @@ CopyFunctionExecutionMode WriteAvroExecutionMode(bool preserve_insertion_order, 
 	return CopyFunctionExecutionMode::REGULAR_COPY_TO_FILE;
 }
 
+static void WriteAvroGetWrittenStatistics(ClientContext &context, FunctionData &bind_data, GlobalFunctionData &gstate,
+                                          CopyFunctionFileStatistics &statistics) {
+	//! Report the exact number of bytes written. Tracked incrementally during the write, so callers
+	//! avoid a separate file-size probe, which is a network round trip (HEAD) on object stores like S3.
+	auto &global_state = gstate.Cast<WriteAvroGlobalState>();
+	statistics.file_size_bytes = global_state.BytesWritten();
+}
+
 CopyFunction AvroCopyFunction::Create() {
 	CopyFunction function("avro");
 	function.extension = "avro";
@@ -872,6 +880,7 @@ CopyFunction AvroCopyFunction::Create() {
 	function.copy_to_sink = WriteAvroSink;
 	function.copy_to_combine = WriteAvroCombine;
 	function.copy_to_finalize = WriteAvroFinalize;
+	function.copy_to_get_written_statistics = WriteAvroGetWrittenStatistics;
 	function.execution_mode = WriteAvroExecutionMode;
 	return function;
 }
