@@ -6,6 +6,7 @@
 #include "duckdb/common/vector/union_vector.hpp"
 #include "avro_reader.hpp"
 #include "utf8proc_wrapper.hpp"
+#include "duckdb/storage/external_file_cache/caching_file_system.hpp"
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/common/multi_file/multi_file_data.hpp"
 #include "duckdb/common/types/uuid.hpp"
@@ -208,8 +209,10 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 	}
 }
 
-AvroReader::AvroReader(ClientContext &context, OpenFileInfo file) : BaseFileReader(file) {
+AvroReader::AvroReader(ClientContext &context, OpenFileInfo file, const AvroFileReaderOptions &options)
+    : BaseFileReader(file) {
 	auto &fs = FileSystem::GetFileSystem(context);
+
 	FileOpenFlags flags = FileFlags::FILE_FLAGS_READ;
 	flags.SetCachingMode(CachingMode::ALWAYS_CACHE);
 	auto file_handle = fs.OpenFile(this->file, flags);
@@ -291,7 +294,8 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 	case LogicalTypeId::TIMESTAMP_TZ:
 	case LogicalTypeId::TIMESTAMP_NS:
 	case LogicalTypeId::BIGINT: {
-		if (avro_value_get_long(avro_val, &FlatVector::GetDataMutable<int64_t>(target)[out_idx])) {
+		int64_t raw_val;
+		if (avro_value_get_long(avro_val, &raw_val)) {
 			throw InvalidInputException(avro_strerror());
 		}
 		FlatVector::GetDataMutable<int64_t>(target)[out_idx] =
@@ -622,7 +626,7 @@ void AvroReader::Read(DataChunk &output) {
 				continue; // to be filled in later
 			}
 			output.data[col_idx].Reference(
-			    StructVector::GetEntries(*read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
+			    StructVector::GetEntries(read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
 		}
 	} else {
 		output.data[column_indexes[0].GetPrimaryIndex()].Reference(read_vec);
