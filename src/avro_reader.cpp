@@ -6,7 +6,10 @@
 #include "duckdb/common/vector/union_vector.hpp"
 #include "avro_reader.hpp"
 #include "utf8proc_wrapper.hpp"
+<<<<<<< HEAD
 #include "duckdb/storage/external_file_cache/caching_file_system.hpp"
+=======
+>>>>>>> 3fe0cb5 (apply 0001-vector-fix.patch)
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/common/multi_file/multi_file_data.hpp"
 #include "duckdb/common/types/uuid.hpp"
@@ -209,19 +212,16 @@ static AvroType TransformSchema(avro_schema_t &avro_schema, unordered_set<string
 	}
 }
 
-AvroReader::AvroReader(ClientContext &context, OpenFileInfo file, const AvroFileReaderOptions &options)
-    : BaseFileReader(file) {
+AvroReader::AvroReader(ClientContext &context, OpenFileInfo file) : BaseFileReader(file) {
 	auto &fs = FileSystem::GetFileSystem(context);
-
 	FileOpenFlags flags = FileFlags::FILE_FLAGS_READ;
 	flags.SetCachingMode(CachingMode::ALWAYS_CACHE);
-	auto file_handle = fs.OpenFile(this->file, flags);
-	auto total_size = file_handle->GetFileSize();
+	auto file_handle = fs.OpenFile(this->file.path, flags);
+	auto total_size = fs.GetFileSize(*file_handle);
 
-	local_buffer = Allocator::DefaultAllocator().Allocate(total_size);
-	fs.Read(*file_handle, local_buffer.get(), total_size);
-
-	auto avro_reader = avro_reader_memory(const_char_ptr_cast(local_buffer.get()), total_size);
+	buf_data = Allocator::DefaultAllocator().Allocate(total_size);
+	fs.Read(*file_handle, buf_data.get(), total_size, 0);
+	auto avro_reader = avro_reader_memory(const_char_ptr_cast(buf_data.get()), total_size);
 
 	if (avro_reader_reader(avro_reader, &reader)) {
 		throw InvalidInputException(avro_strerror());
@@ -294,8 +294,7 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 	case LogicalTypeId::TIMESTAMP_TZ:
 	case LogicalTypeId::TIMESTAMP_NS:
 	case LogicalTypeId::BIGINT: {
-		int64_t raw_val;
-		if (avro_value_get_long(avro_val, &raw_val)) {
+		if (avro_value_get_long(avro_val, &FlatVector::GetDataMutable<int64_t>(target)[out_idx])) {
 			throw InvalidInputException(avro_strerror());
 		}
 		FlatVector::GetDataMutable<int64_t>(target)[out_idx] =
@@ -626,7 +625,11 @@ void AvroReader::Read(DataChunk &output) {
 				continue; // to be filled in later
 			}
 			output.data[col_idx].Reference(
+<<<<<<< HEAD
 			    StructVector::GetEntries(read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
+=======
+			    StructVector::GetEntries(*read_vec)[column_indexes[col_idx].GetPrimaryIndex()]);
+>>>>>>> 3fe0cb5 (apply 0001-vector-fix.patch)
 		}
 	} else {
 		output.data[column_indexes[0].GetPrimaryIndex()].Reference(read_vec);

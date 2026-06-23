@@ -20,6 +20,17 @@ select * from read_avro('{TEST_DIR}/tmp.avro');
 ----
 {'a': {'child': 21}, 'b': {'child': true}}
 
+statement error
+COPY (
+	select {
+		'a': {
+			'field': true
+		}
+	} structure
+) TO '{TEST_DIR}/tmp2.avro' ( ROOT_NAME 'a');
+----
+Invalid Input Error: Cannot save record schema
+
 statement ok
 COPY (
 	select {
@@ -33,3 +44,21 @@ query I
 select * from read_avro('{TEST_DIR}/tmp2.avro');
 ----
 {'a': {'field': true}}
+
+# The first column, 'a' is a STRUCT
+# The second column ('b') contains a field 'a', which is also a STRUCT
+statement error
+COPY (
+	select {
+		'a': {
+			'field': true
+		},
+		'b': {
+			'a': {
+				'hello': false
+			}
+		}
+	} structure
+) TO '{TEST_DIR}/tmp3.avro';
+----
+Binder Error: Avro schema by the name of 'a' already exists, names of 'record', 'enum' and 'fixed' types have to be distinct

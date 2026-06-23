@@ -35,7 +35,7 @@ public:
 	avro_value_t value;
 	DataChunk read_chunk;
 
-	AllocatedData local_buffer;
+	AllocatedData buf_data;
 	AvroType avro_type;
 	LogicalType duckdb_type;
 };
