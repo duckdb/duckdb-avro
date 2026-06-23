@@ -6,10 +6,6 @@
 #include "duckdb/common/vector/union_vector.hpp"
 #include "avro_reader.hpp"
 #include "utf8proc_wrapper.hpp"
-<<<<<<< HEAD
-#include "duckdb/storage/external_file_cache/caching_file_system.hpp"
-=======
->>>>>>> 3fe0cb5 (apply 0001-vector-fix.patch)
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/common/multi_file/multi_file_data.hpp"
 #include "duckdb/common/types/uuid.hpp"
