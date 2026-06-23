@@ -22,6 +22,10 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_DOCS OFF CACHE BOOL "" FORCE)
 
+# avro-c still declares an old cmake_minimum_required(). With newer CMake
+# releases we need to raise the policy floor before adding the subdirectory.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
 # Add avro-c from submodule
 add_subdirectory(third_party/avro-c/lang/c EXCLUDE_FROM_ALL)
 
@@ -29,7 +33,7 @@ add_subdirectory(third_party/avro-c/lang/c EXCLUDE_FROM_ALL)
 set(AVRO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/avro-c/lang/c/src")
 
 # Disable all UBSan checks for avro-static to work around multiple UB issues in avro-c
-if(TARGET avro-static)
+if(TARGET avro-static AND NOT MSVC)
   target_compile_options(avro-static PRIVATE -fno-sanitize=undefined)
 endif()
 
