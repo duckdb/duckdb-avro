@@ -22,7 +22,6 @@ salary	DOUBLE
 title	VARCHAR
 comments	VARCHAR
 
-
 query I
 FROM read_avro('test/userdata1.avro') SELECT COUNT(*)
 ----
