@@ -619,6 +619,7 @@ void AvroReader::Read(DataChunk &output) {
 			break;
 		}
 	}
+
 	// pull up root struct into output chunk
 	if (duckdb_type.id() == LogicalTypeId::STRUCT) {
 		for (idx_t col_idx = 0; col_idx < column_indexes.size(); col_idx++) {
