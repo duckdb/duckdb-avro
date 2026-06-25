@@ -613,12 +613,18 @@ void AvroReader::Read(DataChunk &output) {
 
 	D_ASSERT(read_chunk.ColumnCount() == 1);
 	auto &read_vec = read_chunk.data[0];
-	while (avro_file_reader_read_value(reader, &value) == 0) {
+	int32_t read_res = 0;
+	while ((read_res = avro_file_reader_read_value(reader, &value)) == 0) {
 		TransformValue(&value, avro_type, read_vec, out_idx++);
 		if (out_idx == STANDARD_VECTOR_SIZE) {
 			break;
 		}
 	}
+	if (read_res != -1) {
+		//! Expected -1 (EOF), but found something else, which signals an error
+		throw InvalidInputException("Avro error code (%d), message: %s", read_res, avro_strerror());
+	}
+
 	// pull up root struct into output chunk
 	if (duckdb_type.id() == LogicalTypeId::STRUCT) {
 		for (idx_t col_idx = 0; col_idx < column_indexes.size(); col_idx++) {
