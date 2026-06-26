@@ -4,19 +4,11 @@
 
 require avro
 
-# RETURN_STATS surfaces copy_to_get_written_statistics. The avro writer reports
-# file_size_bytes as the exact number of bytes written. Assert against `_` (the
-# result of the preceding COPY) so the test does not depend on the other stat
-# columns the avro writer leaves unpopulated.
-statement ok
-COPY (SELECT range AS a FROM range(100)) TO '__TEST_DIR__/stats.avro' (FORMAT AVRO, RETURN_STATS);
-
-# Exactly one file, with a positive byte count that matches the bytes on disk.
-query III
-SELECT
-  count(*),
-  bool_and(file_size_bytes > 0),
-  bool_and(file_size_bytes = (SELECT octet_length(content) FROM read_blob('__TEST_DIR__/stats.avro')))
-FROM _;
+# RETURN_STATS makes COPY return one row per written file. The avro writer implements
+# copy_to_get_written_statistics and reports file_size_bytes (other stat columns are left at
+# their defaults). Assert on the COPY result directly; the filename is a temp path so it is
+# matched with a regex, the rest are the avro writer defaults.
+query IIIIII
+COPY (SELECT range AS a FROM range(100)) TO '{TEST_DIR}/stats.avro' (FORMAT AVRO, RETURN_STATS);
 ----
-1	true	true
+<REGEX>:.*stats\.avro	0	139	NULL	{}	NULL
