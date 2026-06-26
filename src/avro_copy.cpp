@@ -497,6 +497,28 @@ static string CreateJSONMetadata(const case_insensitive_map_t<vector<Value>> &op
 	return res;
 }
 
+//! Parse the CODEC option (Avro object-container compression codec). Validates the value is a
+//! non-empty VARCHAR and returns the lowercased codec name; empty string when unset (writer
+//! defaults to "null"). The codec name itself is validated by avro-c when the writer is created
+//! (it reports "Unknown codec X" for anything the library was not built with), so this stays in
+//! lock-step with avro-c's actual capabilities instead of duplicating a list that could drift.
+static string ParseCodec(const case_insensitive_map_t<vector<Value>> &options,
+                         case_insensitive_set_t &recognized) {
+	auto it = options.find("CODEC");
+	if (it == options.end()) {
+		return "";
+	}
+	if (it->second.empty()) {
+		throw InvalidInputException("CODEC can not be provided without a value");
+	}
+	auto &value = it->second[0];
+	if (value.type().id() != LogicalTypeId::VARCHAR) {
+		throw InvalidInputException("'CODEC' is expected to be provided as VARCHAR (e.g. 'deflate', 'null')");
+	}
+	recognized.insert(it->first);
+	return StringUtil::Lower(value.GetValue<string>());
+}
+
 WriteAvroBindData::WriteAvroBindData(CopyFunctionBindInput &input, const vector<Identifier> &names,
                                      const vector<LogicalType> &types)
     : names(IdentifiersToStrings(names)), types(types) {
@@ -505,6 +527,7 @@ WriteAvroBindData::WriteAvroBindData(CopyFunctionBindInput &input, const vector<
 
 	json_metadata = CreateJSONMetadata(input.info.options, recognized);
 	json_schema = CreateJSONSchema(input.info.options, this->names, types, recognized);
+	codec = ParseCodec(input.info.options, recognized);
 
 	vector<string> unrecognized_options;
 	for (auto &option : input.info.options) {
@@ -569,8 +592,12 @@ WriteAvroGlobalState::WriteAvroGlobalState(ClientContext &context, FunctionData 
 		json_metadata = bind_data.json_metadata.c_str();
 	}
 
-	while ((ret = avro_file_writer_create_from_writers_with_metadata(writer, datum_writer, bind_data.schema,
-	                                                                 &file_writer, json_metadata)) == ENOSPC) {
+	//! Pass the compression codec straight to avro-c so the object container is written compressed
+	//! natively (no post-processing). Empty -> nullptr -> avro-c default ("null"/uncompressed).
+	const char *codec = bind_data.codec.empty() ? nullptr : bind_data.codec.c_str();
+
+	while ((ret = avro_file_writer_create_from_writers_with_metadata_and_codec(
+	            writer, datum_writer, bind_data.schema, &file_writer, json_metadata, codec)) == ENOSPC) {
 		auto current_capacity = memory_buffer.GetCapacity();
 		memory_buffer.Resize(NextPowerOfTwo(current_capacity * 2));
 		// re-initialize writer to use correct data location
