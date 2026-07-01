@@ -30,6 +30,8 @@ public:
 	AsyncResult Scan(ClientContext &context, GlobalTableFunctionState &global_state,
 	                 LocalTableFunctionState &local_state, DataChunk &chunk) override;
 
+	string GetMetadataValue(const string &key) const;
+
 public:
 	avro_file_reader_t reader;
 	avro_value_t value;

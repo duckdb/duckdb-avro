@@ -1,0 +1,14 @@
+# name: test/sql/avro_metadata.test
+# group: [sql]
+
+require avro
+
+query II
+from avro_metadata('test/iceberg/snap-3776207205136740581-1-cf3d0be5-cf70-453d-ad8f-48fdc412e608.avro') where key = 'sequence-number';
+----
+sequence-number	1
+
+query II
+from avro_metadata('test/iceberg/snap-3776207205136740581-1-cf3d0be5-cf70-453d-ad8f-48fdc412e608.avro') where key = 'avro.codec';
+----
+avro.codec	deflate

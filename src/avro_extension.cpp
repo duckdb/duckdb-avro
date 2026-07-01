@@ -11,6 +11,7 @@
 #include "avro_multi_file_info.hpp"
 #include "duckdb/common/multi_file/multi_file_function.hpp"
 #include "avro_copy.hpp"
+#include "include/avro_metadata.hpp"
 
 #include <avro.h>
 
@@ -21,6 +22,8 @@ static void LoadInternal(ExtensionLoader &loader) {
 	auto table_function = MultiFileFunction<AvroMultiFileInfo>("read_avro");
 	table_function.projection_pushdown = true;
 	loader.RegisterFunction(MultiFileReader::CreateFunctionSet(table_function));
+
+	loader.RegisterFunction(AvroMetadata::GetFunction());
 	loader.RegisterFunction(AvroCopyFunction::Create());
 }
 

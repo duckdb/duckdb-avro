@@ -1,3 +1,6 @@
+# name: test/sql/copy/invalid_option.test
+# group: [copy]
+
 require avro
 
 statement error
