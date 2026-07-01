@@ -3,7 +3,6 @@
 #include "duckdb/common/multi_file/multi_file_reader.hpp"
 #include "duckdb/function/table_function.hpp"
 #include "avro_metadata.hpp"
-#include "duckdb/storage/caching_file_system.hpp"
 #include <avro.h>
 
 namespace duckdb {
@@ -25,18 +24,22 @@ static unique_ptr<GlobalTableFunctionState> AvroMetadataInit(ClientContext &cont
 	auto &bind_data = input.bind_data->Cast<AvroMetadataBindData>();
 	auto result = make_uniq<AvroMetadataGlobalState>();
 
-	auto caching_file_system = CachingFileSystem::Get(context);
-	OpenFileInfo file_info;
-	file_info.path = bind_data.file_path;
+	auto &fs = FileSystem::GetFileSystem(context);
 
-	auto caching_file_handle = caching_file_system.OpenFile(file_info, FileOpenFlags::FILE_FLAGS_READ);
-	auto total_size = caching_file_handle->GetFileSize();
-	data_ptr_t data = nullptr;
+	OpenFileInfo file;
+	file.path = bind_data.file_path;
 
-	auto buf_handle = caching_file_handle->Read(data, total_size);
-	auto buffer_data = buf_handle.Ptr();
+	FileOpenFlags flags = FileFlags::FILE_FLAGS_READ;
+	flags.SetCachingMode(CachingMode::ALWAYS_CACHE);
+	auto file_handle = fs.OpenFile(file, flags);
+	auto total_size = file_handle->GetFileSize();
 
-	auto avro_reader = avro_reader_memory(const_char_ptr_cast(buffer_data), total_size);
+	auto &local_buffer = result->local_buffer;
+	local_buffer = Allocator::DefaultAllocator().Allocate(total_size);
+	fs.Read(*file_handle, local_buffer.get(), total_size);
+
+	auto avro_reader = avro_reader_memory(const_char_ptr_cast(local_buffer.get()), total_size);
+
 	if (avro_reader_reader(avro_reader, &result->reader)) {
 		throw InvalidInputException("Failed to read Avro file: %s", avro_strerror());
 	}

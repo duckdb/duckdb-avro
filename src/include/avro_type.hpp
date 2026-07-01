@@ -20,7 +20,7 @@ public:
 public:
 	bool operator==(const AvroType &other) const {
 		return duckdb_type == other.duckdb_type && avro_type == other.avro_type && children == other.children &&
-		       union_child_map == other.union_child_map;
+		       union_child_map == other.union_child_map && is_timestamp_millis == other.is_timestamp_millis;
 	}
 	const bool HasFieldId() const {
 		return field_id != NumericLimits<int32_t>::Maximum();
@@ -44,7 +44,7 @@ public:
 		case LogicalTypeId::STRUCT: {
 			child_list_t<LogicalType> type_children;
 			for (auto &child : avro_type.children) {
-				auto child_col = TransformAvroType(child.first, child.second);
+				auto child_col = TransformAvroType(child.first.GetIdentifierName(), child.second);
 				type_children.emplace_back(child_col.name, child_col.type);
 				children.push_back(std::move(child_col));
 			}
@@ -89,11 +89,11 @@ public:
 				if (child.second.duckdb_type == LogicalTypeId::SQLNULL) {
 					continue;
 				}
-				auto member = TransformAvroType(child.first, child.second);
+				auto member = TransformAvroType(child.first.GetIdentifierName(), child.second);
 				children.push_back(std::move(member));
 			}
 			if (children.size() == 1) {
-				children[0].name = name;
+				children[0].name = Identifier(name);
 
 				if (avro_type.HasFieldId()) {
 					children[0].identifier = Value::INTEGER(avro_type.GetFieldId());
@@ -137,6 +137,7 @@ public:
 	child_list_t<AvroType> children;
 	unordered_map<idx_t, optional_idx> union_child_map;
 	int32_t field_id = NumericLimits<int32_t>::Maximum();
+	bool is_timestamp_millis = false;
 };
 
 } // namespace duckdb

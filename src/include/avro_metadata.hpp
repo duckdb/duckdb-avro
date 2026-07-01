@@ -22,6 +22,7 @@ struct AvroMetadataGlobalState : public GlobalTableFunctionState {
 	idx_t offset;
 	size_t metadata_count;
 	avro_file_reader_t reader;
+	AllocatedData local_buffer;
 };
 
 struct AvroMetadata {

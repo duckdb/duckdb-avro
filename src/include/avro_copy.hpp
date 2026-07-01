@@ -13,7 +13,7 @@ struct AvroCopyFunction {
 
 struct WriteAvroBindData : public FunctionData {
 public:
-	WriteAvroBindData(CopyFunctionBindInput &input, const vector<string> &names, const vector<LogicalType> &types);
+	WriteAvroBindData(CopyFunctionBindInput &input, const vector<Identifier> &names, const vector<LogicalType> &types);
 	WriteAvroBindData() {
 	}
 	virtual ~WriteAvroBindData();
@@ -26,6 +26,8 @@ public:
 
 		res->schema = avro_schema_incref(schema);
 		res->json_schema = json_schema;
+		res->json_metadata = json_metadata;
+		res->codec = codec;
 
 		res->interface = avro_value_iface_incref(interface);
 		return std::move(res);
@@ -46,6 +48,9 @@ public:
 		if (json_schema != other.json_schema) {
 			return false;
 		}
+		if (codec != other.codec) {
+			return false;
+		}
 		return true;
 	}
 
@@ -58,6 +63,10 @@ public:
 	string json_schema;
 
 	string json_metadata;
+	//! Avro object-container compression codec ("null", "deflate", "snappy", "zstandard", ...).
+	//! Empty means unset -> the writer defaults to "null" (uncompressed). Passed through to
+	//! avro-c's codec so the COPY writer compresses natively (no post-processing).
+	string codec;
 	//! The interface through which new avro values are created
 	avro_value_iface_t *interface = nullptr;
 };
@@ -92,8 +101,10 @@ public:
 
 		data = nullptr;
 		Allocate(new_capacity);
-		memcpy(data, old_data, old_capacity);
-		allocator.FreeData(old_data, old_capacity);
+		if (old_capacity) {
+			memcpy(data, old_data, old_capacity);
+			allocator.FreeData(old_data, old_capacity);
+		}
 	}
 	data_ptr_t GetData() {
 		return data;

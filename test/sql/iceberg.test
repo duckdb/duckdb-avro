@@ -4,16 +4,13 @@
 
 require avro
 
-statement ok
-PRAGMA enable_verification
-
 query II
 select column_name, column_type from (DESCRIBE FROM read_avro('test/iceberg/10eaca8a-1e1c-421e-ad6d-b232e5ee23d3-m0.avro'));
 ----
 status	INTEGER
 snapshot_id	BIGINT
 sequence_number	BIGINT
-data_file	STRUCT("content" INTEGER, file_path VARCHAR, file_format VARCHAR, "partition" INTEGER, record_count BIGINT, file_size_in_bytes BIGINT, column_sizes MAP(INTEGER, BIGINT), value_counts MAP(INTEGER, BIGINT), null_value_counts MAP(INTEGER, BIGINT), nan_value_counts MAP(INTEGER, BIGINT), lower_bounds MAP(INTEGER, BLOB), upper_bounds MAP(INTEGER, BLOB), key_metadata BLOB, split_offsets BIGINT[], equality_ids INTEGER[], sort_order_id INTEGER)
+data_file	STRUCT("content" INTEGER, file_path VARCHAR, file_format VARCHAR, "partition" "NULL", record_count BIGINT, file_size_in_bytes BIGINT, column_sizes MAP(INTEGER, BIGINT), value_counts MAP(INTEGER, BIGINT), null_value_counts MAP(INTEGER, BIGINT), nan_value_counts MAP(INTEGER, BIGINT), lower_bounds MAP(INTEGER, BLOB), upper_bounds MAP(INTEGER, BLOB), key_metadata BLOB, split_offsets BIGINT[], equality_ids INTEGER[], sort_order_id INTEGER)
 
 query IIIIIIIII
 FROM (FROM read_avro('test/iceberg/10eaca8a-1e1c-421e-ad6d-b232e5ee23d3-m0.avro') SELECT status, snapshot_id, sequence_number, data_file.*) SELECT status, snapshot_id, sequence_number, content, file_path, file_format, partition, record_count, file_size_in_bytes

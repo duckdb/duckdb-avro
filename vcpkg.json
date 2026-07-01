@@ -1,19 +1,21 @@
 {
-  "vcpkg-configuration": {
-    "registries": [
-      {
-        "kind": "git",
-        "baseline": "ee77bc29cb57e24777dfb944cd502daae9e0f70a",
-        "repository": "https://github.com/tishj/vcpkg-duckdb-ports",
-        "packages": [
-          "vcpkg-cmake",
-          "avro-c"
-        ]
-      }
-    ]
-  },
-  "builtin-baseline": "84bab45d415d22042bd0b9081aea57f362da3f35",
-  "dependencies": [
-    "avro-c"
-  ]
+	"dependencies": [
+		"jansson",
+		"liblzma",
+		"snappy",
+		"zlib"
+	],
+	"vcpkg-configuration": {
+		"registries": [
+			{
+				"kind": "git",
+				"repository": "https://github.com/duckdb/vcpkg-duckdb-ports",
+				"baseline": "f13de79b66345fe31d3f9c119517613023d194a8",
+				"packages": [
+					"vcpkg-cmake"
+				]
+			}
+		]
+	},
+	"builtin-baseline": "ce613c41372b23b1f51333815feb3edd87ef8a8b"
 }
