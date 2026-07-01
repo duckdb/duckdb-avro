@@ -71,7 +71,7 @@ static void AvroMetadataFunction(ClientContext &context, TableFunctionInput &dat
 		count++;
 	}
 
-	output.SetCardinality(count);
+	output.SetChildCardinality(count);
 }
 
 TableFunction AvroMetadata::GetFunction() {
