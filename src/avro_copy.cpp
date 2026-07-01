@@ -865,6 +865,13 @@ static void WriteAvroSink(ExecutionContext &context, FunctionData &bind_data_p, 
 	auto written_bytes = avro_writer_tell(global_state.writer);
 	global_state.WriteData(buffer.GetData(), written_bytes);
 	avro_writer_memory_set_dest(global_state.writer, (const char *)buffer.GetData(), buffer.GetCapacity());
+
+	//! Track rows written for RETURN_STATS `count`. Avro COPY is single-threaded
+	//! (REGULAR_COPY_TO_FILE), but guard with the same lock for consistency.
+	{
+		lock_guard<mutex> flock(global_state.lock);
+		global_state.row_count += count;
+	}
 }
 
 static void WriteAvroCombine(ExecutionContext &context, FunctionData &bind_data, GlobalFunctionData &gstate,
@@ -882,11 +889,31 @@ static void WriteAvroFinalize(ClientContext &context, FunctionData &bind_data, G
 	if (global_state.handle) {
 		global_state.handle->Close();
 	}
+
+	//! Populate RETURN_STATS now that the file is fully written. bytes_written is the exact,
+	//! incrementally-tracked file size (no HEAD probe); row_count is the number of rows sunk.
+	//! The other stat columns (footer_size_bytes, column_statistics) are not applicable to the
+	//! Avro object container and are left at their defaults.
+	if (global_state.written_stats) {
+		global_state.written_stats->file_size_bytes = global_state.BytesWritten();
+		global_state.written_stats->row_count = global_state.row_count;
+	}
 }
 
 CopyFunctionExecutionMode WriteAvroExecutionMode(bool preserve_insertion_order, bool supports_batch_index) {
 	//! For now we only support single-threaded writes to Avro
 	return CopyFunctionExecutionMode::REGULAR_COPY_TO_FILE;
+}
+
+static void WriteAvroGetWrittenStatistics(ClientContext &context, FunctionData &bind_data, GlobalFunctionData &gstate,
+                                          CopyFunctionFileStatistics &statistics) {
+	//! DuckDB calls this once, right after copy_to_initialize_global and BEFORE any rows are
+	//! written, so the file only contains its header at this point. Store the destination and
+	//! fill the real values in copy_to_finalize (after the file is fully written and closed),
+	//! mirroring the Parquet writer. Reporting BytesWritten() here would yield only the header
+	//! size. No file-size probe (HEAD) is needed: bytes_written is tracked incrementally.
+	auto &global_state = gstate.Cast<WriteAvroGlobalState>();
+	global_state.written_stats = &statistics;
 }
 
 CopyFunction AvroCopyFunction::Create() {
@@ -899,6 +926,7 @@ CopyFunction AvroCopyFunction::Create() {
 	function.copy_to_sink = WriteAvroSink;
 	function.copy_to_combine = WriteAvroCombine;
 	function.copy_to_finalize = WriteAvroFinalize;
+	function.copy_to_get_written_statistics = WriteAvroGetWrittenStatistics;
 	function.execution_mode = WriteAvroExecutionMode;
 	return function;
 }

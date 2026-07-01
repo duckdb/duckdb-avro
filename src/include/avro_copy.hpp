@@ -143,11 +143,19 @@ public:
 	void WriteData(const_data_ptr_t data, idx_t size) {
 		lock_guard<mutex> flock(lock);
 		handle->Write((void *)data, size);
+		bytes_written += size;
 	}
 
 	idx_t FileSize() {
 		lock_guard<mutex> flock(lock);
 		return handle->GetFileSize();
+	}
+
+	//! Total bytes written to the output file. Tracked incrementally in WriteData so it remains valid
+	//! after the handle is closed (used to report WRITTEN_FILE_STATISTICS without re-stat-ing the
+	//! file, which would be a network round trip on object stores).
+	idx_t BytesWritten() const {
+		return bytes_written;
 	}
 
 public:
@@ -164,6 +172,18 @@ public:
 	avro_writer_t writer;
 	avro_writer_t datum_writer;
 	avro_file_writer_t file_writer;
+
+	//! Running total of bytes written to the file (see BytesWritten()).
+	idx_t bytes_written = 0;
+	//! Number of rows written (reported as RETURN_STATS `count`).
+	idx_t row_count = 0;
+	//! RETURN_STATS sink. DuckDB calls copy_to_get_written_statistics once, right after
+	//! copy_to_initialize_global and BEFORE any data is written (see PhysicalCopyToFile
+	//! CreateFileStateLocked). We therefore keep the destination here and fill it in
+	//! copy_to_finalize, once the file is fully written and closed -- mirroring how the
+	//! Parquet writer stores the stats reference and populates it on finalize. Writing the
+	//! values during get_written_statistics would report only the header bytes.
+	optional_ptr<CopyFunctionFileStatistics> written_stats;
 };
 
 struct WriteAvroLocalState : public LocalFunctionData {
