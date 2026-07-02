@@ -12,10 +12,10 @@ require avro
 # filename is a temp path, matched with a regex.
 
 # --- Base case: 100 rows --------------------------------------------------------------------------
-query IIIIII
+query IIIIIII
 COPY (SELECT range AS a FROM range(100)) TO '{TEST_DIR}/stats.avro' (FORMAT AVRO, RETURN_STATS);
 ----
-<REGEX>:.*stats\.avro	100	395	NULL	{}	NULL
+<REGEX>:.*stats\.avro	100	395	NULL	{}	NULL	{}
 
 # Regression guard: file_size_bytes must equal the real bytes on disk. Previously the stats were
 # read before the data was flushed, so only the header size (139) was reported.
@@ -31,10 +31,10 @@ SELECT count(*) FROM read_avro('{TEST_DIR}/stats.avro');
 100
 
 # --- Empty input: header-only file, zero rows -----------------------------------------------------
-query IIIIII
+query IIIIIII
 COPY (SELECT a FROM (SELECT 1 a) WHERE 1 = 0) TO '{TEST_DIR}/empty.avro' (FORMAT AVRO, RETURN_STATS);
 ----
-<REGEX>:.*empty\.avro	0	138	NULL	{}	NULL
+<REGEX>:.*empty\.avro	0	138	NULL	{}	NULL	{}
 
 query I
 SELECT octet_length(content) FROM read_blob('{TEST_DIR}/empty.avro');
@@ -47,10 +47,10 @@ SELECT count(*) FROM read_avro('{TEST_DIR}/empty.avro');
 0
 
 # --- Larger input: many blocks --------------------------------------------------------------------
-query IIIIII
+query IIIIIII
 COPY (SELECT range AS a FROM range(10000)) TO '{TEST_DIR}/big.avro' (FORMAT AVRO, RETURN_STATS);
 ----
-<REGEX>:.*big\.avro	10000	31983	NULL	{}	NULL
+<REGEX>:.*big\.avro	10000	31983	NULL	{}	NULL	{}
 
 query I
 SELECT octet_length(content) FROM read_blob('{TEST_DIR}/big.avro');
@@ -63,10 +63,10 @@ SELECT count(*) FROM read_avro('{TEST_DIR}/big.avro');
 10000
 
 # --- Multiple columns -----------------------------------------------------------------------------
-query IIIIII
+query IIIIIII
 COPY (SELECT range AS a, range::VARCHAR AS b FROM range(50)) TO '{TEST_DIR}/cols.avro' (FORMAT AVRO, RETURN_STATS);
 ----
-<REGEX>:.*cols\.avro	50	495	NULL	{}	NULL
+<REGEX>:.*cols\.avro	50	495	NULL	{}	NULL	{}
 
 # Reported size equals bytes on disk for the multi-column file too.
 query I
