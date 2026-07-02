@@ -4,6 +4,9 @@
 
 require avro
 
+statement ok
+SET cache_local_files=true
+
 query IIII
 from duckdb_external_file_cache();
 ----

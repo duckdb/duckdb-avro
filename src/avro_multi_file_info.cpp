@@ -150,7 +150,7 @@ InsertionOrderPreservingMap<Value> AvroReader::GetMetadata() const {
 		if (!key) {
 			continue;
 		}
-		metadata.insert(key, Value::VARCHAR(value ? string(value, value_size) : string()));
+		metadata.insert(key, Value(value ? string(value, value_size) : string()));
 	}
 	return metadata;
 }
