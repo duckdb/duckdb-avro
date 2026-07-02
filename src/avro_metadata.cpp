@@ -10,7 +10,14 @@ namespace duckdb {
 static unique_ptr<FunctionData> AvroMetadataBind(ClientContext &context, TableFunctionBindInput &input,
                                                  vector<LogicalType> &return_types, vector<string> &names) {
 	auto result = make_uniq<AvroMetadataBindData>();
-	result->file_path = input.inputs[0].ToString();
+	result->file_path = input.inputs[0].GetValue<string>();
+	result->file_info.path = result->file_path;
+	if (!input.named_parameters.empty()) {
+		result->file_info.extended_info = make_shared_ptr<ExtendedOpenFileInfo>();
+		for (auto &entry : input.named_parameters) {
+			result->file_info.extended_info->options[entry.first.GetIdentifierName()] = entry.second;
+		}
+	}
 
 	names.emplace_back("key");
 	return_types.emplace_back(LogicalType::VARCHAR);
@@ -26,12 +33,9 @@ static unique_ptr<GlobalTableFunctionState> AvroMetadataInit(ClientContext &cont
 
 	auto &fs = FileSystem::GetFileSystem(context);
 
-	OpenFileInfo file;
-	file.path = bind_data.file_path;
-
 	FileOpenFlags flags = FileFlags::FILE_FLAGS_READ;
 	flags.SetCachingMode(CachingMode::ALWAYS_CACHE);
-	auto file_handle = fs.OpenFile(file, flags);
+	auto file_handle = fs.OpenFile(bind_data.file_info, flags);
 	auto total_size = file_handle->GetFileSize();
 
 	auto &local_buffer = result->local_buffer;
@@ -77,6 +81,11 @@ static void AvroMetadataFunction(ClientContext &context, TableFunctionInput &dat
 TableFunction AvroMetadata::GetFunction() {
 	TableFunction func("avro_metadata", {LogicalType::VARCHAR}, AvroMetadataFunction, AvroMetadataBind,
 	                   AvroMetadataInit);
+	func.named_parameters["validate_external_file_cache"] = LogicalType::BOOLEAN;
+	func.named_parameters["force_full_download"] = LogicalType::BOOLEAN;
+	func.named_parameters["file_size"] = LogicalType::UBIGINT;
+	func.named_parameters["etag"] = LogicalType::VARCHAR;
+	func.named_parameters["last_modified"] = LogicalType::TIMESTAMP;
 	return func;
 }
 
