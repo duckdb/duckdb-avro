@@ -1,5 +1,6 @@
 #pragma once
 
+#include "duckdb/common/open_file_info.hpp"
 #include "duckdb/function/table_function.hpp"
 #include "duckdb/common/string.hpp"
 #include <avro.h>
@@ -8,6 +9,7 @@ namespace duckdb {
 
 struct AvroMetadataBindData : public TableFunctionData {
 	string file_path;
+	OpenFileInfo file_info;
 };
 
 struct AvroMetadataGlobalState : public GlobalTableFunctionState {
