@@ -29,6 +29,7 @@ public:
 	                       LocalTableFunctionState &lstate) override;
 	AsyncResult Scan(ClientContext &context, GlobalTableFunctionState &global_state,
 	                 LocalTableFunctionState &local_state, DataChunk &chunk) override;
+	InsertionOrderPreservingMap<Value> GetMetadata() const override;
 
 	string GetMetadataValue(const string &key) const;
 
