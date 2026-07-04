@@ -4,6 +4,9 @@
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/common/string_util.hpp"
 #include "duckdb/common/types.hpp"
+#include "duckdb/common/vector/list_vector.hpp"
+#include "duckdb/common/vector/struct_vector.hpp"
+#include "duckdb/common/vector/vector_iterator.hpp"
 #include "duckdb/function/function.hpp"
 #include "yyjson.hpp"
 #include "duckdb/common/printer.hpp"
@@ -557,15 +560,6 @@ WriteAvroBindData::~WriteAvroBindData() {
 	avro_value_iface_decref(interface);
 }
 
-WriteAvroLocalState::WriteAvroLocalState(FunctionData &bind_data_p) {
-	auto &bind_data = bind_data_p.Cast<WriteAvroBindData>();
-	avro_generic_value_new(bind_data.interface, &value);
-}
-
-WriteAvroLocalState::~WriteAvroLocalState() {
-	avro_value_decref(&value);
-}
-
 WriteAvroGlobalState::~WriteAvroGlobalState() {
 	//! NOTE: the 'writer' and 'datum_writer' do not need to be closed, they are owned by the file_writer
 	avro_file_writer_close(file_writer);
@@ -631,10 +625,36 @@ static unique_ptr<GlobalFunctionData> WriteAvroInitializeGlobal(ClientContext &c
 	return std::move(res);
 }
 
+class AvroColumnWriter {
+public:
+	virtual ~AvroColumnWriter() = default;
+
+	virtual void Prepare(Vector &vector) = 0;
+	virtual idx_t Write(avro_value_t *target, idx_t row) = 0;
+
+protected:
+	static idx_t WriteNull(avro_value_t *target, const LogicalType &type) {
+		auto union_value = *target;
+		avro_value_set_branch(&union_value, 0, target);
+		auto schema_type = avro_value_get_type(target);
+		if (schema_type != AVRO_NULL) {
+			throw InvalidInputException("Cannot insert NULL to non-nullable field of type %s",
+			                            LogicalTypeIdToString(type.id()));
+		}
+		avro_value_set_null(target);
+		return 1;
+	}
+
+	static avro_value_t *GetNonNullTarget(avro_value_t *target) {
+		auto union_value = *target;
+		avro_value_set_branch(&union_value, 1, target);
+		return target;
+	}
+};
+
 template <typename T, typename ShiftT = T>
-static idx_t WriteDecimalAsFixedBytes(const Value &val, uint8_t *bytes, const LogicalType &type) {
+static idx_t WriteDecimalAsFixedBytes(T value, uint8_t *bytes, const LogicalType &type) {
 	auto bytes_needed = MinBytesRequiredForDecimal(DecimalType::GetWidth(type));
-	T value = val.GetValueUnsafe<T>();
 	auto type_bytes = static_cast<int>(sizeof(T));
 	auto start = type_bytes - static_cast<int>(bytes_needed);
 	for (int i = start; i < type_bytes; i++) {
@@ -643,159 +663,288 @@ static idx_t WriteDecimalAsFixedBytes(const Value &val, uint8_t *bytes, const Lo
 	return bytes_needed;
 }
 
-static idx_t PopulateValue(avro_value_t *target, const Value &val) {
-	auto &type = val.type();
+static idx_t WriteBooleanValue(avro_value_t *target, const bool &value, const LogicalType &) {
+	avro_value_set_boolean(target, value);
+	return sizeof(bool);
+}
 
-	auto union_value = *target;
-	if (val.IsNull()) {
-		avro_value_set_branch(&union_value, 0, target);
-		auto schema_type = avro_value_get_type(target);
-		if (schema_type != AVRO_NULL) {
-			throw InvalidInputException("Cannot insert NULL to non-nullable field of type %s",
-			                            LogicalTypeIdToString(val.type().id()));
+static idx_t WriteBlobValue(avro_value_t *target, const string_t &value, const LogicalType &) {
+	avro_value_set_bytes(target, (void *)value.GetData(), value.GetSize());
+	return value.GetSize();
+}
+
+static idx_t WriteDoubleValue(avro_value_t *target, const double &value, const LogicalType &) {
+	avro_value_set_double(target, value);
+	return sizeof(double);
+}
+
+static idx_t WriteFloatValue(avro_value_t *target, const float &value, const LogicalType &) {
+	avro_value_set_float(target, value);
+	return sizeof(float);
+}
+
+static idx_t WriteIntegerValue(avro_value_t *target, const int32_t &value, const LogicalType &) {
+	avro_value_set_int(target, value);
+	return sizeof(int32_t);
+}
+
+static idx_t WriteBigIntValue(avro_value_t *target, const int64_t &value, const LogicalType &) {
+	avro_value_set_long(target, value);
+	return sizeof(int64_t);
+}
+
+static idx_t WriteStringValue(avro_value_t *target, const string_t &value, const LogicalType &) {
+	avro_value_set_string_len(target, value.GetData(), value.GetSize() + 1);
+	return value.GetSize();
+}
+
+static idx_t WriteDateValue(avro_value_t *target, const date_t &value, const LogicalType &) {
+	avro_value_set_int(target, Date::EpochDays(value));
+	return sizeof(int32_t);
+}
+
+static idx_t WriteTimeValue(avro_value_t *target, const dtime_t &value, const LogicalType &) {
+	avro_value_set_long(target, value.value);
+	return sizeof(int64_t);
+}
+
+static idx_t WriteTimestampValue(avro_value_t *target, const timestamp_t &value, const LogicalType &) {
+	avro_value_set_long(target, value.value);
+	return sizeof(int64_t);
+}
+
+static idx_t WriteTimestampTZValue(avro_value_t *target, const timestamp_tz_t &value, const LogicalType &) {
+	avro_value_set_long(target, value.value);
+	return sizeof(int64_t);
+}
+
+static idx_t WriteUUIDValue(avro_value_t *target, const hugeint_t &value, const LogicalType &) {
+	uint8_t bytes[16];
+	BaseUUID::ToBlob(value, data_ptr_cast(bytes));
+	avro_value_set_fixed(target, bytes, 16);
+	return 16;
+}
+
+template <typename T, typename ShiftT = T>
+static idx_t WriteDecimalValue(avro_value_t *target, const T &value, const LogicalType &type) {
+	uint8_t bytes[16];
+	auto byte_count = WriteDecimalAsFixedBytes<T, ShiftT>(value, bytes, type);
+	avro_value_set_fixed(target, bytes, byte_count);
+	return byte_count;
+}
+
+template <class T>
+class PrimitiveAvroColumnWriter : public AvroColumnWriter {
+public:
+	using WriteFunction = idx_t (*)(avro_value_t *, const T &, const LogicalType &);
+
+public:
+	PrimitiveAvroColumnWriter(LogicalType type, WriteFunction write_function)
+	    : type(std::move(type)), write_function(write_function) {
+	}
+
+	void Prepare(Vector &vector) override {
+		iterator = make_uniq<VectorIterator<T>>(vector);
+	}
+
+	idx_t Write(avro_value_t *target, idx_t row) override {
+		auto entry = (*iterator)[row];
+		if (!entry.IsValid()) {
+			return WriteNull(target, type);
 		}
-		avro_value_set_null(target);
-		return 1;
+		return write_function(GetNonNullTarget(target), entry.GetValueUnsafe(), type);
 	}
-	avro_value_set_branch(&union_value, 1, target);
 
-	switch (type.id()) {
-	case LogicalTypeId::BOOLEAN: {
-		auto boolean = val.GetValueUnsafe<bool>();
-		avro_value_set_boolean(target, boolean);
-		return sizeof(bool);
-	}
-	case LogicalTypeId::BLOB: {
-		auto str = val.GetValueUnsafe<string_t>();
-		avro_value_set_bytes(target, (void *)str.GetData(), str.GetSize());
-		return str.GetSize();
-	}
-	case LogicalTypeId::DOUBLE: {
-		auto value = val.GetValueUnsafe<double>();
-		avro_value_set_double(target, value);
-		return sizeof(double);
-	}
-	case LogicalTypeId::FLOAT: {
-		auto value = val.GetValueUnsafe<float>();
-		avro_value_set_float(target, value);
-		return sizeof(float);
-	}
-	case LogicalTypeId::INTEGER: {
-		auto integer = val.GetValueUnsafe<int32_t>();
-		avro_value_set_int(target, integer);
-		return sizeof(int32_t);
-	}
-	case LogicalTypeId::BIGINT: {
-		auto bigint = val.GetValueUnsafe<int64_t>();
-		avro_value_set_long(target, bigint);
-		return sizeof(int64_t);
-	}
-	case LogicalTypeId::VARCHAR: {
-		auto str = val.GetValueUnsafe<string_t>();
-		avro_value_set_string_len(target, str.GetData(), str.GetSize() + 1);
-		return str.GetSize();
-	}
-	case LogicalTypeId::DATE: {
-		auto date = val.GetValueUnsafe<date_t>();
-		avro_value_set_int(target, Date::EpochDays(date));
-		return sizeof(int32_t);
-	}
-	case LogicalTypeId::TIME: {
-		auto date = val.GetValueUnsafe<dtime_t>();
-		avro_value_set_long(target, date.value);
-		return sizeof(int64_t);
-	}
-	case LogicalTypeId::TIMESTAMP:
-	case LogicalTypeId::TIMESTAMP_NS:
-	case LogicalTypeId::TIMESTAMP_MS: {
-		auto date = val.GetValueUnsafe<timestamp_t>();
-		avro_value_set_long(target, date.value);
-		return sizeof(int64_t);
-	}
-	case LogicalTypeId::TIMESTAMP_TZ: {
-		auto date = val.GetValueUnsafe<timestamp_tz_t>();
+private:
+	LogicalType type;
+	WriteFunction write_function;
+	unique_ptr<VectorIterator<T>> iterator;
+};
 
-		avro_value_set_long(target, date.value);
-		return sizeof(int64_t);
+class NullAvroColumnWriter : public AvroColumnWriter {
+public:
+	explicit NullAvroColumnWriter(LogicalType type) : type(std::move(type)) {
 	}
-	case LogicalTypeId::UUID: {
-		auto uuid = val.GetValueUnsafe<hugeint_t>();
-		uint8_t bytes[16];
-		BaseUUID::ToBlob(uuid, data_ptr_cast(bytes));
-		avro_value_set_fixed(target, bytes, 16);
-		return 16;
+
+	void Prepare(Vector &) override {
 	}
-	case LogicalTypeId::DECIMAL: {
-		// Avro expects the unscaled integer serialized as big-endian two's complement bytes. The physical value IS
-		// already the unscaled integer, you just need to convert byte order
-		uint8_t bytes[16];
-		idx_t byte_count;
-		switch (val.type().InternalType()) {
-		case PhysicalType::INT16:
-			byte_count = WriteDecimalAsFixedBytes<int16_t>(val, bytes, type);
-			break;
-		case PhysicalType::INT32:
-			byte_count = WriteDecimalAsFixedBytes<int32_t>(val, bytes, type);
-			break;
-		case PhysicalType::INT64:
-			byte_count = WriteDecimalAsFixedBytes<int64_t>(val, bytes, type);
-			break;
-		case PhysicalType::INT128:
-			byte_count = WriteDecimalAsFixedBytes<hugeint_t, uhugeint_t>(val, bytes, type);
-			break;
-		default:
-			throw NotImplementedException("Unsupported decimal physical type");
+
+	idx_t Write(avro_value_t *target, idx_t) override {
+		return WriteNull(target, type);
+	}
+
+private:
+	LogicalType type;
+};
+
+class StructAvroColumnWriter : public AvroColumnWriter {
+public:
+	StructAvroColumnWriter(LogicalType type, vector<idx_t> child_indexes, vector<unique_ptr<AvroColumnWriter>> children)
+	    : type(std::move(type)), child_indexes(std::move(child_indexes)), children(std::move(children)) {
+	}
+
+	void Prepare(Vector &vector) override {
+		if (vector.GetVectorType() == VectorType::DICTIONARY_VECTOR) {
+			vector.Flatten();
 		}
-		avro_value_set_fixed(target, bytes, byte_count);
-		return byte_count;
-	}
-	case LogicalTypeId::ENUM: {
-		//! TODO: add support for ENUM
-		throw NotImplementedException("Can't convert ENUM Value (%s) to Avro yet", val.ToString());
-	}
-	case LogicalTypeId::MAP:
-	case LogicalTypeId::LIST: {
-		auto &list_values = ListValue::GetChildren(val);
-		idx_t list_value_size = 0;
-		for (idx_t i = 0; i < list_values.size(); i++) {
-			auto &list_value = list_values[i];
-
-			avro_value_t item;
-			size_t unused_new_index;
-			if (avro_value_append(target, &item, &unused_new_index)) {
-				throw InvalidInputException(avro_strerror());
-			}
-
-			list_value_size += PopulateValue(&item, list_value);
+		validity = make_uniq<VectorValidityIterator>(vector);
+		auto &entries = StructVector::GetEntries(vector);
+		for (idx_t i = 0; i < children.size(); i++) {
+			children[i]->Prepare(entries[child_indexes[i]]);
 		}
-		return list_value_size + 1;
 	}
-	case LogicalTypeId::STRUCT: {
-		auto &struct_values = StructValue::GetChildren(val);
-		auto &child_types = StructType::GetChildTypes(val.type());
+
+	idx_t Write(avro_value_t *target, idx_t row) override {
+		if (!validity->IsValid(row)) {
+			return WriteNull(target, type);
+		}
+		auto *non_null_target = GetNonNullTarget(target);
 		idx_t struct_value_size = 0;
-		for (idx_t i = 0; i < struct_values.size(); i++) {
-			if (child_types[i].first == "__duckdb_empty_struct_marker") {
-				continue;
-			}
+		for (idx_t i = 0; i < children.size(); i++) {
 			const char *unused_name;
 			avro_value_t field;
-			if (avro_value_get_by_index(target, i, &field, &unused_name)) {
+			if (avro_value_get_by_index(non_null_target, i, &field, &unused_name)) {
 				throw InvalidInputException(avro_strerror());
 			}
-			struct_value_size += PopulateValue(&field, struct_values[i]);
+			struct_value_size += children[i]->Write(&field, row);
 		}
 		return struct_value_size + 1;
 	}
+
+private:
+	LogicalType type;
+	vector<idx_t> child_indexes;
+	vector<unique_ptr<AvroColumnWriter>> children;
+	unique_ptr<VectorValidityIterator> validity;
+};
+
+class ListAvroColumnWriter : public AvroColumnWriter {
+public:
+	ListAvroColumnWriter(LogicalType type, unique_ptr<AvroColumnWriter> child_writer)
+	    : type(std::move(type)), child_writer(std::move(child_writer)) {
+	}
+
+	void Prepare(Vector &vector) override {
+		vector.ToUnifiedFormat(format);
+		list_data = UnifiedVectorFormat::GetData<list_entry_t>(format);
+		auto &child = ListVector::GetChildMutable(vector);
+		child_writer->Prepare(child);
+	}
+
+	idx_t Write(avro_value_t *target, idx_t row) override {
+		auto sel_idx = format.sel->get_index(row);
+		if (!format.validity.RowIsValid(sel_idx)) {
+			return WriteNull(target, type);
+		}
+
+		auto *non_null_target = GetNonNullTarget(target);
+		const auto &entry = list_data[sel_idx];
+		idx_t list_value_size = 0;
+		for (idx_t i = 0; i < entry.length; i++) {
+			avro_value_t item;
+			size_t unused_new_index;
+			if (avro_value_append(non_null_target, &item, &unused_new_index)) {
+				throw InvalidInputException(avro_strerror());
+			}
+			list_value_size += child_writer->Write(&item, entry.offset + i);
+		}
+		return list_value_size + 1;
+	}
+
+private:
+	LogicalType type;
+	unique_ptr<AvroColumnWriter> child_writer;
+	UnifiedVectorFormat format;
+	const list_entry_t *list_data = nullptr;
+};
+
+static unique_ptr<AvroColumnWriter> CreateAvroColumnWriter(const LogicalType &type) {
+	switch (type.id()) {
+	case LogicalTypeId::BOOLEAN:
+		return make_uniq<PrimitiveAvroColumnWriter<bool>>(type, WriteBooleanValue);
+	case LogicalTypeId::BLOB:
+		return make_uniq<PrimitiveAvroColumnWriter<string_t>>(type, WriteBlobValue);
+	case LogicalTypeId::DOUBLE:
+		return make_uniq<PrimitiveAvroColumnWriter<double>>(type, WriteDoubleValue);
+	case LogicalTypeId::FLOAT:
+		return make_uniq<PrimitiveAvroColumnWriter<float>>(type, WriteFloatValue);
+	case LogicalTypeId::INTEGER:
+		return make_uniq<PrimitiveAvroColumnWriter<int32_t>>(type, WriteIntegerValue);
+	case LogicalTypeId::BIGINT:
+		return make_uniq<PrimitiveAvroColumnWriter<int64_t>>(type, WriteBigIntValue);
+	case LogicalTypeId::VARCHAR:
+		return make_uniq<PrimitiveAvroColumnWriter<string_t>>(type, WriteStringValue);
+	case LogicalTypeId::DATE:
+		return make_uniq<PrimitiveAvroColumnWriter<date_t>>(type, WriteDateValue);
+	case LogicalTypeId::TIME:
+		return make_uniq<PrimitiveAvroColumnWriter<dtime_t>>(type, WriteTimeValue);
+	case LogicalTypeId::TIMESTAMP:
+	case LogicalTypeId::TIMESTAMP_MS:
+	case LogicalTypeId::TIMESTAMP_NS:
+		return make_uniq<PrimitiveAvroColumnWriter<timestamp_t>>(type, WriteTimestampValue);
+	case LogicalTypeId::TIMESTAMP_TZ:
+		return make_uniq<PrimitiveAvroColumnWriter<timestamp_tz_t>>(type, WriteTimestampTZValue);
+	case LogicalTypeId::UUID:
+		return make_uniq<PrimitiveAvroColumnWriter<hugeint_t>>(type, WriteUUIDValue);
+	case LogicalTypeId::DECIMAL:
+		switch (type.InternalType()) {
+		case PhysicalType::INT16:
+			return make_uniq<PrimitiveAvroColumnWriter<int16_t>>(type, WriteDecimalValue<int16_t>);
+		case PhysicalType::INT32:
+			return make_uniq<PrimitiveAvroColumnWriter<int32_t>>(type, WriteDecimalValue<int32_t>);
+		case PhysicalType::INT64:
+			return make_uniq<PrimitiveAvroColumnWriter<int64_t>>(type, WriteDecimalValue<int64_t>);
+		case PhysicalType::INT128:
+			return make_uniq<PrimitiveAvroColumnWriter<hugeint_t>>(type, WriteDecimalValue<hugeint_t, uhugeint_t>);
+		default:
+			throw NotImplementedException("Unsupported decimal physical type");
+		}
+	case LogicalTypeId::SQLNULL:
+		return make_uniq<NullAvroColumnWriter>(type);
+	case LogicalTypeId::STRUCT: {
+		vector<idx_t> child_indexes;
+		vector<unique_ptr<AvroColumnWriter>> child_writers;
+		auto &child_types = StructType::GetChildTypes(type);
+		for (idx_t i = 0; i < child_types.size(); i++) {
+			if (child_types[i].first == "__duckdb_empty_struct_marker") {
+				continue;
+			}
+			child_indexes.push_back(i);
+			child_writers.push_back(CreateAvroColumnWriter(child_types[i].second));
+		}
+		return make_uniq<StructAvroColumnWriter>(type, std::move(child_indexes), std::move(child_writers));
+	}
+	case LogicalTypeId::MAP:
+	case LogicalTypeId::LIST:
+		return make_uniq<ListAvroColumnWriter>(type, CreateAvroColumnWriter(ListType::GetChildType(type)));
+	case LogicalTypeId::ENUM:
+		throw NotImplementedException("Can't convert ENUM Value to Avro yet");
 	default:
 		throw NotImplementedException("PopulateValue not implemented for type %s", type.ToString());
 	}
+}
+
+WriteAvroLocalState::WriteAvroLocalState(FunctionData &bind_data_p) {
+	auto &bind_data = bind_data_p.Cast<WriteAvroBindData>();
+	avro_generic_value_new(bind_data.interface, &value);
+	column_writers.reserve(bind_data.types.size());
+	for (auto &type : bind_data.types) {
+		column_writers.push_back(CreateAvroColumnWriter(type));
+	}
+}
+
+WriteAvroLocalState::~WriteAvroLocalState() {
+	avro_value_decref(&value);
 }
 
 static void WriteAvroSink(ExecutionContext &context, FunctionData &bind_data_p, GlobalFunctionData &gstate_p,
                           LocalFunctionData &lstate_p, DataChunk &input) {
 	auto &global_state = gstate_p.Cast<WriteAvroGlobalState>();
 	auto &local_state = lstate_p.Cast<WriteAvroLocalState>();
+
+	for (idx_t col_idx = 0; col_idx < input.ColumnCount(); col_idx++) {
+		local_state.column_writers[col_idx]->Prepare(input.data[col_idx]);
+	}
 
 	auto &datum_buffer = global_state.datum_buffer;
 	idx_t count = input.size();
@@ -806,14 +955,12 @@ static void WriteAvroSink(ExecutionContext &context, FunctionData &bind_data_p, 
 		//! Populate our avro value, estimating the size of the value as we go
 		idx_t value_size = 0;
 		for (idx_t col_idx = 0; col_idx < input.ColumnCount(); col_idx++) {
-			auto val = input.GetValue(col_idx, i);
-
 			const char *unused_name;
 			avro_value_t column;
 			if (avro_value_get_by_index(&local_state.value, col_idx, &column, &unused_name)) {
 				throw InvalidInputException(avro_strerror());
 			}
-			value_size += PopulateValue(&column, val);
+			value_size += local_state.column_writers[col_idx]->Write(&column, i);
 		}
 
 		//! Prepare the datum buffer for this row

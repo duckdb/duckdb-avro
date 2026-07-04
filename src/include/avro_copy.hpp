@@ -7,6 +7,8 @@
 
 namespace duckdb {
 
+class AvroColumnWriter;
+
 struct AvroCopyFunction {
 	static CopyFunction Create();
 };
@@ -194,6 +196,7 @@ public:
 public:
 	//! Avro value representing a row of the schema
 	avro_value_t value;
+	vector<unique_ptr<AvroColumnWriter>> column_writers;
 };
 
 } // namespace duckdb
