@@ -505,8 +505,7 @@ static string CreateJSONMetadata(const case_insensitive_map_t<vector<Value>> &op
 //! defaults to "null"). The codec name itself is validated by avro-c when the writer is created
 //! (it reports "Unknown codec X" for anything the library was not built with), so this stays in
 //! lock-step with avro-c's actual capabilities instead of duplicating a list that could drift.
-static string ParseCodec(const case_insensitive_map_t<vector<Value>> &options,
-                         case_insensitive_set_t &recognized) {
+static string ParseCodec(const case_insensitive_map_t<vector<Value>> &options, case_insensitive_set_t &recognized) {
 	auto it = options.find("CODEC");
 	if (it == options.end()) {
 		return "";

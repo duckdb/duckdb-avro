@@ -41,7 +41,7 @@ struct AvroMultiFileInfo : MultiFileReaderInterface {
 	unique_ptr<GlobalTableFunctionState> InitializeGlobalState(ClientContext &context, MultiFileBindData &bind_data,
 	                                                           MultiFileGlobalState &global_state) override;
 
-	unique_ptr<LocalTableFunctionState> InitializeLocalState(ExecutionContext &context,
+	unique_ptr<LocalTableFunctionState> InitializeLocalState(ClientContext &context,
 	                                                         GlobalTableFunctionState &function_state) override;
 
 	shared_ptr<BaseFileReader> CreateReader(ClientContext &context, GlobalTableFunctionState &gstate,

@@ -1,5 +1,7 @@
 # name: test/sql/copy/codec.test
 # description: COPY ... TO (FORMAT AVRO, CODEC '...') writes a natively-compressed Avro object
+# group: [copy]
+
 #              container (codec applied by avro-c, no post-processing). Round-trips correctly.
 #              The set of accepted codecs follows whatever avro-c was built with.
 

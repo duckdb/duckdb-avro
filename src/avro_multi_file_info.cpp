@@ -83,14 +83,14 @@ unique_ptr<GlobalTableFunctionState> AvroMultiFileInfo::InitializeGlobalState(Cl
 //! This is done by calling the Avro Scan directly on one file.
 struct AvroFileLocalState : public LocalTableFunctionState {
 public:
-	explicit AvroFileLocalState(ExecutionContext &execution_context) : execution_context(execution_context) {};
+	explicit AvroFileLocalState(ClientContext &context) : context(context) {};
 
 public:
 	shared_ptr<AvroReader> file_scan;
-	ExecutionContext &execution_context;
+	ClientContext &context;
 };
 
-unique_ptr<LocalTableFunctionState> AvroMultiFileInfo::InitializeLocalState(ExecutionContext &context,
+unique_ptr<LocalTableFunctionState> AvroMultiFileInfo::InitializeLocalState(ClientContext &context,
                                                                             GlobalTableFunctionState &function_state) {
 	return make_uniq<AvroFileLocalState>(context);
 }
