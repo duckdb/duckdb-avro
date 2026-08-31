@@ -40,7 +40,7 @@ public:
 
 public:
 	bool set = false;
-	int32_t field_id;
+	int32_t field_id = 0;
 	bool nullable = true;
 	ChildFieldIDs children;
 };

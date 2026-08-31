@@ -278,7 +278,7 @@ public:
 			auto &list_child = ListType::GetChildType(type);
 			auto element_field_id = GetChildFieldIdByName(field_id, "list");
 			yyjson_mut_val *items_type_val;
-			if (list_child.id() == LogicalTypeId::STRUCT && element_field_id) {
+			if (list_child.id() == LogicalTypeId::STRUCT && element_field_id && element_field_id->set) {
 				auto preset_schema_name = StringUtil::Format("r%d", element_field_id->GetFieldId());
 				items_type_val = CreateJSONType(list_child, element_field_id, preset_schema_name.c_str());
 			} else {
@@ -293,7 +293,7 @@ public:
 			}
 			yyjson_mut_obj_add_val(doc, type_val, "items", items_type_val);
 
-			if (element_field_id) {
+			if (element_field_id && element_field_id->set) {
 				yyjson_mut_obj_add_int(doc, type_val, "element-id", element_field_id->GetFieldId());
 			}
 		} else if (type_id == LogicalTypeId::MAP) {
@@ -395,7 +395,7 @@ private:
 	                                  optional_ptr<avro::FieldID> field_id) {
 		auto struct_field = yyjson_mut_obj(doc);
 		auto schema_name = name;
-		if (type.id() == LogicalTypeId::STRUCT && field_id) {
+		if (type.id() == LogicalTypeId::STRUCT && field_id && field_id->set) {
 			schema_name = StringUtil::Format("r%d", field_id->GetFieldId());
 		}
 		auto struct_field_type = CreateJSONType(type, field_id, schema_name.c_str());
@@ -406,7 +406,7 @@ private:
 			struct_field_type = union_array;
 		}
 		yyjson_mut_obj_add_val(doc, struct_field, "type", struct_field_type);
-		if (field_id) {
+		if (field_id && field_id->set) {
 			yyjson_mut_obj_add_uint(doc, struct_field, "field-id", field_id->GetFieldId());
 		}
 		yyjson_mut_obj_add_strcpy(doc, struct_field, "name", name.c_str());
@@ -432,7 +432,7 @@ private:
 
 		auto key = GetChildFieldIdByName(field_id, "key");
 		auto value = GetChildFieldIdByName(field_id, "value");
-		if (key && value) {
+		if (key && key->set && value && value->set) {
 			ids.key_id = key->GetFieldId();
 			ids.value_id = value->GetFieldId();
 			return true;

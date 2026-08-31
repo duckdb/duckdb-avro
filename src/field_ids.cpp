@@ -108,6 +108,12 @@ static void GetFieldIDs(const Value &field_ids_value, ChildFieldIDs &field_ids_p
 			field_id_value = &child_value;
 		}
 
+		bool nullable = true;
+		if (field_id_nullable) {
+			Value field_id_bool_value = field_id_nullable->DefaultCastAs(LogicalType::BOOLEAN);
+			nullable = BooleanValue::Get(field_id_bool_value);
+		}
+
 		FieldID field_id;
 		if (field_id_value) {
 			Value field_id_integer_value = field_id_value->DefaultCastAs(LogicalType::INTEGER);
@@ -115,13 +121,9 @@ static void GetFieldIDs(const Value &field_ids_value, ChildFieldIDs &field_ids_p
 			if (!unique_field_ids.insert(field_id_int).second) {
 				throw BinderException("Duplicate field_id %s found in FIELD_IDS", field_id_integer_value.ToString());
 			}
-			if (field_id_nullable) {
-				Value field_id_bool_value = field_id_nullable->DefaultCastAs(LogicalType::BOOLEAN);
-				const bool field_id_bool = BooleanValue::Get(field_id_bool_value);
-				field_id = FieldID(UnsafeNumericCast<int32_t>(field_id_int), field_id_bool);
-			} else {
-				field_id = FieldID(UnsafeNumericCast<int32_t>(field_id_int));
-			}
+			field_id = FieldID(UnsafeNumericCast<int32_t>(field_id_int), nullable);
+		} else {
+			field_id.nullable = nullable;
 		}
 		auto inserted = field_ids.emplace(col_name, std::move(field_id));
 		D_ASSERT(inserted.second);
