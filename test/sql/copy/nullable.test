@@ -210,3 +210,76 @@ COPY (select
 	},
 	ROOT_NAME 'manifest_file'
 );
+# __duckdb_nullable is honored on its own: a field id is not required to ask
+# for a non-nullable field
+statement error
+COPY (
+	select NULL::INTEGER field1
+) TO '{TEST_DIR}/nullable_only_null.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_nullable': false},
+	},
+	ROOT_NAME 'test'
+);
+----
+<REGEX>:.*Cannot insert NULL to non-nullable field.*
+
+statement ok
+COPY (
+	select 42::INTEGER field1
+) TO '{TEST_DIR}/nullable_only.avro' (
+	FIELD_IDS {
+		'field1': {'__duckdb_nullable': false},
+	},
+	ROOT_NAME 'test'
+);
+
+# the field is not unioned with null, and no field id is invented for it
+query I
+select value like '%"name":"field1","type":{"type":"int"}%' and value not like '%field-id%'
+from avro_metadata('{TEST_DIR}/nullable_only.avro') where key = 'avro.schema';
+----
+true
+
+# the same for the key and value of a MAP, which is what Avro's native map
+# requires: its keys cannot be a union
+statement ok
+COPY (
+	select MAP{'k': 'v'} field1
+) TO '{TEST_DIR}/nullable_only_map.avro' (
+	FIELD_IDS {
+		'field1': {
+			'key':   {'__duckdb_nullable': false},
+			'value': {'__duckdb_nullable': false},
+			'__duckdb_nullable': false
+		},
+	},
+	ROOT_NAME 'test'
+);
+
+query I
+select value like '%"name":"key","type":{"type":"string"}%'
+   and value like '%"name":"value","type":{"type":"string"}%'
+   and value not like '%field-id%'
+from avro_metadata('{TEST_DIR}/nullable_only_map.avro') where key = 'avro.schema';
+----
+true
+
+# a field id given only to a child must not put one on the parent
+statement ok
+COPY (
+	select {i: 128} field1
+) TO '{TEST_DIR}/child_field_id_only.avro' (
+	FIELD_IDS {
+		'field1': {'i': 43},
+	},
+	ROOT_NAME 'test'
+);
+
+# exactly one field id in the schema: the one that was asked for
+query I
+select value like '%"field-id":43%'
+   and len(value) - len(replace(value, '"field-id"', '')) = len('"field-id"')
+from avro_metadata('{TEST_DIR}/child_field_id_only.avro') where key = 'avro.schema';
+----
+true
