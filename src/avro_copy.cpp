@@ -307,8 +307,8 @@ public:
 		std::unordered_map<std::string, std::string> field_names;
 		//! Add all the fields
 		for (idx_t i = 0; i < names.size(); i++) {
-			json_array_append_new(fields,
-			                      CreateStructField(names[i], types[i], field_ids.Find(names[i]), field_names).release());
+			json_array_append_new(
+			    fields, CreateStructField(names[i], types[i], field_ids.Find(names[i]), field_names).release());
 		}
 		return WriteJSON(root_object.get(), "table schema");
 	}
@@ -797,8 +797,7 @@ public:
 
 class StructAvroColumnWriter : public AvroColumnWriter {
 public:
-	StructAvroColumnWriter(std::string type_name, std::vector<idx_t> child_indexes,
-	                       std::vector<writer_ptr_t> children)
+	StructAvroColumnWriter(std::string type_name, std::vector<idx_t> child_indexes, std::vector<writer_ptr_t> children)
 	    : AvroColumnWriter(std::move(type_name)), child_indexes(std::move(child_indexes)),
 	      children(std::move(children)) {
 	}
@@ -914,8 +913,8 @@ writer_ptr_t CreateAvroColumnWriter(const LogicalType &type) {
 		case LogicalTypeId::BIGINT:
 			return std::make_unique<PrimitiveAvroColumnWriter<int64_t>>(type_name, WriteDecimalValue<int64_t>, width);
 		case LogicalTypeId::HUGEINT:
-			return std::make_unique<PrimitiveAvroColumnWriter<cxx::int128_t>>(
-			    type_name, WriteDecimalValue<cxx::int128_t>, width);
+			return std::make_unique<PrimitiveAvroColumnWriter<cxx::int128_t>>(type_name,
+			                                                                  WriteDecimalValue<cxx::int128_t>, width);
 		default:
 			throw NotImplementedError("Unsupported decimal physical type");
 		}
@@ -994,11 +993,11 @@ public:
 
 public:
 	WriteAvroGlobalState(cxx::Context &context, const WriteAvroBindData &bind_data, const std::string &file_path)
-	    : types(CopyTypes(bind_data.types)),
-	      handle(context.GetFileSystem().OpenFile(file_path, {cxx::FileFlags::WRITE, cxx::FileFlags::FILE_CREATE_NEW})) {
+	    : types(CopyTypes(bind_data.types)), handle(context.GetFileSystem().OpenFile(
+	                                             file_path, {cxx::FileFlags::WRITE, cxx::FileFlags::FILE_CREATE_NEW})) {
 		//! Guess how big the "header" of the Avro file needs to be
-		idx_t capacity =
-		    std::max<idx_t>(BUFFER_SIZE, NextPowerOfTwo(bind_data.json_schema.size() + SYNC_SIZE + MAX_ROW_COUNT_BYTES));
+		idx_t capacity = std::max<idx_t>(
+		    BUFFER_SIZE, NextPowerOfTwo(bind_data.json_schema.size() + SYNC_SIZE + MAX_ROW_COUNT_BYTES));
 		memory_buffer.Resize(capacity);
 
 		writer = avro_writer_memory(memory_buffer.GetData(), static_cast<int64_t>(memory_buffer.GetCapacity()));
@@ -1017,8 +1016,7 @@ public:
 			avro_file_writer_close(file_writer);
 			file_writer = nullptr;
 			writer = avro_writer_memory(memory_buffer.GetData(), static_cast<int64_t>(memory_buffer.GetCapacity()));
-			datum_writer =
-			    avro_writer_memory(datum_buffer.GetData(), static_cast<int64_t>(datum_buffer.GetCapacity()));
+			datum_writer = avro_writer_memory(datum_buffer.GetData(), static_cast<int64_t>(datum_buffer.GetCapacity()));
 		}
 		if (ret) {
 			auto error = AvroError();

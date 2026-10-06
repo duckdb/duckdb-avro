@@ -390,8 +390,7 @@ public:
 	void Read(avro_value_t *value, idx_t row) override {
 		int discriminant = 0;
 		avro_value_t union_value;
-		if (avro_value_get_discriminant(value, &discriminant) ||
-		    avro_value_get_current_branch(value, &union_value)) {
+		if (avro_value_get_discriminant(value, &discriminant) || avro_value_get_current_branch(value, &union_value)) {
 			throw AvroError();
 		}
 		if (discriminant < 0 || static_cast<idx_t>(discriminant) >= avro_type.children.size()) {
@@ -454,8 +453,7 @@ public:
 	void Read(avro_value_t *value, idx_t row) override {
 		int discriminant = 0;
 		avro_value_t union_value;
-		if (avro_value_get_discriminant(value, &discriminant) ||
-		    avro_value_get_current_branch(value, &union_value)) {
+		if (avro_value_get_discriminant(value, &discriminant) || avro_value_get_current_branch(value, &union_value)) {
 			throw AvroError();
 		}
 		if (discriminant < 0 || static_cast<idx_t>(discriminant) >= avro_type.children.size()) {
@@ -852,7 +850,7 @@ private:
 	avro_value_t value;
 };
 
-void AddColumnIdentifiers(cxx::TableFunction::BindInput &input, cxx::Context &context, const AvroColumn &column,
+void SetColumnIdentifiers(cxx::TableFunction::GetBindInfoInput &input, cxx::Context &context, const AvroColumn &column,
                           idx_t column_index, std::vector<idx_t> &child_path) {
 	if (column.field_id) {
 		input.SetColumnIdentifier(column_index, child_path, cxx::Value::Create(context, *column.field_id));
@@ -861,26 +859,38 @@ void AddColumnIdentifiers(cxx::TableFunction::BindInput &input, cxx::Context &co
 	auto &children = column.type.GetTypeId() == LogicalTypeId::MAP ? column.children[0].children : column.children;
 	for (idx_t i = 0; i < children.size(); i++) {
 		child_path.push_back(i);
-		AddColumnIdentifiers(input, context, children[i], column_index, child_path);
+		SetColumnIdentifiers(input, context, children[i], column_index, child_path);
 		child_path.pop_back();
 	}
 }
 
 void AvroScanBind(cxx::TableFunction::BindInput &input) {
 	auto context = input.GetContext();
-	auto path = std::string(input.GetConstantArgument(0).Get<cxx::varchar_t>().view());
-	auto file = std::make_unique<AvroFile>(context, path);
+	//! the file is a path, or a file struct that also holds the options to open it with - e.g. its size, as globbing a
+	//! remote store reported it
+	auto file_arg = input.GetConstantArgument(0);
+	auto open_options = context.GetFileSystem().CreateOpenOptions();
+	open_options.SetValues(file_arg);
+	auto file = std::make_unique<AvroFile>(context, cxx::GetFilePath(file_arg), std::move(open_options));
 
-	for (idx_t col_idx = 0; col_idx < file->columns.size(); col_idx++) {
-		auto &column = file->columns[col_idx];
+	for (auto &column : file->columns) {
 		input.AddResultColumn(column.name, column.type);
-		std::vector<idx_t> child_path;
-		AddColumnIdentifiers(input, context, column, col_idx, child_path);
-	}
-	for (auto &entry : file->metadata) {
-		input.AddFileMetadata(entry.first, cxx::Value::Create(context, cxx::varchar_t(entry.second)));
 	}
 	input.SetBindData<AvroBindData>(std::move(file));
+}
+
+//! Describes the file: the field ids of its columns, and its key-value metadata as options - which a multi-file reader
+//! exposes as the metadata of the reader of the file
+void AvroScanGetBindInfo(cxx::TableFunction::GetBindInfoInput &input) {
+	auto context = input.GetContext();
+	auto &file = *input.GetBindData<AvroBindData>().file;
+	for (idx_t col_idx = 0; col_idx < file.columns.size(); col_idx++) {
+		std::vector<idx_t> child_path;
+		SetColumnIdentifiers(input, context, file.columns[col_idx], col_idx, child_path);
+	}
+	for (auto &entry : file.metadata) {
+		input.SetOption(entry.first, cxx::Value::Create(context, cxx::varchar_t(entry.second)));
+	}
 }
 
 void AvroScanInitGlobal(cxx::TableFunction::InitGlobalInput &input) {
@@ -918,7 +928,8 @@ void AvroScanExec(cxx::TableFunction::ExecInput &input) {
 
 } // namespace
 
-AvroFile::AvroFile(cxx::Context &context, const std::string &path) : buffer(AvroFileBuffer::Read(context, path)) {
+AvroFile::AvroFile(cxx::Context &context, const std::string &path, cxx::FileOpenOptions open_options)
+    : buffer(AvroFileBuffer::Read(context, path, std::move(open_options))) {
 	avro_file_reader_t file_reader;
 	if (avro_file_reader_memory(buffer.data.get(), static_cast<int64_t>(buffer.size), &file_reader)) {
 		throw AvroError();
@@ -972,11 +983,12 @@ AvroFile::AvroFile(cxx::Context &context, const std::string &path) : buffer(Avro
 void AvroReader::Register(cxx::Extension &extension, cxx::Context &context) {
 	auto function = cxx::TableFunction::Create(extension);
 	function.SetName("read_single_avro_file");
-	function.GetSignature().AddParameter("path", context.CreateType(LogicalTypeId::VARCHAR));
+	function.GetSignature().AddParameter("file", context.CreateType(LogicalTypeId::ANY));
 	function.SetBindCallback(AvroScanBind)
 	    .SetInitGlobalCallback(AvroScanInitGlobal)
 	    .SetInitLocalCallback(AvroScanInitLocal)
 	    .SetClaimBatchCallback(AvroScanClaimBatch)
+	    .SetGetBindInfoCallback(AvroScanGetBindInfo)
 	    .SetExecCallback(AvroScanExec)
 	    .SetProjectionPushdown(true);
 	function.Register();

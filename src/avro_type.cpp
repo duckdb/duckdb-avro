@@ -73,8 +73,7 @@ AvroType PrimitiveType(avro_type_t avro_type, LogicalTypeId default_type, const 
 	return result;
 }
 
-cxx::LogicalType CreateNamedType(cxx::Context &context, LogicalTypeId id,
-                                 const std::vector<AvroColumn> &children) {
+cxx::LogicalType CreateNamedType(cxx::Context &context, LogicalTypeId id, const std::vector<AvroColumn> &children) {
 	std::vector<cxx::TypeParam> params;
 	for (auto &child : children) {
 		params.emplace_back(child.name, cxx::Value::Create(context, child.type));

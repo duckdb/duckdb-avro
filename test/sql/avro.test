@@ -100,6 +100,34 @@ from read_avro(['test/userdata1.avro', 'test/users.avro'])
 ----
 schema mismatch in glob
 
+# files can be given together with the options to open them with
+query II
+select count(*), sum(id) from read_avro([{'filename': 'test/userdata1.avro', 'file_size': 93561}, {'filename': 'test/userdata2.avro'}]);
+----
+1998	1000991
+
+# the options reach the file system: the external file cache rejects an invalid one
+statement error
+select count(*) from read_avro([{'filename': 'test/userdata1.avro', 'validate_external_file_cache': 'notabool'}]);
+----
+<REGEX>:.*file option "validate_external_file_cache".*BOOLEAN.*
+
+# the single-file function takes its file the same way
+query I
+select count(*) from read_single_avro_file('test/userdata1.avro');
+----
+1000
+
+query I
+select count(*) from read_single_avro_file({'filename': 'test/userdata1.avro', 'validate_external_file_cache': false});
+----
+1000
+
+statement error
+select count(*) from read_single_avro_file({'filename': 'test/userdata1.avro', 'validate_external_file_cache': 'notabool'});
+----
+<REGEX>:.*file option "validate_external_file_cache".*BOOLEAN.*
+
 # example from readme
 query III
 FROM read_avro('test/users.avro')

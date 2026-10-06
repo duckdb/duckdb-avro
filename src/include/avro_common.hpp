@@ -75,6 +75,8 @@ struct AvroFileBuffer {
 	idx_t size = 0;
 
 	static AvroFileBuffer Read(const cxx::Context &context, const std::string &path);
+	//! Reads the file with the given open options, e.g. the ones the multi-file reader knows the file by
+	static AvroFileBuffer Read(const cxx::Context &context, const std::string &path, cxx::FileOpenOptions options);
 };
 
 } // namespace avro

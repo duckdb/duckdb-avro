@@ -71,9 +71,9 @@ void GetFieldIDs(cxx::Context &context, const cxx::Value &field_ids_value, Child
 				names += name.first;
 			}
 			throw BinderError("Column name \"" + col_name +
-			                      "\" specified in FIELD_IDS not found. Consider using WRITE_PARTITION_COLUMNS if this "
-			                      "column is a partition column. Available column names: [" +
-			                      names + "]");
+			                  "\" specified in FIELD_IDS not found. Consider using WRITE_PARTITION_COLUMNS if this "
+			                  "column is a partition column. Available column names: [" +
+			                  names + "]");
 		}
 
 		auto child_value = field_ids_value.GetChild(i);
@@ -155,7 +155,8 @@ int32_t FieldID::GetFieldId() const {
 	return field_id;
 }
 
-ChildFieldIDs FieldIDUtils::ParseFieldIds(cxx::Context &context, const cxx::Value &input, const std::vector<std::string> &names,
+ChildFieldIDs FieldIDUtils::ParseFieldIds(cxx::Context &context, const cxx::Value &input,
+                                          const std::vector<std::string> &names,
                                           const std::vector<cxx::LogicalType> &types) {
 	std::unordered_set<uint32_t> unique_field_ids;
 	NameToTypeMap name_to_type_map;

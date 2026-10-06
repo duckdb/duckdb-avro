@@ -32,7 +32,7 @@ struct ValueInterfaceDeleter {
 //! An Avro object container file, read into memory
 class AvroFile {
 public:
-	AvroFile(cxx::Context &context, const std::string &path);
+	AvroFile(cxx::Context &context, const std::string &path, cxx::FileOpenOptions open_options);
 
 public:
 	idx_t NumBlocks() const {
@@ -55,7 +55,8 @@ public:
 };
 
 struct AvroReader {
-	//! Registers "read_single_avro_file", which reads a single file, and "read_avro" on top of it
+	//! Registers "read_single_avro_file", which reads a single file - given as a path, or as a file struct that also
+	//! holds the options to open the file with - and "read_avro" on top of it
 	static void Register(cxx::Extension &extension, cxx::Context &context);
 };
 

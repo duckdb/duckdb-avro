@@ -48,7 +48,8 @@ public:
 	FieldIDUtils() = delete;
 
 public:
-	static ChildFieldIDs ParseFieldIds(cxx::Context &context, const cxx::Value &input, const std::vector<std::string> &names,
+	static ChildFieldIDs ParseFieldIds(cxx::Context &context, const cxx::Value &input,
+	                                   const std::vector<std::string> &names,
 	                                   const std::vector<cxx::LogicalType> &types);
 };
 

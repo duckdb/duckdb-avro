@@ -76,7 +76,9 @@ void AvroMetadata::Register(cxx::Extension &extension, cxx::Context &context) {
 	auto function = cxx::TableFunction::Create(extension);
 	function.SetName("avro_metadata");
 	function.GetSignature().AddParameter("path", context.CreateType(LogicalTypeId::VARCHAR));
-	function.SetBindCallback(AvroMetadataBind).SetInitGlobalCallback(AvroMetadataInit).SetExecCallback(AvroMetadataExec);
+	function.SetBindCallback(AvroMetadataBind)
+	    .SetInitGlobalCallback(AvroMetadataInit)
+	    .SetExecCallback(AvroMetadataExec);
 	function.Register();
 }
 

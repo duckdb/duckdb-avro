@@ -23,8 +23,14 @@ cxx::LogicalType CreateNullType(const cxx::Context &context) {
 }
 
 AvroFileBuffer AvroFileBuffer::Read(const cxx::Context &context, const std::string &path) {
+	return Read(context, path, context.GetFileSystem().CreateOpenOptions());
+}
+
+AvroFileBuffer AvroFileBuffer::Read(const cxx::Context &context, const std::string &path,
+                                    cxx::FileOpenOptions options) {
 	auto fs = context.GetFileSystem();
-	auto handle = fs.OpenFile(path, {cxx::FileFlags::READ, cxx::FileFlags::EXTERNAL_FILE_CACHE});
+	options.SetFlag(cxx::FileFlags::READ).SetFlag(cxx::FileFlags::EXTERNAL_FILE_CACHE);
+	auto handle = fs.OpenFile(path, options);
 
 	AvroFileBuffer result;
 	result.size = handle.Size();
