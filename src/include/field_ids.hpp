@@ -1,9 +1,9 @@
 #pragma once
 
-#include "duckdb/common/helper.hpp"
-#include "duckdb/common/case_insensitive_map.hpp"
-#include "duckdb/common/types.hpp"
-#include "duckdb/common/types/value.hpp"
+#include "avro_common.hpp"
+
+#include <unordered_map>
+#include <vector>
 
 namespace duckdb {
 
@@ -15,21 +15,19 @@ struct FieldID;
 
 struct ChildFieldIDs {
 public:
-	void Serialize(Serializer &serializer) const;
-	static ChildFieldIDs Deserialize(Deserializer &source);
+	//! The field id of a child, looked up by name case-insensitively
+	const FieldID *Find(const std::string &name) const;
+	std::unordered_map<std::string, FieldID> &Ids();
 
-public:
-	ChildFieldIDs Copy() const;
-	case_insensitive_map_t<FieldID> &Ids();
-
-public:
-	unique_ptr<case_insensitive_map_t<FieldID>> ids;
+private:
+	//! Keyed by lowercase name
+	std::unique_ptr<std::unordered_map<std::string, FieldID>> ids;
 };
 
 struct FieldID {
 public:
-	static constexpr const auto DUCKDB_FIELD_ID = "__duckdb_field_id";
-	static constexpr const auto DUCKDB_NULLABLE_ID = "__duckdb_nullable";
+	static constexpr const char *DUCKDB_FIELD_ID = "__duckdb_field_id";
+	static constexpr const char *DUCKDB_NULLABLE_ID = "__duckdb_nullable";
 
 public:
 	FieldID();
@@ -50,8 +48,8 @@ public:
 	FieldIDUtils() = delete;
 
 public:
-	static ChildFieldIDs ParseFieldIds(const Value &input, const vector<string> &names,
-	                                   const vector<LogicalType> &types);
+	static ChildFieldIDs ParseFieldIds(cxx::Context &context, const cxx::Value &input, const std::vector<std::string> &names,
+	                                   const std::vector<cxx::LogicalType> &types);
 };
 
 } // namespace avro
