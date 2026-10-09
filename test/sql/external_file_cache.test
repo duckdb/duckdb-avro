@@ -1,10 +1,13 @@
 # name: test/sql/external_file_cache.test
 # description: test avro extension and external file cache
-# group: [avro]
+# group: [sql]
 
 require avro
 
-query IIII
+statement ok
+SET cache_local_files=true
+
+query IIIII
 from duckdb_external_file_cache();
 ----
 
@@ -31,8 +34,8 @@ FROM read_avro('test/bigdata.avro') ORDER BY c1 LIMIT 10
 statement ok
 from read_avro('test/userdata1.avro');
 
-query IIII
-from duckdb_external_file_cache() order by path;
+query II
+select path, sum(nr_bytes) from duckdb_external_file_cache() group by path order by path;
 ----
-test/bigdata.avro	17647257	0	true
-test/userdata1.avro	93561	0	true
+test/bigdata.avro	17647257
+test/userdata1.avro	93561

@@ -64,7 +64,7 @@ static void GetFieldIDs(const Value &field_ids_value, ChildFieldIDs &field_ids_p
 	auto &field_ids = field_ids_p.Ids();
 	D_ASSERT(StructType::GetChildTypes(struct_type).size() == struct_children.size());
 	for (idx_t i = 0; i < struct_children.size(); i++) {
-		const auto &col_name = StringUtil::Lower(StructType::GetChildName(struct_type, i));
+		const auto &col_name = StringUtil::Lower(StructType::GetChildName(struct_type, i).GetIdentifierName());
 		if (col_name == FieldID::DUCKDB_FIELD_ID || col_name == FieldID::DUCKDB_NULLABLE_ID) {
 			continue;
 		}

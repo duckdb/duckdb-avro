@@ -1,0 +1,121 @@
+# name: test/sql/copy/sanitize_field_names.test
+# group: [copy]
+
+require avro
+
+# Disabled by default and explicitly: retain strict Avro naming.
+statement error
+COPY (SELECT 1 AS "a b") TO '{TEST_DIR}/sanitize.avro' (FORMAT AVRO);
+----
+Invalid Avro identifier
+
+statement error
+COPY (SELECT 1 AS "a b") TO '{TEST_DIR}/sanitize.avro' (FORMAT AVRO, SANITIZE_FIELD_NAMES false);
+----
+Invalid Avro identifier
+
+statement ok
+COPY (SELECT 1 AS "a b", 2 AS "1col", 3 AS "a-b", 4 AS "é", 5 AS valid_1)
+TO '{TEST_DIR}/sanitize.avro' (FORMAT AVRO, SANITIZE_FIELD_NAMES true);
+
+query IIIII
+SELECT a_x20b, _1col, a_x2Db, _xC3_xA9, valid_1 FROM read_avro('{TEST_DIR}/sanitize.avro');
+----
+1	2	3	4	5
+
+# Original names resolve field IDs before schema names are sanitized.
+statement ok
+COPY (SELECT {'child name': 42} AS "parent name") TO '{TEST_DIR}/sanitize_ids.avro'
+(FORMAT AVRO, SANITIZE_FIELD_NAMES true, FIELD_IDS {'parent name': {'__duckdb_field_id': 10, 'child name': 11}});
+
+query I
+SELECT parent_x20name.child_x20name FROM read_avro('{TEST_DIR}/sanitize_ids.avro');
+----
+42
+
+query I
+SELECT regexp_extract_all(value, '"field-id":([0-9]+)', 1) FROM avro_metadata('{TEST_DIR}/sanitize_ids.avro') WHERE key = 'avro.schema';
+----
+[11, 10]
+
+# Named schemas without IDs, lists, and map values all recurse through the same conversion.
+statement ok
+COPY (SELECT {'child name': 7} AS "parent name", [{'list child': 8}] AS items,
+             MAP {'a b': {'map child': 9}} AS mapping)
+TO '{TEST_DIR}/sanitize_nested.avro' (FORMAT AVRO, SANITIZE_FIELD_NAMES true);
+
+query III
+SELECT parent_x20name.child_x20name, items[1].list_x20child, mapping['a b'].map_x20child
+FROM read_avro('{TEST_DIR}/sanitize_nested.avro');
+----
+7	8	9
+
+# Collisions are errors within a record, including collisions with unchanged names.
+statement error
+COPY (SELECT 1 AS "a b", 2 AS a_x20b) TO '{TEST_DIR}/sanitize_collision.avro' (SANITIZE_FIELD_NAMES true);
+----
+SANITIZE_FIELD_NAMES maps both 'a b' and 'a_x20b' to 'a_x20b' in the same Avro record
+
+statement error
+COPY (SELECT {'1a': 1, '_1a': 2} AS nested) TO '{TEST_DIR}/sanitize_collision.avro' (SANITIZE_FIELD_NAMES true);
+----
+SANITIZE_FIELD_NAMES maps both '1a' and '_1a' to '_1a' in the same Avro record
+
+# The same output field name is valid in separate records.
+statement ok
+COPY (SELECT {'a b': 1} AS first, {'a_x20b': 2} AS second)
+TO '{TEST_DIR}/sanitize_scopes.avro' (SANITIZE_FIELD_NAMES true);
+
+query II
+SELECT first.a_x20b, second.a_x20b FROM read_avro('{TEST_DIR}/sanitize_scopes.avro');
+----
+1	2
+
+statement error
+COPY (SELECT 1 AS valid) TO '{TEST_DIR}/sanitize.avro' (SANITIZE_FIELD_NAMES true, ROOT_NAME 'invalid root');
+----
+is not a valid Avro identifier
+
+statement error
+COPY (SELECT 1 AS valid) TO '{TEST_DIR}/sanitize.avro' (SANITIZE_FIELD_NAMES);
+----
+SANITIZE_FIELD_NAMES requires a non-NULL BOOLEAN value
+
+statement error
+COPY (SELECT 1 AS valid) TO '{TEST_DIR}/sanitize.avro' (SANITIZE_FIELD_NAMES NULL);
+----
+SANITIZE_FIELD_NAMES requires a non-NULL BOOLEAN value
+
+statement error
+COPY (SELECT 1 AS valid) TO '{TEST_DIR}/sanitize.avro' (SANITIZE_FIELD_NAMES 'yes');
+----
+SANITIZE_FIELD_NAMES requires a non-NULL BOOLEAN value
+
+# Field IDs inside a list and a map also use original names.
+statement ok
+COPY (SELECT [{'list child': 8}] AS items, MAP {'a b': {'map child': 9}} AS mapping)
+TO '{TEST_DIR}/sanitize_nested_ids.avro' (SANITIZE_FIELD_NAMES true, FIELD_IDS {
+    'items': {'__duckdb_field_id': 1, 'list': {'__duckdb_field_id': 2, 'list child': 3}},
+    'mapping': {'__duckdb_field_id': 4, 'key': 5, 'value': {'__duckdb_field_id': 6, 'map child': 7}}
+});
+
+query II
+SELECT items[1].list_x20child, mapping['a b'].map_x20child
+FROM read_avro('{TEST_DIR}/sanitize_nested_ids.avro');
+----
+8	9
+
+query I
+SELECT regexp_extract_all(value, '"field-id":([0-9]+)', 1) FROM avro_metadata('{TEST_DIR}/sanitize_nested_ids.avro') WHERE key = 'avro.schema';
+----
+[3, 1, 5, 7, 6, 4]
+
+# Fixed schemas (decimal and UUID) derive valid names from sanitized fields too.
+statement ok
+COPY (SELECT 12.34::DECIMAL(8,2) AS "decimal value", '550e8400-e29b-41d4-a716-446655440000'::UUID AS "uuid value")
+TO '{TEST_DIR}/sanitize_fixed.avro' (SANITIZE_FIELD_NAMES true);
+
+query II
+SELECT decimal_x20value, uuid_x20value FROM read_avro('{TEST_DIR}/sanitize_fixed.avro');
+----
+12.34	550e8400-e29b-41d4-a716-446655440000

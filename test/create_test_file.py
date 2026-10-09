@@ -3,7 +3,6 @@ from avro.datafile import DataFileReader, DataFileWriter
 from avro.io import DatumReader, DatumWriter
 
 
-
 json_schema = """
 {"namespace": "example.avro",
  "type": "record",
@@ -29,8 +28,6 @@ for user in reader:
 reader.close()
 
 
-
-
 json_schema = """
 {"namespace": "example2.avro",
  "type": "int",
@@ -52,7 +49,6 @@ for user in reader:
 reader.close()
 
 
-
 json_schema = """
 { "type": "record",
  "name": "root",
@@ -65,7 +61,7 @@ json_schema = """
 schema = avro.schema.parse(json_schema)
 
 writer = DataFileWriter(open("single-union.avro", "wb"), DatumWriter(), schema)
-writer.append({ "single_union":42})
+writer.append({"single_union": 42})
 
 
 writer.close()
@@ -74,8 +70,6 @@ reader = DataFileReader(open("single-union.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
 
 
 json_schema = """
@@ -90,7 +84,7 @@ json_schema = """
 schema = avro.schema.parse(json_schema)
 
 writer = DataFileWriter(open("null_first.avro", "wb"), DatumWriter(), schema)
-writer.append({ "null_first":42})
+writer.append({"null_first": 42})
 writer.append({})
 
 
@@ -100,8 +94,6 @@ reader = DataFileReader(open("null_first.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
 
 
 json_schema = """
@@ -116,7 +108,7 @@ json_schema = """
 schema = avro.schema.parse(json_schema)
 
 writer = DataFileWriter(open("null_last.avro", "wb"), DatumWriter(), schema)
-writer.append({ "null_last":42})
+writer.append({"null_last": 42})
 writer.append({})
 
 
@@ -149,9 +141,30 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("primitive_types.avro", "wb"), DatumWriter(), schema)
 
 
-
-writer.append({ 'null':None, 'boolean': False, 'int': -2147483648, 'long' : -9223372036854775808, 'float' : -3.4028235e+38, 'double' : -1.7976931348623157e+308,  'bytes' : 'thisisalongblob\x00withnullbytes'.encode(),  'string' : "🦆🦆🦆🦆🦆🦆"})
-writer.append({ 'null':None, 'boolean': True, 'int': 2147483647, 'long' : 9223372036854775807,  'float' : 3.4028235e+38, 'double' : 1.7976931348623157e+308, 'bytes': '\x00\x00\x00a'.encode(),  'string' : 'goo'})
+writer.append(
+    {
+        'null': None,
+        'boolean': False,
+        'int': -2147483648,
+        'long': -9223372036854775808,
+        'float': -3.4028235e38,
+        'double': -1.7976931348623157e308,
+        'bytes': 'thisisalongblob\x00withnullbytes'.encode(),
+        'string': "🦆🦆🦆🦆🦆🦆",
+    }
+)
+writer.append(
+    {
+        'null': None,
+        'boolean': True,
+        'int': 2147483647,
+        'long': 9223372036854775807,
+        'float': 3.4028235e38,
+        'double': 1.7976931348623157e308,
+        'bytes': '\x00\x00\x00a'.encode(),
+        'string': 'goo',
+    }
+)
 
 
 writer.close()
@@ -160,7 +173,6 @@ reader = DataFileReader(open("primitive_types.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
 
 
 json_schema = """
@@ -191,12 +203,11 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("enum.avro", "wb"), DatumWriter(), schema)
 
 
-
-writer.append({ 'color': 'GREEN'})
-writer.append({ 'color': 'GREEN'})
-writer.append({ 'color': 'RED'})
-writer.append({ 'color': 'UNKNOWN'})
-writer.append({ 'color': 'UNKNOWN'})
+writer.append({'color': 'GREEN'})
+writer.append({'color': 'GREEN'})
+writer.append({'color': 'RED'})
+writer.append({'color': 'UNKNOWN'})
+writer.append({'color': 'UNKNOWN'})
 
 writer.close()
 
@@ -204,11 +215,6 @@ reader = DataFileReader(open("enum.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
-
-
-
 
 
 json_schema = """
@@ -228,12 +234,10 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("fixed.avro", "wb"), DatumWriter(), schema)
 
 
-
-writer.append({ 'md5' : '47336f3f2497b70ac046cf23298e20a7'.encode()})
-writer.append({ 'md5' : 'a789a15a7ff7db4a0d1b186363ef0771'.encode()})
-writer.append({ 'md5' : 'c9db7c67a6acb5a65c78b19e9e01d7b0'.encode()})
-writer.append({ 'md5' : 'ac441296bcbd44442301204a8f061cf2'.encode()})
-
+writer.append({'md5': '47336f3f2497b70ac046cf23298e20a7'.encode()})
+writer.append({'md5': 'a789a15a7ff7db4a0d1b186363ef0771'.encode()})
+writer.append({'md5': 'c9db7c67a6acb5a65c78b19e9e01d7b0'.encode()})
+writer.append({'md5': 'ac441296bcbd44442301204a8f061cf2'.encode()})
 
 
 writer.close()
@@ -242,13 +246,6 @@ reader = DataFileReader(open("fixed.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
-
-
-
-
-
 
 
 json_schema = """
@@ -272,13 +269,11 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("string_array.avro", "wb"), DatumWriter(), schema)
 
 
-
-writer.append({ 'string_arr' : ['Hello' ,'World']})
-writer.append({ 'string_arr' : ['this']})
-writer.append({ 'string_arr' : []})
-writer.append({ 'string_arr' : ['is', 'cool','array']})
-writer.append({ 'string_arr' : ['data']})
-
+writer.append({'string_arr': ['Hello', 'World']})
+writer.append({'string_arr': ['this']})
+writer.append({'string_arr': []})
+writer.append({'string_arr': ['is', 'cool', 'array']})
+writer.append({'string_arr': ['data']})
 
 
 writer.close()
@@ -287,8 +282,6 @@ reader = DataFileReader(open("string_array.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
 
 
 json_schema = """
@@ -311,9 +304,9 @@ schema = avro.schema.parse(json_schema)
 
 writer = DataFileWriter(open("long_map.avro", "wb"), DatumWriter(), schema)
 
-writer.append({ 'long_map' : {'one': 42}})
-writer.append({ 'long_map' : {'two': 43}})
-writer.append({ 'long_map' : {'three': 44}})
+writer.append({'long_map': {'one': 42}})
+writer.append({'long_map': {'two': 43}})
+writer.append({'long_map': {'three': 44}})
 
 writer.close()
 
@@ -321,7 +314,6 @@ reader = DataFileReader(open("long_map.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
 
 
 json_schema = """
@@ -345,15 +337,13 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("nullable_string_array.avro", "wb"), DatumWriter(), schema)
 
 
-
-writer.append({ 'string_arr' : ['Hello' ,'World']})
-writer.append({ 'string_arr' : ['this']})
-writer.append({ 'string_arr' : []})
-writer.append({ 'string_arr' : None})
-writer.append({ 'string_arr' : None})
-writer.append({ 'string_arr' : ['is', 'cool','array']})
-writer.append({ 'string_arr' : ['data']})
-
+writer.append({'string_arr': ['Hello', 'World']})
+writer.append({'string_arr': ['this']})
+writer.append({'string_arr': []})
+writer.append({'string_arr': None})
+writer.append({'string_arr': None})
+writer.append({'string_arr': ['is', 'cool', 'array']})
+writer.append({'string_arr': ['data']})
 
 
 writer.close()
@@ -362,9 +352,6 @@ reader = DataFileReader(open("nullable_string_array.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
-
 
 
 json_schema = """
@@ -388,15 +375,13 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("nullable_entry_string_array.avro", "wb"), DatumWriter(), schema)
 
 
-
-writer.append({ 'string_arr' : ['Hello' ,None, 'World']})
-writer.append({ 'string_arr' : ['this']})
-writer.append({ 'string_arr' : [None]})
-writer.append({ 'string_arr' : [None, None, None]})
-writer.append({ 'string_arr' : []})
-writer.append({ 'string_arr' : [None, 'is', 'cool',None, 'array',None]})
-writer.append({ 'string_arr' : ['data',None]})
-
+writer.append({'string_arr': ['Hello', None, 'World']})
+writer.append({'string_arr': ['this']})
+writer.append({'string_arr': [None]})
+writer.append({'string_arr': [None, None, None]})
+writer.append({'string_arr': []})
+writer.append({'string_arr': [None, 'is', 'cool', None, 'array', None]})
+writer.append({'string_arr': ['data', None]})
 
 
 writer.close()
@@ -405,9 +390,6 @@ reader = DataFileReader(open("nullable_entry_string_array.avro", "rb"), DatumRea
 for user in reader:
     print(user)
 reader.close()
-
-
-
 
 
 json_schema = """
@@ -431,17 +413,15 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("all_nullable_list.avro", "wb"), DatumWriter(), schema)
 
 
-
-writer.append({ 'string_arr' : ['Hello' ,None, 'World']})
-writer.append({ 'string_arr' : ['this']})
-writer.append({ 'string_arr' : [None]})
-writer.append({ 'string_arr' : [None, None, None]})
-writer.append({ 'string_arr' : []})
-writer.append({ 'string_arr' : None})
-writer.append({ 'string_arr' : None})
-writer.append({ 'string_arr' : [None, 'is', 'cool',None, 'array',None]})
-writer.append({ 'string_arr' : ['data',None]})
-
+writer.append({'string_arr': ['Hello', None, 'World']})
+writer.append({'string_arr': ['this']})
+writer.append({'string_arr': [None]})
+writer.append({'string_arr': [None, None, None]})
+writer.append({'string_arr': []})
+writer.append({'string_arr': None})
+writer.append({'string_arr': None})
+writer.append({'string_arr': [None, 'is', 'cool', None, 'array', None]})
+writer.append({'string_arr': ['data', None]})
 
 
 writer.close()
@@ -450,8 +430,6 @@ reader = DataFileReader(open("all_nullable_list.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
 
 
 json_schema = """
@@ -479,15 +457,15 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("nested_nullable_lists.avro", "wb"), DatumWriter(), schema)
 
 
-writer.append({ 'nested_ints' : None})
-writer.append({ 'nested_ints' : [None]})
-writer.append({ 'nested_ints' : [[None], [None]]})
-writer.append({ 'nested_ints' : [None, None]})
-writer.append({ 'nested_ints' : [[42]]})
-writer.append({ 'nested_ints' : [[42], [43]]})
-writer.append({ 'nested_ints' : [[42, 43]]})
-writer.append({ 'nested_ints' : [[42, 43], None, [44, 45]]})
-writer.append({ 'nested_ints' : [[42, None, 43, None], None, [44, None, 45, None], None, [46]]})
+writer.append({'nested_ints': None})
+writer.append({'nested_ints': [None]})
+writer.append({'nested_ints': [[None], [None]]})
+writer.append({'nested_ints': [None, None]})
+writer.append({'nested_ints': [[42]]})
+writer.append({'nested_ints': [[42], [43]]})
+writer.append({'nested_ints': [[42, 43]]})
+writer.append({'nested_ints': [[42, 43], None, [44, 45]]})
+writer.append({'nested_ints': [[42, None, 43, None], None, [44, None, 45, None], None, [46]]})
 
 writer.close()
 
@@ -495,13 +473,6 @@ reader = DataFileReader(open("nested_nullable_lists.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
-
-
-
-
-
 
 
 json_schema = """
@@ -520,9 +491,9 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("recursive.avro", "wb"), DatumWriter(), schema)
 
 
-writer.append({ 'value': 42})
-writer.append({ 'value': 43, 'next' : {'value': 44}})
-writer.append({ 'value': 43, 'next' : {'value': 44, 'next' : {'value': 45}}})
+writer.append({'value': 42})
+writer.append({'value': 43, 'next': {'value': 44}})
+writer.append({'value': 43, 'next': {'value': 44, 'next': {'value': 45}}})
 
 writer.close()
 
@@ -530,11 +501,6 @@ reader = DataFileReader(open("recursive.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
-
-
-
 
 
 json_schema = """
@@ -565,10 +531,6 @@ for user in reader:
 reader.close()
 
 
-
-
-
-
 # record
 # detect recursive types or what happens here?
 
@@ -592,9 +554,8 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("union-name-1.avro", "wb"), DatumWriter(), schema)
 
 
-
-writer.append({ 'one' : 10, 'two' : 2.0, 'three': 's30'})
-writer.append({ 'one' : 11, 'two' : 2.1, 'three': 's31'})
+writer.append({'one': 10, 'two': 2.0, 'three': 's30'})
+writer.append({'one': 11, 'two': 2.1, 'three': 's31'})
 
 
 writer.close()
@@ -603,8 +564,6 @@ reader = DataFileReader(open("union-name-1.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
 
 
 json_schema = """
@@ -623,9 +582,8 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("union-name-2.avro", "wb"), DatumWriter(), schema)
 
 
-
-writer.append({ 'one' : 12, 'two' : 2.2, 'three': 's32'})
-writer.append({ 'one' : 13, 'two' : 2.3, 'three': 's33'})
+writer.append({'one': 12, 'two': 2.2, 'three': 's32'})
+writer.append({'one': 13, 'two': 2.3, 'three': 's33'})
 
 
 writer.close()
@@ -634,7 +592,6 @@ reader = DataFileReader(open("union-name-2.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
 
 
 json_schema = """
@@ -653,9 +610,8 @@ schema = avro.schema.parse(json_schema)
 writer = DataFileWriter(open("union-name-3.avro", "wb"), DatumWriter(), schema)
 
 
-
-writer.append({ 'one' : 14, 'two' : 2.4, 'three': 's34'})
-writer.append({ 'one' : 15, 'two' : 2.5, 'three': 's35'})
+writer.append({'one': 14, 'two': 2.4, 'three': 's34'})
+writer.append({'one': 15, 'two': 2.5, 'three': 's35'})
 
 
 writer.close()
@@ -664,8 +620,6 @@ reader = DataFileReader(open("union-name-3.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
 
 
 json_schema = """
@@ -704,14 +658,17 @@ json_schema = """
 """
 
 
-
 schema = avro.schema.parse(json_schema)
 
 writer = DataFileWriter(open("reuse-1.avro", "wb"), DatumWriter(), schema)
 
 
-writer.append({ 'request_id' : 'hello', 'client_version' : {'major': 4, 'minor' : 2}, 'server_version': {'major': 8, 'minor' : 5}})
-writer.append({ 'request_id' : 'world', 'client_version' : {'major': 5, 'minor' : 3}, 'server_version': {'major': 9, 'minor' : 6}})
+writer.append(
+    {'request_id': 'hello', 'client_version': {'major': 4, 'minor': 2}, 'server_version': {'major': 8, 'minor': 5}}
+)
+writer.append(
+    {'request_id': 'world', 'client_version': {'major': 5, 'minor': 3}, 'server_version': {'major': 9, 'minor': 6}}
+)
 
 
 writer.close()
@@ -720,8 +677,6 @@ reader = DataFileReader(open("reuse-1.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
 
 
 json_schema = """
@@ -756,14 +711,13 @@ json_schema = """
 """
 
 
-
 schema = avro.schema.parse(json_schema)
 
 writer = DataFileWriter(open("reuse-2.avro", "wb"), DatumWriter(), schema)
 
 
-writer.append({ 'version' : {'major': 4, 'minor' : 2}, 'details': {'release_version': {'major': 8, 'minor' : 5}}})
-writer.append({ 'version' : {'major': 5, 'minor' : 3}, 'details': {'release_version': {'major': 9, 'minor' : 6}}})
+writer.append({'version': {'major': 4, 'minor': 2}, 'details': {'release_version': {'major': 8, 'minor': 5}}})
+writer.append({'version': {'major': 5, 'minor': 3}, 'details': {'release_version': {'major': 9, 'minor': 6}}})
 
 
 writer.close()
@@ -772,8 +726,6 @@ reader = DataFileReader(open("reuse-2.avro", "rb"), DatumReader())
 for user in reader:
     print(user)
 reader.close()
-
-
 
 
 json_schema = """
@@ -800,7 +752,7 @@ schema = avro.schema.parse(json_schema)
 
 writer = DataFileWriter(open("bigdata.avro", "wb"), DatumWriter(), schema, codec="deflate")
 for r in range(1000000):
-    writer.append({f'c{i}': 10000000*i + r for i in range(10)})
+    writer.append({f'c{i}': 10000000 * i + r for i in range(10)})
 
 writer.close()
 
@@ -811,9 +763,3 @@ for user in reader:
     count = count + 1
 reader.close()
 print(count)
-
-
-
-
-
-

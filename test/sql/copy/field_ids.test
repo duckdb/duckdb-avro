@@ -1,3 +1,6 @@
+# name: test/sql/copy/field_ids.test
+# group: [copy]
+
 require avro
 
 statement ok
@@ -7,7 +10,7 @@ COPY (
 		'b': NULL,
 		'c': 'test'
 	} field1
-) TO '__TEST_DIR__/field_ids.avro' (
+) TO '{TEST_DIR}/field_ids.avro' (
 	FIELD_IDS {
 		'field1': {
 			'a': 100,
@@ -19,6 +22,55 @@ COPY (
 	ROOT_NAME 'test'
 );
 
+# Struct record names are inferred from their field IDs, following the naming
+# convention used by Apache Iceberg's Avro writer.
+statement ok
+COPY (
+	SELECT {
+		'partition': {
+			'partition_value': 42
+		}
+	} data_file
+) TO '{TEST_DIR}/field_id_record_names.avro' (
+	FIELD_IDS {
+		'data_file': {
+			'__duckdb_field_id': 2,
+			'partition': {
+				'__duckdb_field_id': 102,
+				'partition_value': 1000
+			}
+		}
+	},
+	ROOT_NAME 'manifest_entry'
+);
+
+query II
+SELECT
+	regexp_extract_all(value, '"type":"record","name":"([^"]+)"', 1)[2],
+	regexp_extract_all(value, '"type":"record","name":"([^"]+)"', 1)[3]
+FROM avro_metadata('{TEST_DIR}/field_id_record_names.avro')
+WHERE key = 'avro.schema';
+----
+r2	r102
+
+# A root record can collide with the Iceberg-style name of a nested record that
+# has a field ID. Reject the collision before producing an invalid Avro schema:
+# named types must be unique across the entire schema.
+statement error
+COPY (
+	SELECT {'value': 84} data_file
+) TO '{TEST_DIR}/field_id_record_name_collision.avro' (
+	FIELD_IDS {
+		'data_file': {
+			'__duckdb_field_id': 2,
+			'value': 3
+		}
+	},
+	ROOT_NAME 'r2'
+);
+----
+Binder Error: Avro schema by the name of 'r2' already exists, names of 'record', 'enum' and 'fixed' types have to be distinct
+
 statement ok
 COPY (
 	select [
@@ -29,7 +81,7 @@ COPY (
 			'upper_bound': 'blob blob blob'
 		}
 	] partitions
-) TO '__TEST_DIR__/partitions.avro' (
+) TO '{TEST_DIR}/partitions.avro' (
 	FIELD_IDS {
 		'partitions': {
 			'list': {

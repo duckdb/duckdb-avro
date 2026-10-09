@@ -13,15 +13,15 @@ create table uuid as from values (UUID()::UUID), (NULL) t(uuid_col);
 statement ok
 COPY (
     from uuid
-) TO '__TEST_DIR__/uuid_type.avro';
+) TO '{TEST_DIR}/uuid_type.avro';
 
 query I
-SELECT typeof(uuid_col) FROM read_avro('__TEST_DIR__/uuid_type.avro') LIMIT 1;
+SELECT typeof(uuid_col) FROM read_avro('{TEST_DIR}/uuid_type.avro') LIMIT 1;
 ----
 UUID
 
 query I nosort result_file
-SELECT uuid_col FROM read_avro('__TEST_DIR__/uuid_type.avro') ORDER BY uuid_col NULLS LAST;
+SELECT uuid_col FROM read_avro('{TEST_DIR}/uuid_type.avro') ORDER BY uuid_col NULLS LAST;
 ----
 
 query I nosort result_file

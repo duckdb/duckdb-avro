@@ -1,0 +1,67 @@
+# name: test/sql/parallel_scan.test
+# description: scan blocks from a single Avro object container in parallel
+# group: [sql]
+
+require avro
+
+statement ok
+SET threads=4
+
+# COPY flushes an Avro block for every input chunk, producing many independently decodable blocks.
+statement ok
+COPY (
+	SELECT i::BIGINT AS id,
+	       ('row_' || (i % 100)::VARCHAR) AS payload,
+	       [i::BIGINT, (i + 1)::BIGINT] AS items
+	FROM range(20000) t(i)
+) TO '{TEST_DIR}/parallel.avro' (FORMAT AVRO)
+
+query IIIII
+SELECT count(*), sum(id), min(id), max(id), sum(items[2])
+FROM read_avro('{TEST_DIR}/parallel.avro')
+----
+20000	199990000	0	19999	200010000
+
+statement ok
+COPY (
+	SELECT i::BIGINT AS id, ('compressed_' || i::VARCHAR) AS payload
+	FROM range(20000) t(i)
+) TO '{TEST_DIR}/parallel_deflate.avro' (FORMAT AVRO, CODEC 'deflate')
+
+query III
+SELECT count(*), sum(id), count(DISTINCT payload)
+FROM read_avro('{TEST_DIR}/parallel_deflate.avro')
+----
+20000	199990000	20000
+
+# Empty and single-block containers retain their normal behavior.
+statement ok
+COPY (SELECT 1::BIGINT AS id WHERE false) TO '{TEST_DIR}/parallel_empty.avro' (FORMAT AVRO)
+
+query I
+SELECT count(*) FROM read_avro('{TEST_DIR}/parallel_empty.avro')
+----
+0
+
+statement ok
+COPY (SELECT 42::BIGINT AS id) TO '{TEST_DIR}/parallel_single.avro' (FORMAT AVRO)
+
+query I
+SELECT id FROM read_avro('{TEST_DIR}/parallel_single.avro')
+----
+42
+
+# Multiple files still combine file-level and block-level scheduling.
+statement ok
+COPY (SELECT i::BIGINT AS id FROM range(5000) t(i))
+TO '{TEST_DIR}/parallel_1.avro' (FORMAT AVRO)
+
+statement ok
+COPY (SELECT i::BIGINT AS id FROM range(5000, 10000) t(i))
+TO '{TEST_DIR}/parallel_2.avro' (FORMAT AVRO)
+
+query II
+SELECT count(*), sum(id)
+FROM read_avro(['{TEST_DIR}/parallel_1.avro', '{TEST_DIR}/parallel_2.avro'])
+----
+10000	49995000

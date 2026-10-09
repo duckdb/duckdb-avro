@@ -19,11 +19,11 @@ struct AvroMultiFileInfo : MultiFileReaderInterface {
 
 	unique_ptr<BaseFileReaderOptions> InitializeOptions(ClientContext &context,
 	                                                    optional_ptr<TableFunctionInfo> info) override;
-	bool ParseCopyOption(ClientContext &context, const string &key, const vector<Value> &values,
-	                     BaseFileReaderOptions &options, vector<string> &expected_names,
+	bool ParseCopyOption(ClientContext &context, const Identifier &key, const vector<Value> &values,
+	                     BaseFileReaderOptions &options, vector<Identifier> &expected_names,
 	                     vector<LogicalType> &expected_types) override;
 
-	bool ParseOption(ClientContext &context, const string &key, const Value &val, MultiFileOptions &file_options,
+	bool ParseOption(ClientContext &context, const Identifier &key, const Value &val, MultiFileOptions &file_options,
 	                 BaseFileReaderOptions &options) override;
 
 	unique_ptr<TableFunctionData> InitializeBindData(MultiFileBindData &multi_file_data,
@@ -32,8 +32,9 @@ struct AvroMultiFileInfo : MultiFileReaderInterface {
 	//! This is where the actual binding must happen, so in this function we either:
 	//! 1. union_by_name = False. We set the schema/name depending on the first file
 	//! 2. union_by_name = True.
-	void BindReader(ClientContext &context, vector<LogicalType> &return_types, vector<string> &names,
+	void BindReader(ClientContext &context, vector<LogicalType> &return_types, vector<Identifier> &names,
 	                MultiFileBindData &bind_data) override;
+	void FinalizeBindData(MultiFileBindData &multi_file_data) override;
 
 	optional_idx MaxThreads(const MultiFileBindData &bind_data_p, const MultiFileGlobalState &global_state,
 	                        FileExpandResult expand_result) override;
@@ -41,7 +42,7 @@ struct AvroMultiFileInfo : MultiFileReaderInterface {
 	unique_ptr<GlobalTableFunctionState> InitializeGlobalState(ClientContext &context, MultiFileBindData &bind_data,
 	                                                           MultiFileGlobalState &global_state) override;
 
-	unique_ptr<LocalTableFunctionState> InitializeLocalState(ExecutionContext &context,
+	unique_ptr<LocalTableFunctionState> InitializeLocalState(ClientContext &context,
 	                                                         GlobalTableFunctionState &function_state) override;
 
 	shared_ptr<BaseFileReader> CreateReader(ClientContext &context, GlobalTableFunctionState &gstate,

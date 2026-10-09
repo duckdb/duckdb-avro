@@ -1,6 +1,6 @@
-# name: test/sql/avro.test
+# name: test/sql/bigdata.test
 # description: test avro extension
-# group: [avro]
+# group: [sql]
 
 require avro
 

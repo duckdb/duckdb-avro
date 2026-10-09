@@ -7,13 +7,15 @@
 
 namespace duckdb {
 
+class AvroColumnWriter;
+
 struct AvroCopyFunction {
 	static CopyFunction Create();
 };
 
 struct WriteAvroBindData : public FunctionData {
 public:
-	WriteAvroBindData(CopyFunctionBindInput &input, const vector<string> &names, const vector<LogicalType> &types);
+	WriteAvroBindData(CopyFunctionBindInput &input, const vector<Identifier> &names, const vector<LogicalType> &types);
 	WriteAvroBindData() {
 	}
 	virtual ~WriteAvroBindData();
@@ -26,6 +28,8 @@ public:
 
 		res->schema = avro_schema_incref(schema);
 		res->json_schema = json_schema;
+		res->json_metadata = json_metadata;
+		res->codec = codec;
 
 		res->interface = avro_value_iface_incref(interface);
 		return std::move(res);
@@ -46,6 +50,9 @@ public:
 		if (json_schema != other.json_schema) {
 			return false;
 		}
+		if (codec != other.codec) {
+			return false;
+		}
 		return true;
 	}
 
@@ -58,6 +65,10 @@ public:
 	string json_schema;
 
 	string json_metadata;
+	//! Avro object-container compression codec ("null", "deflate", "snappy", "zstandard", ...).
+	//! Empty means unset -> the writer defaults to "null" (uncompressed). Passed through to
+	//! avro-c's codec so the COPY writer compresses natively (no post-processing).
+	string codec;
 	//! The interface through which new avro values are created
 	avro_value_iface_t *interface = nullptr;
 };
@@ -134,11 +145,19 @@ public:
 	void WriteData(const_data_ptr_t data, idx_t size) {
 		lock_guard<mutex> flock(lock);
 		handle->Write((void *)data, size);
+		bytes_written += size;
 	}
 
 	idx_t FileSize() {
 		lock_guard<mutex> flock(lock);
 		return handle->GetFileSize();
+	}
+
+	//! Total bytes written to the output file. Tracked incrementally in WriteData so it remains valid
+	//! after the handle is closed (used to report WRITTEN_FILE_STATISTICS without re-stat-ing the
+	//! file, which would be a network round trip on object stores).
+	idx_t BytesWritten() const {
+		return bytes_written;
 	}
 
 public:
@@ -155,6 +174,18 @@ public:
 	avro_writer_t writer;
 	avro_writer_t datum_writer;
 	avro_file_writer_t file_writer;
+
+	//! Running total of bytes written to the file (see BytesWritten()).
+	idx_t bytes_written = 0;
+	//! Number of rows written (reported as RETURN_STATS `count`).
+	idx_t row_count = 0;
+	//! RETURN_STATS sink. DuckDB calls copy_to_get_written_statistics once, right after
+	//! copy_to_initialize_global and BEFORE any data is written (see PhysicalCopyToFile
+	//! CreateFileStateLocked). We therefore keep the destination here and fill it in
+	//! copy_to_finalize, once the file is fully written and closed -- mirroring how the
+	//! Parquet writer stores the stats reference and populates it on finalize. Writing the
+	//! values during get_written_statistics would report only the header bytes.
+	optional_ptr<CopyFunctionFileStatistics> written_stats;
 };
 
 struct WriteAvroLocalState : public LocalFunctionData {
@@ -165,6 +196,7 @@ public:
 public:
 	//! Avro value representing a row of the schema
 	avro_value_t value;
+	vector<unique_ptr<AvroColumnWriter>> column_writers;
 };
 
 } // namespace duckdb
