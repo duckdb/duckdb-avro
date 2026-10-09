@@ -1,84 +1,87 @@
-#include "avro_multi_file_info.hpp"
-#include "avro_reader.hpp"
-#include "duckdb/common/multi_file/multi_file_reader.hpp"
-#include "duckdb/function/table_function.hpp"
-#include "duckdb/common/file_system.hpp"
 #include "avro_metadata.hpp"
-#include <avro.h>
+
+#include <algorithm>
 
 namespace duckdb {
 
-static unique_ptr<FunctionData> AvroMetadataBind(ClientContext &context, TableFunctionBindInput &input,
-                                                 vector<LogicalType> &return_types, vector<Identifier> &names) {
-	auto result = make_uniq<AvroMetadataBindData>();
-	result->file_path = input.inputs[0].ToString();
+namespace avro {
 
-	names.emplace_back("key");
-	return_types.emplace_back(LogicalType::VARCHAR);
-	names.emplace_back("value");
-	return_types.emplace_back(LogicalType::VARCHAR);
+namespace {
 
-	return std::move(result);
-}
+struct AvroMetadataBindData {
+	std::string file_path;
+};
 
-static unique_ptr<GlobalTableFunctionState> AvroMetadataInit(ClientContext &context, TableFunctionInitInput &input) {
-	auto &bind_data = input.bind_data->Cast<AvroMetadataBindData>();
-	auto result = make_uniq<AvroMetadataGlobalState>();
-
-	auto &fs = FileSystem::GetFileSystem(context);
-
-	OpenFileInfo file;
-	file.path = bind_data.file_path;
-
-	FileOpenFlags flags = FileFlags::FILE_FLAGS_READ;
-	flags.SetCachingMode(CachingMode::ALWAYS_CACHE);
-	auto file_handle = fs.OpenFile(file, flags);
-	auto total_size = file_handle->GetFileSize();
-
-	auto &local_buffer = result->local_buffer;
-	local_buffer = Allocator::DefaultAllocator().Allocate(total_size);
-	fs.Read(*file_handle, local_buffer.get(), total_size);
-
-	auto avro_reader = avro_reader_memory(const_char_ptr_cast(local_buffer.get()), total_size);
-
-	if (avro_reader_reader(avro_reader, &result->reader)) {
-		throw InvalidInputException("Failed to read Avro file: %s", avro_strerror());
+struct AvroMetadataGlobalState {
+	AvroMetadataGlobalState(const cxx::Context &context, const std::string &file_path)
+	    : buffer(AvroFileBuffer::Read(context, file_path)) {
+		auto avro_reader = avro_reader_memory(buffer.data.get(), static_cast<int64_t>(buffer.size));
+		if (avro_reader_reader(avro_reader, &reader)) {
+			throw InvalidInputError(std::string("Failed to read Avro file: ") + avro_strerror());
+		}
+		if (avro_file_reader_get_metadata_count(reader, &metadata_count)) {
+			avro_file_reader_close(reader);
+			throw InvalidInputError("Failed to get metadata count");
+		}
+	}
+	~AvroMetadataGlobalState() {
+		avro_file_reader_close(reader);
 	}
 
-	if (avro_file_reader_get_metadata_count(result->reader, &result->metadata_count)) {
-		throw InvalidInputException("Failed to get metadata count");
-	}
+	AvroFileBuffer buffer;
+	avro_file_reader_t reader = nullptr;
+	idx_t offset = 0;
+	size_t metadata_count = 0;
+};
 
-	return std::move(result);
+void AvroMetadataBind(cxx::TableFunction::BindInput &input) {
+	auto context = input.GetContext();
+	auto varchar = context.CreateType(LogicalTypeId::VARCHAR);
+	input.AddResultColumn("key", varchar);
+	input.AddResultColumn("value", varchar);
+	input.SetBindData<AvroMetadataBindData>(
+	    AvroMetadataBindData {std::string(input.GetConstantArgument(0).Get<cxx::varchar_t>().view())});
 }
 
-static void AvroMetadataFunction(ClientContext &context, TableFunctionInput &data_p, DataChunk &output) {
-	auto &gstate = data_p.global_state->Cast<AvroMetadataGlobalState>();
+void AvroMetadataInit(cxx::TableFunction::InitGlobalInput &input) {
+	auto &bind_data = input.GetBindData<AvroMetadataBindData>();
+	input.SetGlobalState<AvroMetadataGlobalState>(input.GetContext(), bind_data.file_path);
+}
 
-	idx_t count = 0;
-	while (gstate.offset < gstate.metadata_count && count < STANDARD_VECTOR_SIZE) {
+void AvroMetadataExec(cxx::TableFunction::ExecInput &input) {
+	auto &gstate = input.GetGlobalState<AvroMetadataGlobalState>();
+	auto output = input.GetOutputChunk();
+	auto key_vector = output.GetVector(0);
+	auto value_vector = output.GetVector(1);
+
+	auto count = std::min<idx_t>(gstate.metadata_count - gstate.offset, output.GetCapacity());
+	key_vector.SetSize(count);
+	value_vector.SetSize(count);
+	for (idx_t row = 0; row < count; row++) {
 		const char *key = nullptr;
 		const char *value = nullptr;
 		size_t value_size = 0;
-
 		if (avro_file_reader_get_metadata_by_index(gstate.reader, gstate.offset, &key, &value, &value_size)) {
-			throw InvalidInputException("Failed to get metadata at index %llu", gstate.offset);
+			throw InvalidInputError("Failed to get metadata at index " + std::to_string(gstate.offset));
 		}
-
-		output.data[0].SetValue(count, Value(key ? string(key) : string()));
-		output.data[1].SetValue(count, Value(value ? string(value, value_size) : string()));
-
+		key_vector.AssignString(row, key ? std::string_view(key) : std::string_view());
+		value_vector.AssignString(row, value ? std::string_view(value, value_size) : std::string_view());
 		gstate.offset++;
-		count++;
 	}
-
-	output.SetChildCardinality(count);
 }
 
-TableFunction AvroMetadata::GetFunction() {
-	TableFunction func("avro_metadata", FunctionSignature().AddPositionalOnly("path", LogicalType::VARCHAR),
-	                   AvroMetadataFunction, AvroMetadataBind, AvroMetadataInit);
-	return func;
+} // namespace
+
+void AvroMetadata::Register(cxx::Extension &extension, cxx::Context &context) {
+	auto function = cxx::TableFunction::Create(extension);
+	function.SetName("avro_metadata");
+	function.GetSignature().AddParameter("path", context.CreateType(LogicalTypeId::VARCHAR));
+	function.SetBindCallback(AvroMetadataBind)
+	    .SetInitGlobalCallback(AvroMetadataInit)
+	    .SetExecCallback(AvroMetadataExec);
+	function.Register();
 }
+
+} // namespace avro
 
 } // namespace duckdb

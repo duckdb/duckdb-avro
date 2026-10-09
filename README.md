@@ -78,15 +78,13 @@ The extension also "flattens" the Avro schema. Avro defines tables as root-level
 ### Implementation
 Internally, this extension uses the "official" [Apache Avro C API](https://avro.apache.org/docs/++version++/api/c/), albeit with some minor patching to allow reading of Avro files from memory.
 
-### Limitations & Next Steps
-- This extension currently does not make use of **parallelism** when reading either a single (large) Avro file or when reading a list of files. Adding support for parallelism in the latter case is on the roadmap. 
+The extension is written against DuckDB's stable C++ API (`duckdb_cpp.hpp`) rather than DuckDB's internal C++ API. `read_avro` is a multi-file function built on top of `read_single_avro_file`, which reads a single file; the multi-file layer provides globbing, lists of files, `filename`, `union_by_name`, hive partitioning and the like. A single file is scanned in parallel, one Avro block per thread at a time.
 
-- There is currently no support for neither projection nor filter **pushdown**, but this is also planned at a later stage.
+### Limitations & Next Steps
+- There is currently no support for filter **pushdown**; projection pushdown is supported.
 
 - There is currently no support for the WASM or the Windows-MinGW builds of DuckDB due to issues with the Avro library dependency (sigh again). We plan to fix this eventually.
 
 - As mentioned above, DuckDB cannot express recursive type definitions that Avro has, this is unlikely to ever change.
 
 - There is no support to allow users to provide a separate Avro schema file. This is unlikely to change, all Avro files we have seen so far had their schema embedded.
-
-- There is currently no support for the `union_by_name` flag that other readers in DuckDB support. This is planned for the future.

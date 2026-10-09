@@ -12,12 +12,15 @@ as follows:
   - the reusable workflow `duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml` for the `duckdb-stable-build` job should be set to latest tagged release
 
 # API changes
-DuckDB extensions built with this extension template are built against the internal C++ API of DuckDB. This API is not guaranteed to be stable.
-What this means for extension development is that when updating your extensions DuckDB target version using the above steps, you may run into the fact that your extension no longer builds properly.
+This extension is written against DuckDB's stable C++ API (`duckdb_cpp.hpp`, in `duckdb/tools/cpp`), which is built
+on top of the V2 C API, rather than against the internal C++ API of DuckDB. It does not include any of DuckDB's
+internal headers.
 
-Currently, DuckDB does not (yet) provide a specific change log for these API changes, but it is generally not too hard to figure out what has changed.
+Some of the parts of the stable C++ API it relies on are still marked as *unstable*: the multi-file function behind
+`read_avro`, the per-block batch claiming of its scan, the field ids and metadata it reports for a file, and the
+statistics of `COPY ... TO`. Because of this, the extension is built with the `C_STRUCT_UNSTABLE` ABI, which pins a
+build to the exact DuckDB version it was built against - just like an extension built against the internal C++ API.
+Once those parts of the API are stabilized, the extension can be built against a stable API version instead.
 
-For figuring out how and why the C++ API changed, we recommend using the following resources:
-- DuckDB's [Release Notes](https://github.com/duckdb/duckdb/releases)
-- DuckDB's history of [Core extension patches](https://github.com/duckdb/duckdb/commits/main/.github/patches/extensions)
-- The git history of the relevant C++ Header file of the API that has changed
+When updating the DuckDB target version, check the git history of `tools/cpp/duckdb_cpp.hpp` for changes to the
+parts of the API that are still unstable.

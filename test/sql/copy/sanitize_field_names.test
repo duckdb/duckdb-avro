@@ -76,10 +76,14 @@ COPY (SELECT 1 AS valid) TO '{TEST_DIR}/sanitize.avro' (SANITIZE_FIELD_NAMES tru
 ----
 is not a valid Avro identifier
 
-statement error
-COPY (SELECT 1 AS valid) TO '{TEST_DIR}/sanitize.avro' (SANITIZE_FIELD_NAMES);
+# Given without a value, the option reads as true - like other boolean COPY options.
+statement ok
+COPY (SELECT 1 AS "a b") TO '{TEST_DIR}/sanitize_bare.avro' (SANITIZE_FIELD_NAMES);
+
+query I
+SELECT a_x20b FROM read_avro('{TEST_DIR}/sanitize_bare.avro');
 ----
-SANITIZE_FIELD_NAMES requires a non-NULL BOOLEAN value
+1
 
 statement error
 COPY (SELECT 1 AS valid) TO '{TEST_DIR}/sanitize.avro' (SANITIZE_FIELD_NAMES NULL);
