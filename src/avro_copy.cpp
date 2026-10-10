@@ -63,7 +63,8 @@ static string ConvertTypeToAvro(const LogicalType &type) {
 		// timestamp-micros
 		return "long";
 	}
-	case LogicalTypeId::TIMESTAMP_TZ: {
+	case LogicalTypeId::TIMESTAMP_TZ:
+	case LogicalTypeId::TIMESTAMP_TZ_NS: {
 		// timestamp tz will capture
 		// local-timestamp-micros
 		return "long";
@@ -99,7 +100,8 @@ static string GetTemporalLogicalType(const LogicalType &type) {
 	case LogicalTypeId::TIMESTAMP_TZ: {
 		return "timestamp-micros";
 	}
-	case LogicalTypeId::TIMESTAMP_NS: {
+	case LogicalTypeId::TIMESTAMP_NS:
+	case LogicalTypeId::TIMESTAMP_TZ_NS: {
 		return "timestamp-nanos";
 	}
 	default:
@@ -330,7 +332,7 @@ public:
 		} else if (type.IsTemporal()) {
 			type_val = WrapTypeInObject(doc, type_val);
 			yyjson_mut_obj_add_strcpy(doc, type_val, "logicalType", GetTemporalLogicalType(type).c_str());
-			if (type == LogicalTypeId::TIMESTAMP_TZ) {
+			if (type == LogicalTypeId::TIMESTAMP_TZ || type == LogicalTypeId::TIMESTAMP_TZ_NS) {
 				yyjson_mut_obj_add_bool(doc, type_val, "adjust-to-utc", true);
 			}
 		} else if (type_id == LogicalTypeId::DECIMAL) {
@@ -772,6 +774,11 @@ static idx_t WriteTimestampTZValue(avro_value_t *target, const timestamp_tz_t &v
 	return sizeof(int64_t);
 }
 
+static idx_t WriteTimestampTZNSValue(avro_value_t *target, const timestamp_tz_ns_t &value, const LogicalType &) {
+	avro_value_set_long(target, value.value);
+	return sizeof(int64_t);
+}
+
 static idx_t WriteUUIDValue(avro_value_t *target, const hugeint_t &value, const LogicalType &) {
 	uint8_t bytes[16];
 	BaseUUID::ToBlob(value, data_ptr_cast(bytes));
@@ -938,6 +945,8 @@ static unique_ptr<AvroColumnWriter> CreateAvroColumnWriter(const LogicalType &ty
 		return make_uniq<PrimitiveAvroColumnWriter<timestamp_t>>(type, WriteTimestampValue);
 	case LogicalTypeId::TIMESTAMP_TZ:
 		return make_uniq<PrimitiveAvroColumnWriter<timestamp_tz_t>>(type, WriteTimestampTZValue);
+	case LogicalTypeId::TIMESTAMP_TZ_NS:
+		return make_uniq<PrimitiveAvroColumnWriter<timestamp_tz_ns_t>>(type, WriteTimestampTZNSValue);
 	case LogicalTypeId::UUID:
 		return make_uniq<PrimitiveAvroColumnWriter<hugeint_t>>(type, WriteUUIDValue);
 	case LogicalTypeId::DECIMAL:

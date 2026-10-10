@@ -57,7 +57,7 @@ static LogicalType AvroLogicalTypeToLogicalType(avro_schema_t &avro_schema) {
 	if (logical_type == "timestamp-nanos") {
 		auto adjust_to_utc = avro_schema_adjust_to_utc(avro_schema);
 		if (adjust_to_utc > 0) {
-			throw NotImplementedException("Avro timestamp-nanos with adjust_to_utc not supported");
+			return LogicalType::TIMESTAMP_TZ_NS;
 		}
 		return LogicalType::TIMESTAMP_NS;
 	}
@@ -319,6 +319,7 @@ static void TransformValue(avro_value *avro_val, const AvroType &avro_type, Vect
 	case LogicalTypeId::TIMESTAMP:
 	case LogicalTypeId::TIMESTAMP_TZ:
 	case LogicalTypeId::TIMESTAMP_NS:
+	case LogicalTypeId::TIMESTAMP_TZ_NS:
 	case LogicalTypeId::BIGINT: {
 		int64_t raw_val;
 		if (avro_value_get_long(avro_val, &raw_val)) {
