@@ -1,0 +1,160 @@
+# name: test/sql/copy/test_timestamp_tz_ns.test
+# description: Copy nanosecond timestamps with time zones to Avro
+# group: [copy]
+
+require avro
+
+require icu
+
+statement ok
+SET TimeZone = 'UTC';
+
+# Preserve sub-microsecond values on both sides of the epoch and explicit offsets.
+statement ok
+COPY (
+    FROM VALUES
+        (1, '1969-12-31 23:59:59.999999999+00'::TIMESTAMPTZ_NS),
+        (2, '1970-01-01 00:00:00+00'::TIMESTAMPTZ_NS),
+        (3, '1970-01-01 00:00:00.000000001+00'::TIMESTAMPTZ_NS),
+        (4, '2024-01-15 12:34:56.123456789+02'::TIMESTAMPTZ_NS),
+        (5, '2024-06-15 12:34:56.987654321-05'::TIMESTAMPTZ_NS),
+        (6, NULL::TIMESTAMPTZ_NS)
+    t(id, ts)
+) TO '{TEST_DIR}/timestamp_tz_ns.avro' (FORMAT AVRO);
+
+query T
+SELECT column_type FROM (DESCRIBE FROM read_avro('{TEST_DIR}/timestamp_tz_ns.avro'))
+WHERE column_name = 'ts';
+----
+TIMESTAMPTZ_NS
+
+# Check epoch integers directly, independently of timestamp formatting.
+query I
+SELECT epoch_ns(ts) FROM read_avro('{TEST_DIR}/timestamp_tz_ns.avro') ORDER BY id;
+----
+-1
+0
+1
+1705314896123456789
+1718472896987654321
+NULL
+
+query T
+SELECT ts FROM read_avro('{TEST_DIR}/timestamp_tz_ns.avro') WHERE id IN (4, 5) ORDER BY id;
+----
+2024-01-15 10:34:56.123456789+00
+2024-06-15 17:34:56.987654321+00
+
+# The schema must distinguish this from a timestamp without a time zone.
+query TT
+SELECT regexp_extract(value, '"logicalType":"([^"]+)"', 1),
+       contains(value, '"adjust-to-utc":true')
+FROM avro_metadata('{TEST_DIR}/timestamp_tz_ns.avro')
+WHERE key = 'avro.schema';
+----
+timestamp-nanos	true
+
+# Reading in another time zone preserves all nine fractional digits, including DST.
+statement ok
+SET TimeZone = 'Europe/Amsterdam';
+
+query T
+SELECT ts FROM read_avro('{TEST_DIR}/timestamp_tz_ns.avro') WHERE id IN (4, 5) ORDER BY id;
+----
+2024-01-15 11:34:56.123456789+01
+2024-06-15 19:34:56.987654321+02
+
+# Copying in a non-UTC session must not apply the offset a second time.
+statement ok
+COPY (
+    SELECT * FROM read_avro('{TEST_DIR}/timestamp_tz_ns.avro')
+) TO '{TEST_DIR}/timestamp_tz_ns_amsterdam.avro' (FORMAT AVRO);
+
+statement ok
+SET TimeZone = 'UTC';
+
+query I
+SELECT count(*) FROM (
+    (SELECT * FROM read_avro('{TEST_DIR}/timestamp_tz_ns.avro')
+     EXCEPT ALL
+     SELECT * FROM read_avro('{TEST_DIR}/timestamp_tz_ns_amsterdam.avro'))
+    UNION ALL
+    (SELECT * FROM read_avro('{TEST_DIR}/timestamp_tz_ns_amsterdam.avro')
+     EXCEPT ALL
+     SELECT * FROM read_avro('{TEST_DIR}/timestamp_tz_ns.avro'))
+);
+----
+0
+
+# Exercise the primitive schema without a nullable union wrapper.
+statement ok
+COPY (
+    SELECT '1970-01-01 00:00:00.000000001+00'::TIMESTAMPTZ_NS AS ts
+) TO '{TEST_DIR}/timestamp_tz_ns_required.avro' (
+    FORMAT AVRO,
+    FIELD_IDS {'ts': {'__duckdb_field_id': 1, '__duckdb_nullable': false}}
+);
+
+query TT
+SELECT typeof(ts), ts FROM read_avro('{TEST_DIR}/timestamp_tz_ns_required.avro');
+----
+TIMESTAMPTZ_NS	1970-01-01 00:00:00.000000001+00
+
+# The type must also survive when there are no non-NULL values.
+statement ok
+COPY (
+    SELECT NULL::TIMESTAMPTZ_NS AS ts
+) TO '{TEST_DIR}/timestamp_tz_ns_null.avro' (FORMAT AVRO);
+
+query TT
+SELECT typeof(ts), ts FROM read_avro('{TEST_DIR}/timestamp_tz_ns_null.avro');
+----
+TIMESTAMPTZ_NS	NULL
+
+statement ok
+COPY (
+    SELECT NULL::TIMESTAMPTZ_NS AS ts WHERE false
+) TO '{TEST_DIR}/timestamp_tz_ns_empty.avro' (FORMAT AVRO);
+
+query T
+SELECT column_type FROM (DESCRIBE FROM read_avro('{TEST_DIR}/timestamp_tz_ns_empty.avro'));
+----
+TIMESTAMPTZ_NS
+
+query I
+SELECT count(*) FROM read_avro('{TEST_DIR}/timestamp_tz_ns_empty.avro');
+----
+0
+
+# Nested writers/readers must preserve the type and NULL children and parents.
+statement ok
+COPY (
+    FROM VALUES
+        (1, {'ts': '2024-01-15 12:34:56.123456789+00'::TIMESTAMPTZ_NS},
+            ['1969-12-31 23:59:59.999999999+00'::TIMESTAMPTZ_NS, NULL]),
+        (2, {'ts': NULL::TIMESTAMPTZ_NS}, []::TIMESTAMPTZ_NS[]),
+        (3, NULL::STRUCT(ts TIMESTAMPTZ_NS), NULL::TIMESTAMPTZ_NS[])
+    t(id, record_col, list_col)
+) TO '{TEST_DIR}/timestamp_tz_ns_nested.avro' (FORMAT AVRO);
+
+query TT
+SELECT typeof(record_col.ts), typeof(list_col)
+FROM read_avro('{TEST_DIR}/timestamp_tz_ns_nested.avro') LIMIT 1;
+----
+TIMESTAMPTZ_NS	TIMESTAMPTZ_NS[]
+
+query TII
+SELECT record_col.ts, epoch_ns(list_col[1]), epoch_ns(list_col[2])
+FROM read_avro('{TEST_DIR}/timestamp_tz_ns_nested.avro') ORDER BY id;
+----
+2024-01-15 12:34:56.123456789+00	-1	NULL
+NULL	NULL	NULL
+NULL	NULL	NULL
+
+query III
+SELECT record_col IS NULL, list_col IS NULL, len(list_col)
+FROM read_avro('{TEST_DIR}/timestamp_tz_ns_nested.avro') ORDER BY id;
+----
+false	false	2
+false	false	0
+true	true	NULL
