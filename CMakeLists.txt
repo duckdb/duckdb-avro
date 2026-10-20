@@ -45,18 +45,50 @@ project(${TARGET_NAME})
 include_directories(src/include)
 
 set(EXTENSION_SOURCES
-    src/avro_extension.cpp src/avro_reader.cpp src/avro_copy.cpp
-    src/field_ids.cpp src/avro_multi_file_info.cpp src/avro_metadata.cpp)
+    src/avro_extension.cpp
+    src/avro_common.cpp
+    src/avro_type.cpp
+    src/avro_reader.cpp
+    src/avro_copy.cpp
+    src/field_ids.cpp
+    src/avro_metadata.cpp)
 
-build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
-build_loadable_extension(${TARGET_NAME} " " ${EXTENSION_SOURCES})
+# DuckDB only adds tools/ (which defines the duckdb_cpp_api targets) when it
+# builds its main library or uses a prebuilt one. Extension-only builds, such as
+# the Wasm ones, skip it, so add the C++ API ourselves there.
+if(NOT BUILD_MAIN_DUCKDB_LIBRARY
+   AND NOT PREBUILT_BINARY
+   AND NOT TARGET duckdb_cpp_api)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/tools/cpp ${CMAKE_BINARY_DIR}/tools/cpp)
+endif()
+
+# The extension is written against DuckDB's stable C++ API (duckdb_cpp.hpp). It
+# uses parts of that API that are still unstable, which pins the build to the
+# exact DuckDB version it is built against.
+build_static_extension_capi_unstable(${TARGET_NAME} ${EXTENSION_SOURCES})
+build_loadable_extension_capi_unstable(${TARGET_NAME} ${EXTENSION_SOURCES})
 
 target_include_directories(${EXTENSION_NAME} PRIVATE ${AVRO_INCLUDE_DIR})
 target_include_directories(${LOADABLE_EXTENSION_NAME} PRIVATE ${AVRO_INCLUDE_DIR})
 
+# The loadable extension reaches DuckDB through the extension function table
+target_compile_definitions(${LOADABLE_EXTENSION_NAME}
+                           PRIVATE DUCKDB_CPP_API_LOADABLE)
+
 # Link against avro-static - use plain signature to match DuckDB's build system
-target_link_libraries(${EXTENSION_NAME} avro-static)
-target_link_libraries(${LOADABLE_EXTENSION_NAME} avro-static)
+target_link_libraries(${EXTENSION_NAME} duckdb_cpp_api avro-static)
+target_link_libraries(${LOADABLE_EXTENSION_NAME} duckdb_cpp_api_loadable
+                      avro-static)
+
+option(AVRO_BUILD_WRITER_TESTS "Build the Avro writer fault-injection tests" OFF)
+if(AVRO_BUILD_WRITER_TESTS)
+  add_executable(avro_writer_tests test/cpp/test_writer_cleanup.cpp)
+  target_include_directories(avro_writer_tests PRIVATE ${AVRO_INCLUDE_DIR})
+  target_link_libraries(avro_writer_tests duckdb_static)
+  duckdb_link_extensions(avro_writer_tests core_functions avro)
+  enable_testing()
+  add_test(NAME avro_writer_cleanup COMMAND avro_writer_tests)
+endif()
 
 # Mark avro-static as part of the export set
 install(

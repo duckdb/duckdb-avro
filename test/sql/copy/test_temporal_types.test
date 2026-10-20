@@ -130,26 +130,28 @@ COPY (
         '12:34:56'::TIME          AS time_col,
         '2024-01-15 12:34:56'::TIMESTAMP    AS ts_col,
         '2024-01-15 12:34:56+00'::TIMESTAMPTZ AS tstz_col,
-		'2023-01-15 12:12:12.123456789'::TIMESTAMP_NS as ts_ns_col
+		'2023-01-15 12:12:12.123456789'::TIMESTAMP_NS as ts_ns_col,
+		'2023-01-15 12:12:12.123456789+00'::TIMESTAMPTZ_NS as tstz_ns_col
     UNION ALL
     SELECT
         NULL::DATE,
         NULL::TIME,
         NULL::TIMESTAMP,
         NULL::TIMESTAMPTZ,
-		NULL::TIMESTAMP_NS
+		NULL::TIMESTAMP_NS,
+		NULL::TIMESTAMPTZ_NS
 ) TO '{TEST_DIR}/all_temporal_types.avro';
 
-query IIIII
-SELECT typeof(date_col), typeof(time_col), typeof(ts_col), typeof(tstz_col), typeof(ts_ns_col)
+query IIIIII
+SELECT typeof(date_col), typeof(time_col), typeof(ts_col), typeof(tstz_col), typeof(ts_ns_col), typeof(tstz_ns_col)
 FROM read_avro('{TEST_DIR}/all_temporal_types.avro')
 LIMIT 1;
 ----
-DATE	TIME	TIMESTAMP	TIMESTAMP WITH TIME ZONE	TIMESTAMP_NS
+DATE	TIME	TIMESTAMP	TIMESTAMP WITH TIME ZONE	TIMESTAMP_NS	TIMESTAMPTZ_NS
 
-query IIIII
+query IIIIII
 SELECT * FROM read_avro('{TEST_DIR}/all_temporal_types.avro')
 ORDER BY date_col NULLS LAST;
 ----
-2024-01-15	12:34:56	2024-01-15 12:34:56	2024-01-15 12:34:56+00	2023-01-15 12:12:12.123456789
-NULL	NULL	NULL	NULL	NULL
+2024-01-15	12:34:56	2024-01-15 12:34:56	2024-01-15 12:34:56+00	2023-01-15 12:12:12.123456789	2023-01-15 12:12:12.123456789+00
+NULL	NULL	NULL	NULL	NULL	NULL

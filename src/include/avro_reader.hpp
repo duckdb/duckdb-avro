@@ -1,69 +1,65 @@
+//===----------------------------------------------------------------------===//
+//                         DuckDB
+//
+// avro_reader.hpp
+//
+//
+//===----------------------------------------------------------------------===//
+
 #pragma once
 
-#include "duckdb/common/allocator.hpp"
-#include "duckdb/common/helper.hpp"
+#include "avro_common.hpp"
 #include "avro_type.hpp"
-#include "avro_multi_file_info.hpp"
-#include "duckdb/common/multi_file/base_file_reader.hpp"
+
+#include <type_traits>
 
 namespace duckdb {
 
-class AvroReader;
+namespace avro {
 
-class AvroReaderScanState {
-public:
-	AvroReaderScanState(ClientContext &context, AvroReader &reader);
-	~AvroReaderScanState();
-
-	void SelectBlock(idx_t block_index);
-
-public:
-	AvroReader &reader;
-	avro_file_block_reader_t block_reader = nullptr;
-	avro_value_t value;
-	DataChunk read_chunk;
-};
-
-class AvroReader : public BaseFileReader {
-public:
-	AvroReader(ClientContext &context, const OpenFileInfo file,
-	           const AvroFileReaderOptions &options = AvroFileReaderOptions());
-
-	~AvroReader() {
-		avro_value_iface_decref(value_iface);
+struct FileReaderDeleter {
+	void operator()(std::remove_pointer_t<avro_file_reader_t> *reader) const {
 		avro_file_reader_close(reader);
 	}
+};
+
+struct ValueInterfaceDeleter {
+	void operator()(avro_value_iface_t *iface) const {
+		avro_value_iface_decref(iface);
+	}
+};
+
+//! An Avro object container file, read into memory
+class AvroFile {
+public:
+	AvroFile(cxx::Context &context, const std::string &path, cxx::FileOpenOptions open_options);
 
 public:
-	void Read(AvroReaderScanState &scan_state, DataChunk &output);
-
 	idx_t NumBlocks() const {
 		return block_count;
 	}
 
-	string GetReaderType() const override {
-		return "Avro";
-	}
-
-	bool TryInitializeScan(ClientContext &context, GlobalTableFunctionState &gstate,
-	                       LocalTableFunctionState &lstate) override;
-	void PrepareScan(ClientContext &context, GlobalTableFunctionState &gstate,
-	                 LocalTableFunctionState &lstate) override;
-	AsyncResult Scan(ClientContext &context, GlobalTableFunctionState &global_state,
-	                 LocalTableFunctionState &local_state, DataChunk &chunk) override;
-	void FinishFile(ClientContext &context, GlobalTableFunctionState &gstate) override;
-	InsertionOrderPreservingMap<Value> GetMetadata() const override;
-
-	string GetMetadataValue(const string &key) const;
-
 public:
-	avro_file_reader_t reader;
-	avro_value_iface_t *value_iface;
-	idx_t block_count;
+	AvroFileBuffer buffer;
+	std::unique_ptr<std::remove_pointer_t<avro_file_reader_t>, FileReaderDeleter> reader;
+	std::unique_ptr<avro_value_iface_t, ValueInterfaceDeleter> value_iface;
+	idx_t block_count = 0;
 
-	AllocatedData local_buffer;
 	AvroType avro_type;
-	LogicalType duckdb_type;
+	//! Whether the root is a record, whose fields are pulled up into the columns
+	bool root_is_struct = false;
+	//! The columns the file is read as
+	std::vector<AvroColumn> columns;
+	//! The key-value metadata of the file
+	std::vector<std::pair<std::string, std::string>> metadata;
 };
+
+struct AvroReader {
+	//! Registers "read_single_avro_file", which reads a single file - given as a path, or as a file struct that also
+	//! holds the options to open the file with - and "read_avro" on top of it
+	static void Register(cxx::Extension &extension, cxx::Context &context);
+};
+
+} // namespace avro
 
 } // namespace duckdb

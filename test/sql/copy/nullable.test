@@ -38,11 +38,11 @@ COPY (
 ----
 <REGEX>:.*Cannot insert NULL to non-nullable field.*
 
-# as the copy failed, the file shouldn't exist
+# Failed COPY removes its output
 statement error
 select * from read_avro('{TEST_DIR}/field_ids_error.avro');
 ----
-IO Error: No files found that match the pattern "{TEST_DIR}/field_ids_error.avro"
+<REGEX>:.*No files found that match the pattern.*
 
 # cannot cast foo to BOOL
 statement error

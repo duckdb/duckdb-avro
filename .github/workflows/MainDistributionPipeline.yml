@@ -18,7 +18,6 @@ jobs:
     uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@main
     with:
       extension_name: avro
-      duckdb_version: df64b342372e225a74a83e66b5c7d530b097ff1c
       ci_tools_version: main
       exclude_archs: 'windows_amd64_rtools;windows_amd64_mingw;linux_amd64_gcc4'
 
@@ -29,7 +28,6 @@ jobs:
     secrets: inherit
     with:
       extension_name: avro
-      duckdb_version: df64b342372e225a74a83e66b5c7d530b097ff1c
       ci_tools_version: main
       exclude_archs: 'windows_amd64_rtools;windows_amd64_mingw;linux_amd64_gcc4'
       deploy_latest: ${{ startsWith(github.ref, 'refs/heads/v') || github.ref == 'refs/heads/main' }}

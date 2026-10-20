@@ -1,0 +1,95 @@
+# name: test/sql/copy/null_type.test
+# description: SQLNULL is already nullable and must not produce duplicate Avro union branches
+# group: [copy]
+
+require avro
+
+require json
+
+statement ok
+CREATE TABLE null_types (
+	id INTEGER,
+	u "NULL",
+	s STRUCT(u "NULL", v INTEGER),
+	a "NULL"[],
+	m MAP(VARCHAR, "NULL")
+);
+
+statement ok
+INSERT INTO null_types VALUES
+	(1, NULL, {'u': NULL, 'v': 42}, [NULL, NULL], MAP {'a': NULL}),
+	(2, NULL, NULL, [], MAP {}),
+	(3, NULL, {'u': NULL, 'v': NULL}, NULL, NULL);
+
+statement ok
+COPY null_types TO '{TEST_DIR}/null_types.avro' (FORMAT AVRO);
+
+# Inspect the stored schema: a round trip alone also succeeds with ["null","null"].
+# Check columns, struct fields, list elements and map values.
+query TTTT
+SELECT
+	value::JSON->'$.fields[1].type',
+	value::JSON->'$.fields[2].type[1].fields[0].type',
+	value::JSON->'$.fields[3].type[1].items',
+	value::JSON->'$.fields[4].type[1].items.fields[1].type'
+FROM avro_metadata('{TEST_DIR}/null_types.avro') WHERE key = 'avro.schema';
+----
+"null"	"null"	"null"	"null"
+
+query IIIII
+SELECT * FROM read_avro('{TEST_DIR}/null_types.avro') ORDER BY id;
+----
+1	NULL	{'u': NULL, 'v': 42}	[NULL, NULL]	{a=NULL}
+2	NULL	NULL	[]	{}
+3	NULL	{'u': NULL, 'v': NULL}	NULL	NULL
+
+# Field IDs must not cause SQLNULL to be wrapped in a union either.
+statement ok
+COPY null_types TO '{TEST_DIR}/null_types_field_ids.avro' (
+	FORMAT AVRO,
+	FIELD_IDS {
+		'u': {'__duckdb_field_id': 10, '__duckdb_nullable': true},
+		's': {'__duckdb_field_id': 102, 'u': 1000},
+		'a': {'__duckdb_field_id': 20, 'list': 21},
+		'm': {'__duckdb_field_id': 30, 'key': 31, 'value': 32}
+	}
+);
+
+query TTTTTI
+SELECT
+	value::JSON->'$.fields[1].type',
+	value::JSON->'$.fields[2].type[1].fields[0].type',
+	value::JSON->'$.fields[3].type[1].items',
+	value::JSON->'$.fields[4].type[1].items.fields[1].type',
+	value::JSON->>'$.fields[2].type[1].name',
+	value::JSON->>'$.fields[2].type[1].fields[0].field-id'
+FROM avro_metadata('{TEST_DIR}/null_types_field_ids.avro') WHERE key = 'avro.schema';
+----
+"null"	"null"	"null"	"null"	r102	1000
+
+query IIIII
+SELECT * FROM read_avro('{TEST_DIR}/null_types_field_ids.avro') ORDER BY id;
+----
+1	NULL	{'u': NULL, 'v': 42}	[NULL, NULL]	{a=NULL}
+2	NULL	NULL	[]	{}
+3	NULL	{'u': NULL, 'v': NULL}	NULL	NULL
+
+# A required SQLNULL field still has the primitive null schema and accepts nulls.
+statement ok
+COPY (SELECT u FROM null_types) TO '{TEST_DIR}/null_type_required.avro' (
+	FORMAT AVRO,
+	FIELD_IDS {'u': {'__duckdb_field_id': 10, '__duckdb_nullable': false}}
+);
+
+query T
+SELECT value::JSON->'$.fields[0].type'
+FROM avro_metadata('{TEST_DIR}/null_type_required.avro') WHERE key = 'avro.schema';
+----
+"null"
+
+query I
+SELECT * FROM read_avro('{TEST_DIR}/null_type_required.avro');
+----
+NULL
+NULL
+NULL

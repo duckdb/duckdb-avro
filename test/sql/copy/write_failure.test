@@ -1,0 +1,26 @@
+# name: test/sql/copy/write_failure.test
+# description: Release the Avro writer when writing its header fails
+# group: [copy]
+
+require avro
+
+require linux
+
+# /dev/full accepts opens but rejects writes. Under LeakSanitizer this detects
+# resources abandoned by a throwing global-state constructor.
+loop i 0 3
+
+statement error
+COPY (SELECT 42 a) TO '/dev/full' (FORMAT AVRO, CODEC 'deflate');
+----
+No space left on device
+
+endloop
+
+statement ok
+COPY (SELECT 42 a) TO '{TEST_DIR}/after_write_failure.avro' (FORMAT AVRO, CODEC 'deflate');
+
+query I
+SELECT a FROM read_avro('{TEST_DIR}/after_write_failure.avro');
+----
+42

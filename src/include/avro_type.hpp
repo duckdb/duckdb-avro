@@ -1,143 +1,82 @@
+//===----------------------------------------------------------------------===//
+//                         DuckDB
+//
+// avro_type.hpp
+//
+//
+//===----------------------------------------------------------------------===//
+
 #pragma once
 
-#include "duckdb/common/types.hpp"
-#include <avro.h>
-#include "duckdb/common/optional_idx.hpp"
-#include "duckdb/common/limits.hpp"
-#include "duckdb/common/multi_file/multi_file_data.hpp"
+#include "avro_common.hpp"
+
+#include <limits>
+#include <optional>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace duckdb {
 
+namespace avro {
+
+//! An Avro schema node, together with the DuckDB type id it is read as
 struct AvroType {
 public:
-	AvroType() : duckdb_type(LogicalType::INVALID) {
-	}
-	AvroType(avro_type_t avro_type_p, LogicalType duckdb_type_p, child_list_t<AvroType> children_p = {},
-	         unordered_map<idx_t, optional_idx> union_child_map_p = {})
-	    : duckdb_type(duckdb_type_p), avro_type(avro_type_p), children(children_p), union_child_map(union_child_map_p) {
-	}
-
-public:
-	bool operator==(const AvroType &other) const {
-		return duckdb_type == other.duckdb_type && avro_type == other.avro_type && children == other.children &&
-		       union_child_map == other.union_child_map && is_timestamp_millis == other.is_timestamp_millis;
-	}
-	const bool HasFieldId() const {
-		return field_id != NumericLimits<int32_t>::Maximum();
-	}
-	const int32_t GetFieldId() const {
-		D_ASSERT(HasFieldId());
-		return field_id;
+	AvroType() = default;
+	AvroType(avro_type_t avro_type_p, LogicalTypeId type_id_p,
+	         std::vector<std::pair<std::string, AvroType>> children_p = {},
+	         std::unordered_map<idx_t, idx_t> union_child_map_p = {})
+	    : avro_type(avro_type_p), type_id(type_id_p), children(std::move(children_p)),
+	      union_child_map(std::move(union_child_map_p)) {
 	}
 
 public:
-	// we use special transformation rules for unions with null:
-	// 1) the null does not become a union entry and
-	// 2) if there is only one entry the union disappears and is repaced by its
-	// child
-	static MultiFileColumnDefinition TransformAvroType(const string &name, const AvroType &avro_type) {
-		vector<MultiFileColumnDefinition> children;
-
-		LogicalType duckdb_type;
-		auto id = avro_type.duckdb_type.id();
-		switch (id) {
-		case LogicalTypeId::STRUCT: {
-			child_list_t<LogicalType> type_children;
-			for (auto &child : avro_type.children) {
-				auto child_col = TransformAvroType(child.first.GetIdentifierName(), child.second);
-				type_children.emplace_back(child_col.name, child_col.type);
-				children.push_back(std::move(child_col));
-			}
-			D_ASSERT(!type_children.empty());
-			duckdb_type = LogicalType::STRUCT(std::move(type_children));
-			break;
-		}
-		case LogicalTypeId::MAP:
-		case LogicalTypeId::LIST: {
-			if (avro_type.avro_type == AVRO_ARRAY) {
-				auto element = TransformAvroType("list", avro_type.children[0].second);
-				if (id == LogicalTypeId::MAP) {
-					auto &key_type = element.children[0].type;
-					auto &value_type = element.children[1].type;
-					duckdb_type = LogicalType::MAP(key_type, value_type);
-					MultiFileColumnDefinition key_value("key_value", element.type);
-					key_value.children = std::move(element.children);
-					children.push_back(key_value);
-				} else {
-					duckdb_type = LogicalType::LIST(element.type);
-					children.push_back(std::move(element));
-				}
-			} else {
-				child_list_t<LogicalType> type_children;
-				auto key = TransformAvroType("key", avro_type.children[0].second);
-				auto value = TransformAvroType("value", avro_type.children[1].second);
-
-				type_children.emplace_back(key.name, key.type);
-				type_children.emplace_back(value.name, value.type);
-				auto key_value_type = LogicalType::STRUCT(std::move(type_children));
-				duckdb_type = LogicalType::MAP(key_value_type);
-
-				MultiFileColumnDefinition key_value("key_value", key_value_type);
-				key_value.children.push_back(std::move(key));
-				key_value.children.push_back(std::move(value));
-				children.push_back(key_value);
-			}
-			break;
-		}
-		case LogicalTypeId::UNION: {
-			for (auto &child : avro_type.children) {
-				if (child.second.duckdb_type == LogicalTypeId::SQLNULL) {
-					continue;
-				}
-				auto member = TransformAvroType(child.first.GetIdentifierName(), child.second);
-				children.push_back(std::move(member));
-			}
-			if (children.size() == 1) {
-				children[0].name = Identifier(name);
-
-				if (avro_type.HasFieldId()) {
-					children[0].identifier = Value::INTEGER(avro_type.GetFieldId());
-				}
-				return std::move(children[0]);
-			}
-			if (children.empty()) {
-				if (avro_type.children.empty()) {
-					throw InvalidInputException("Empty union type");
-				}
-				auto res = MultiFileColumnDefinition(name, LogicalType::SQLNULL);
-				if (avro_type.HasFieldId()) {
-					res.identifier = Value::INTEGER(avro_type.GetFieldId());
-				}
-				return res;
-			}
-
-			child_list_t<LogicalType> type_children;
-			for (auto &child : children) {
-				type_children.emplace_back(child.name, child.type);
-			}
-			duckdb_type = LogicalType::UNION(std::move(type_children));
-			break;
-		}
-		default:
-			duckdb_type = LogicalType(avro_type.duckdb_type);
-			break;
-		}
-
-		MultiFileColumnDefinition result(name, duckdb_type);
-		result.children = std::move(children);
-		if (avro_type.HasFieldId()) {
-			result.identifier = Value::INTEGER(avro_type.GetFieldId());
-		}
-		return result;
+	bool HasFieldId() const {
+		return field_id != std::numeric_limits<int32_t>::max();
+	}
+	//! The number of union branches that are not NULL
+	idx_t NonNullUnionChildCount() const {
+		return union_child_map.size();
 	}
 
 public:
-	LogicalType duckdb_type;
-	avro_type_t avro_type;
-	child_list_t<AvroType> children;
-	unordered_map<idx_t, optional_idx> union_child_map;
-	int32_t field_id = NumericLimits<int32_t>::Maximum();
+	avro_type_t avro_type = AVRO_NULL;
+	LogicalTypeId type_id = LogicalTypeId::INVALID;
+	std::vector<std::pair<std::string, AvroType>> children;
+	//! The DuckDB union member of each union branch that is not NULL
+	std::unordered_map<idx_t, idx_t> union_child_map;
+	int32_t field_id = std::numeric_limits<int32_t>::max();
 	bool is_timestamp_millis = false;
+	//! DECIMAL parameters
+	uint8_t decimal_width = 0;
+	uint8_t decimal_scale = 0;
+	//! ENUM symbols
+	std::vector<std::string> enum_symbols;
 };
+
+//! A column (or nested field) as DuckDB sees it. The children mirror the layout of the vector: the fields of a STRUCT,
+//! the element of a LIST, the key/value STRUCT of a MAP and the members of a UNION
+struct AvroColumn {
+	AvroColumn(std::string name_p, cxx::LogicalType type_p) : name(std::move(name_p)), type(std::move(type_p)) {
+	}
+
+	std::string name;
+	cxx::LogicalType type;
+	std::vector<AvroColumn> children;
+	std::optional<int32_t> field_id;
+};
+
+//! Converts an Avro schema into the type tree it is read with
+AvroType TransformSchema(avro_schema_t avro_schema, std::unordered_set<std::string> parent_schema_names);
+
+//! Converts an Avro type into the DuckDB column it is read into.
+//! We use special transformation rules for unions with null:
+//! 1) the null does not become a union entry and
+//! 2) if there is only one entry the union disappears and is replaced by its child
+AvroColumn TransformAvroType(cxx::Context &context, const std::string &name, const AvroType &avro_type);
+
+} // namespace avro
 
 } // namespace duckdb

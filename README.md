@@ -1,7 +1,7 @@
 # The DuckDB Avro Extension
 This repo contains a DuckDB community extension that enables DuckDB to *read* [Apache Avro (TM)](https://avro.apache.org) files. Avro is the (self-declared) "leading serialization format for record data". Avro is a self-describing *row-major* binary table format. This is in contrast to the (much more popular) Parquet format that is *columnar*. Its row-major design enables Avro - for example - to handle appends of a few rows somewhat efficiently. 
 
-The extension does not contain Avro *write* functionality. This is on purpose, by not providing a writer we hope to decrease the amount of Avro files in the world over time. 
+The extension also supports writing Avro files using `COPY ... TO` with `FORMAT AVRO`.
 
 ### Installation & Loading
 Installation is simple through the DuckDB Community Extension repository, just type
@@ -19,6 +19,28 @@ FROM read_avro('some_example_file.avro');
 ```
 This function will expose the contents of the avro file as a DuckDB table. You can then use any arbitrary SQL constructs to further transform this table.
 
+
+### Writing field names
+
+By default, field names must be valid Avro identifiers. Use `SANITIZE_FIELD_NAMES true`
+to convert column and nested struct field names when exporting:
+
+```SQL
+COPY (SELECT 42 AS "a key") TO 'output.avro'
+    (FORMAT AVRO, SANITIZE_FIELD_NAMES true);
+-- Read back as column a_x20key
+```
+
+Valid ASCII names stay unchanged. A leading digit gets an underscore (`1col` → `_1col`);
+other invalid bytes become `_x` followed by uppercase hexadecimal (`a-b` → `a_x2Db`).
+Non-ASCII names are escaped byte by byte using their UTF-8 encoding. This follows the
+ASCII escaping convention in [Apache Iceberg's AvroSchemaUtil](https://github.com/apache/iceberg/blob/main/core/src/main/java/org/apache/iceberg/avro/AvroSchemaUtil.java#L519).
+
+The option defaults to `false` and requires a Boolean value. It applies recursively,
+including structs inside lists and maps, but does not change map keys or `ROOT_NAME`.
+`FIELD_IDS` must use the original input names. If two fields in the same record map to
+the same output name, the export fails. Existing uniqueness checks for named Avro types
+also apply. Exported names are not automatically restored when reading the file.
 
 ### File IO
 The `read_avro` function is integrated into DuckDB's file system abstraction, meaning you can read Avro files directly from e.g. HTTP or S3 sources. For example
@@ -56,15 +78,13 @@ The extension also "flattens" the Avro schema. Avro defines tables as root-level
 ### Implementation
 Internally, this extension uses the "official" [Apache Avro C API](https://avro.apache.org/docs/++version++/api/c/), albeit with some minor patching to allow reading of Avro files from memory.
 
-### Limitations & Next Steps
-- This extension currently does not make use of **parallelism** when reading either a single (large) Avro file or when reading a list of files. Adding support for parallelism in the latter case is on the roadmap. 
+The extension is written against DuckDB's stable C++ API (`duckdb_cpp.hpp`) rather than DuckDB's internal C++ API. `read_avro` is a multi-file function built on top of `read_single_avro_file`, which reads a single file; the multi-file layer provides globbing, lists of files, `filename`, `union_by_name`, hive partitioning and the like. A single file is scanned in parallel, one Avro block per thread at a time.
 
-- There is currently no support for neither projection nor filter **pushdown**, but this is also planned at a later stage.
+### Limitations & Next Steps
+- There is currently no support for filter **pushdown**; projection pushdown is supported.
 
 - There is currently no support for the WASM or the Windows-MinGW builds of DuckDB due to issues with the Avro library dependency (sigh again). We plan to fix this eventually.
 
 - As mentioned above, DuckDB cannot express recursive type definitions that Avro has, this is unlikely to ever change.
 
 - There is no support to allow users to provide a separate Avro schema file. This is unlikely to change, all Avro files we have seen so far had their schema embedded.
-
-- There is currently no support for the `union_by_name` flag that other readers in DuckDB support. This is planned for the future.

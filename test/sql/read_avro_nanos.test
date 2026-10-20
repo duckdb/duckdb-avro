@@ -1,0 +1,43 @@
+# name: test/sql/read_avro_nanos.test
+# description: Read timestamp-nanos with true, false, and absent adjust-to-utc
+# group: [sql]
+
+require avro
+
+require icu
+
+statement ok
+SET TimeZone = 'UTC';
+
+# Generated independently of COPY by scripts/create_timestamp_ns.py.
+query TT
+SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('test/timestamp_nanos.avro'));
+----
+utc	TIMESTAMPTZ_NS
+local	TIMESTAMP_NS
+unspecified	TIMESTAMP_NS
+
+# Check epoch integers directly, independently of timestamp formatting.
+query III
+SELECT epoch_ns(utc), epoch_ns(local), epoch_ns(unspecified)
+FROM read_avro('test/timestamp_nanos.avro') ORDER BY utc NULLS FIRST;
+----
+NULL	NULL	NULL
+-876543211	-876543211	-876543211
+-1	-1	-1
+0	0	0
+1	1	1
+1705314896123456789	1705314896123456789	1705314896123456789
+
+# Only adjust-to-utc=true follows the session time zone.
+statement ok
+SET TimeZone = 'Europe/Amsterdam';
+
+query TTT
+SELECT * FROM read_avro('test/timestamp_nanos.avro')
+WHERE utc > '2024-01-01 00:00:00+00'::TIMESTAMPTZ_NS;
+----
+2024-01-15 11:34:56.123456789+01	2024-01-15 10:34:56.123456789	2024-01-15 10:34:56.123456789
+
+statement ok
+SET TimeZone = 'UTC';
