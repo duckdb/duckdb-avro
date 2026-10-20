@@ -49,6 +49,34 @@ select count(*) from (
 ----
 0
 
+# zstandard and bzip2 codecs, with enough rows that a block decompresses past the initial buffer.
+foreach codec zstandard bzip2
+
+statement ok
+COPY (select i a, ('row_' || i::VARCHAR) b from range(100000) t(i)) TO '{TEST_DIR}/codec_${codec}.avro' (FORMAT AVRO, CODEC '${codec}');
+
+query II
+select count(*), sum(a) from read_avro('{TEST_DIR}/codec_${codec}.avro');
+----
+100000	4999950000
+
+query I
+select count(*) from (
+	select a, b from read_avro('{TEST_DIR}/codec_${codec}.avro')
+	except
+	select i a, ('row_' || i::VARCHAR) b from range(100000) t(i)
+);
+----
+0
+
+# the header records the codec under its Avro specification name
+query I
+select hex(content) LIKE '%' || hex('avro.codec'::BLOB) || '%' || hex('${codec}'::BLOB) || '%' from read_blob('{TEST_DIR}/codec_${codec}.avro');
+----
+true
+
+endloop
+
 # Case-insensitive codec name.
 statement ok
 COPY (select 1 a) TO '{TEST_DIR}/codec_ci.avro' (FORMAT AVRO, CODEC 'DEFLATE');
