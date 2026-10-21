@@ -97,6 +97,11 @@ void GetFieldIDs(cxx::Context &context, const cxx::Value &field_ids_value, Child
 			field_id_value = std::move(child_value);
 		}
 
+		bool nullable = true;
+		if (field_id_nullable) {
+			nullable = field_id_nullable->Cast(context, context.CreateType(LogicalTypeId::BOOLEAN)).Get<bool>();
+		}
+
 		FieldID field_id;
 		if (field_id_value) {
 			const auto field_id_int =
@@ -104,12 +109,9 @@ void GetFieldIDs(cxx::Context &context, const cxx::Value &field_ids_value, Child
 			if (!unique_field_ids.insert(static_cast<uint32_t>(field_id_int)).second) {
 				throw BinderError("Duplicate field_id " + std::to_string(field_id_int) + " found in FIELD_IDS");
 			}
-			if (field_id_nullable) {
-				auto nullable = field_id_nullable->Cast(context, context.CreateType(LogicalTypeId::BOOLEAN));
-				field_id = FieldID(field_id_int, nullable.Get<bool>());
-			} else {
-				field_id = FieldID(field_id_int);
-			}
+			field_id = FieldID(field_id_int, nullable);
+		} else {
+			field_id.nullable = nullable;
 		}
 		auto inserted = field_ids.emplace(col_name, std::move(field_id));
 
