@@ -1,0 +1,112 @@
+# name: test/sql/read_avro_schema.test
+# description: read_avro over files of different schemas - union_by_name and the schema option
+# group: [sql]
+
+require avro
+
+# two files of a table whose schema evolved: the second file has a column the first lacks, and another type for 'two'
+statement ok
+COPY (SELECT 1 AS one, 2.0::DOUBLE AS two FROM range(2)) TO '{TEST_DIR}/evolution-1.avro' (FORMAT avro);
+
+statement ok
+COPY (SELECT 3 AS one, 4.5::FLOAT AS two, 'three' AS three) TO '{TEST_DIR}/evolution-2.avro' (FORMAT avro);
+
+# by default the first file decides the schema: a column it lacks is not read ...
+query II
+SELECT * FROM read_avro(['{TEST_DIR}/evolution-1.avro', '{TEST_DIR}/evolution-2.avro']) ORDER BY one;
+----
+1	2.0
+1	2.0
+3	4.5
+
+# ... and a column it has that a later file lacks is an error
+statement error
+SELECT * FROM read_avro(['{TEST_DIR}/evolution-2.avro', '{TEST_DIR}/evolution-1.avro']);
+----
+schema mismatch in glob
+
+# union_by_name combines the schemas of all files
+query III
+SELECT * FROM read_avro(['{TEST_DIR}/evolution-2.avro', '{TEST_DIR}/evolution-1.avro'], union_by_name=true) ORDER BY one;
+----
+1	2.0	NULL
+1	2.0	NULL
+3	4.5	three
+
+# the schema option pins the columns without opening a file for them: a MAP from the column name to its definition.
+# A column a file lacks reads as its default_value, a column of another type is cast, the columns come in the order
+# of the map, and a column of the file that is not in the map is not read
+query III
+SELECT * FROM read_avro(['{TEST_DIR}/evolution-1.avro', '{TEST_DIR}/evolution-2.avro'], schema=MAP {
+	'three': {name: 'three', type: 'VARCHAR', default_value: NULL},
+	'two': {name: 'two', type: 'DECIMAL(5,2)', default_value: NULL},
+	'one': {name: 'one', type: 'BIGINT', default_value: NULL}
+}) ORDER BY one, three;
+----
+NULL	2.00	1
+NULL	2.00	1
+three	4.50	3
+
+query II
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/evolution-1.avro', schema=MAP {
+	'three': {name: 'three', type: 'VARCHAR', default_value: NULL},
+	'two': {name: 'two', type: 'DECIMAL(5,2)', default_value: NULL},
+	'one': {name: 'one', type: 'BIGINT', default_value: NULL}
+}));
+----
+three	VARCHAR
+two	DECIMAL(5,2)
+one	BIGINT
+
+# a default other than NULL, cast to the column's type; names match case-insensitively
+query II
+SELECT * FROM read_avro(['{TEST_DIR}/evolution-1.avro', '{TEST_DIR}/evolution-2.avro'], schema=MAP {
+	'ONE': {name: 'ONE', type: 'SMALLINT', default_value: NULL},
+	'added': {name: 'added', type: 'DATE', default_value: '2024-01-02'}
+}) ORDER BY one;
+----
+1	2024-01-02
+1	2024-01-02
+3	2024-01-02
+
+# a column in no file at all reads as its default throughout
+query I
+SELECT DISTINCT nowhere FROM read_avro(['{TEST_DIR}/evolution-1.avro', '{TEST_DIR}/evolution-2.avro'], schema=MAP {
+	'nowhere': {name: 'nowhere', type: 'INTEGER', default_value: 42}
+});
+----
+42
+
+# the generated columns still come on top of the given schema
+query III
+SELECT one, two, parse_filename(filename) FROM read_avro(['{TEST_DIR}/evolution-1.avro', '{TEST_DIR}/evolution-2.avro'], schema=MAP {
+	'one': {name: 'one', type: 'INTEGER', default_value: NULL},
+	'two': {name: 'two', type: 'DOUBLE', default_value: NULL}
+}, filename=true, hive_partitioning=false) ORDER BY one;
+----
+1	2.0	evolution-1.avro
+1	2.0	evolution-1.avro
+3	4.5	evolution-2.avro
+
+# a value that does not fit the pinned type is an error, as for any multi-file read
+statement error
+SELECT * FROM read_avro('{TEST_DIR}/evolution-2.avro', schema=MAP {'three': {name: 'three', type: 'INTEGER', default_value: NULL}});
+----
+failed to cast column "three"
+
+# the schema cannot be combined with union_by_name
+statement error
+SELECT * FROM read_avro('{TEST_DIR}/evolution-1.avro', schema=MAP {'one': {name: 'one', type: 'INTEGER', default_value: NULL}}, union_by_name=true);
+----
+cannot be combined with union_by_name
+
+# with INTEGER keys the files are mapped onto the schema by Avro field id (Iceberg's field-id attribute) instead of
+# by name: an Iceberg manifest has status = 0 and snapshot_id = 1
+query III
+SELECT * FROM read_avro('test/iceberg/10eaca8a-1e1c-421e-ad6d-b232e5ee23d3-m0.avro', schema=MAP {
+	0: {name: 'entry_status', type: 'INTEGER', default_value: NULL},
+	1: {name: 'snapshot', type: 'BIGINT', default_value: NULL},
+	99: {name: 'not_in_file', type: 'VARCHAR', default_value: 'n/a'}
+});
+----
+2	7635660646343998149	n/a
