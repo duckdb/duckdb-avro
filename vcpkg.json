@@ -1,9 +1,11 @@
 {
 	"dependencies": [
+		"bzip2",
 		"jansson",
 		"liblzma",
 		"snappy",
-		"zlib"
+		"zlib",
+		"zstd"
 	],
 	"vcpkg-configuration": {
 		"registries": [
