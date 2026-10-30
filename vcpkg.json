@@ -3,7 +3,8 @@
 		"jansson",
 		"liblzma",
 		"snappy",
-		"zlib"
+		"zlib",
+		"zstd"
 	],
 	"vcpkg-configuration": {
 		"registries": [
