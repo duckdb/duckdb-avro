@@ -197,7 +197,7 @@ uint32_t MinBytesRequiredForDecimal(int32_t precision) {
 	// Number of bits needed: ceil(precision * log2(10)) + 1 (sign bit)
 	// log2(10) ~ 10/3, but more precisely we use the fact that
 	// 10^P requires ceil(P * log2(10)) bits.
-	// Exact bit counts per precision bracket:
+	// Exact bit counts per precision bracket, before the sign bit:
 	static constexpr int32_t BITS_REQUIRED[] = {
 	    0,   // precision 0 (unused)
 	    4,   // 1  -> max 9
@@ -239,7 +239,7 @@ uint32_t MinBytesRequiredForDecimal(int32_t precision) {
 	    123, // 37
 	    127, // 38
 	};
-	return (BITS_REQUIRED[precision] + 7) / 8; // ceil(bits / 8)
+	return (BITS_REQUIRED[precision] + 1 + 7) / 8; // ceil((bits + sign bit) / 8)
 }
 
 bool IsNamedSchema(const LogicalType &type) {
