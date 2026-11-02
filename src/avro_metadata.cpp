@@ -35,8 +35,8 @@ struct AvroMetadataGlobalState {
 };
 
 void AvroMetadataBind(cxx::TableFunction::BindInput &input) {
-	auto context = input.GetContext();
-	auto varchar = context.CreateType(LogicalTypeId::VARCHAR);
+	auto &context = input.GetContext();
+	auto varchar = context.GetFactory().CreateType(LogicalTypeId::VARCHAR);
 	input.AddResultColumn("key", varchar);
 	input.AddResultColumn("value", varchar);
 	input.SetBindData<AvroMetadataBindData>(
@@ -73,13 +73,13 @@ void AvroMetadataExec(cxx::TableFunction::ExecInput &input) {
 } // namespace
 
 void AvroMetadata::Register(cxx::Extension &extension, cxx::Context &context) {
-	auto function = cxx::TableFunction::Create(extension);
+	auto function = cxx::TableFunction::Create(context.GetFactory());
 	function.SetName("avro_metadata");
-	function.GetSignature().AddParameter("path", context.CreateType(LogicalTypeId::VARCHAR));
+	function.GetSignature().AddParameter("path", context.GetFactory().CreateType(LogicalTypeId::VARCHAR));
 	function.SetBindCallback(AvroMetadataBind)
 	    .SetInitGlobalCallback(AvroMetadataInit)
 	    .SetExecCallback(AvroMetadataExec);
-	function.Register();
+	extension.Register(function);
 }
 
 } // namespace avro

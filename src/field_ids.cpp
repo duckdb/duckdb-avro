@@ -97,15 +97,16 @@ void GetFieldIDs(cxx::Context &context, const cxx::Value &field_ids_value, Child
 			field_id_value = std::move(child_value);
 		}
 
+		auto &factory = context.GetFactory();
 		bool nullable = true;
 		if (field_id_nullable) {
-			nullable = field_id_nullable->Cast(context, context.CreateType(LogicalTypeId::BOOLEAN)).Get<bool>();
+			nullable = field_id_nullable->Cast(factory, factory.CreateType(LogicalTypeId::BOOLEAN)).Get<bool>();
 		}
 
 		FieldID field_id;
 		if (field_id_value) {
 			const auto field_id_int =
-			    field_id_value->Cast(context, context.CreateType(LogicalTypeId::INTEGER)).Get<int32_t>();
+			    field_id_value->Cast(factory, factory.CreateType(LogicalTypeId::INTEGER)).Get<int32_t>();
 			if (!unique_field_ids.insert(static_cast<uint32_t>(field_id_int)).second) {
 				throw BinderError("Duplicate field_id " + std::to_string(field_id_int) + " found in FIELD_IDS");
 			}

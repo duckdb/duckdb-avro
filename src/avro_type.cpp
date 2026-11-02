@@ -73,18 +73,18 @@ AvroType PrimitiveType(avro_type_t avro_type, LogicalTypeId default_type, const 
 cxx::LogicalType CreateNamedType(cxx::Context &context, LogicalTypeId id, const std::vector<AvroColumn> &children) {
 	std::vector<cxx::TypeParam> params;
 	for (auto &child : children) {
-		params.emplace_back(child.name, cxx::Value::Create(context, child.type));
+		params.emplace_back(child.name, cxx::Value::Create(context.GetFactory(), child.type));
 	}
-	return context.CreateType(id, params);
+	return context.GetFactory().CreateType(id, params);
 }
 
 cxx::LogicalType CreatePositionalType(cxx::Context &context, LogicalTypeId id,
                                       std::vector<const cxx::LogicalType *> children) {
 	std::vector<cxx::TypeParam> params;
 	for (auto child : children) {
-		params.emplace_back(cxx::Value::Create(context, *child));
+		params.emplace_back(cxx::Value::Create(context.GetFactory(), *child));
 	}
-	return context.CreateType(id, params);
+	return context.GetFactory().CreateType(id, params);
 }
 
 cxx::LogicalType CreatePrimitiveType(cxx::Context &context, const AvroType &avro_type) {
@@ -93,19 +93,19 @@ cxx::LogicalType CreatePrimitiveType(cxx::Context &context, const AvroType &avro
 		return CreateNullType(context);
 	case LogicalTypeId::DECIMAL: {
 		std::vector<cxx::TypeParam> params;
-		params.emplace_back(cxx::Value::Create(context, static_cast<int64_t>(avro_type.decimal_width)));
-		params.emplace_back(cxx::Value::Create(context, static_cast<int64_t>(avro_type.decimal_scale)));
-		return context.CreateType(LogicalTypeId::DECIMAL, params);
+		params.emplace_back(cxx::Value::Create(context.GetFactory(), static_cast<int64_t>(avro_type.decimal_width)));
+		params.emplace_back(cxx::Value::Create(context.GetFactory(), static_cast<int64_t>(avro_type.decimal_scale)));
+		return context.GetFactory().CreateType(LogicalTypeId::DECIMAL, params);
 	}
 	case LogicalTypeId::ENUM: {
 		std::vector<cxx::TypeParam> params;
 		for (auto &symbol : avro_type.enum_symbols) {
-			params.emplace_back(cxx::Value::Create(context, cxx::varchar_t(symbol)));
+			params.emplace_back(cxx::Value::Create(context.GetFactory(), cxx::varchar_t(symbol)));
 		}
-		return context.CreateType(LogicalTypeId::ENUM, params);
+		return context.GetFactory().CreateType(LogicalTypeId::ENUM, params);
 	}
 	default:
-		return context.CreateType(avro_type.type_id);
+		return context.GetFactory().CreateType(avro_type.type_id);
 	}
 }
 

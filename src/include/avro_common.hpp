@@ -67,7 +67,7 @@ inline cxx::Exception AvroError() {
 std::string StringLower(const std::string &str);
 bool StringEqualsCaseInsensitive(const std::string &a, const std::string &b);
 //! The SQLNULL type, which the type constructors do not create
-cxx::LogicalType CreateNullType(const cxx::Context &context);
+cxx::LogicalType CreateNullType(cxx::Context &context);
 
 //! The contents of a file, read into memory in full
 struct AvroFileBuffer {

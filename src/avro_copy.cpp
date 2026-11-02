@@ -533,9 +533,9 @@ private:
 	//! The STRUCT(key, value) the entries of a MAP are made of
 	LogicalType MapEntriesType(const LogicalType &type) {
 		std::vector<cxx::TypeParam> params;
-		params.emplace_back("key", cxx::Value::Create(context, type.GetMapKeyType()));
-		params.emplace_back("value", cxx::Value::Create(context, type.GetMapValueType()));
-		return context.CreateType(LogicalTypeId::STRUCT, params);
+		params.emplace_back("key", cxx::Value::Create(context.GetFactory(), type.GetMapKeyType()));
+		params.emplace_back("value", cxx::Value::Create(context.GetFactory(), type.GetMapValueType()));
+		return context.GetFactory().CreateType(LogicalTypeId::STRUCT, params);
 	}
 
 private:
@@ -1119,16 +1119,23 @@ public:
 				//! This value is too big to fit into the remaining portion of the buffer
 				datum_buffer.ResizeAndCopy(NextPowerOfTwo(datum_buffer.GetCapacity() + value_size));
 			}
+			ReserveBlockSpace();
 			SetDatumDestination(offset_in_datum_buffer);
 
 			int ret;
 			while ((ret = avro_file_writer_append_value(file_writer.get(), &row.value)) == ENOSPC) {
+				if (WriteBlockFromAvro()) {
+					//! The datum buffer was reset when avro-c wrote the block, so the row now starts at its beginning
+					offset_in_datum_buffer = 0;
+				}
 				datum_buffer.ResizeAndCopy(NextPowerOfTwo(datum_buffer.GetCapacity() * 2));
+				ReserveBlockSpace();
 				SetDatumDestination(offset_in_datum_buffer);
 			}
 			if (ret) {
 				throw AvroError();
 			}
+			WriteBlockFromAvro();
 
 			offset_in_datum_buffer = static_cast<idx_t>(avro_writer_tell(datum_writer));
 			avro_value_reset(&row.value);
@@ -1189,6 +1196,28 @@ private:
 		}
 	}
 
+	//! When a row does not fit in the rest of the datum buffer, avro-c writes the block so far into the file buffer on
+	//! its own. Keeps the file buffer large enough for that block, which is always empty at this point.
+	void ReserveBlockSpace() {
+		//! Room for a compressed block that is larger than its input, plus the counts and the sync marker
+		auto needed = 2 * datum_buffer.GetCapacity() + BUFFER_SIZE;
+		if (memory_buffer.GetCapacity() < needed) {
+			memory_buffer.Resize(NextPowerOfTwo(needed));
+			SetDestination();
+		}
+	}
+
+	//! Writes out a block avro-c wrote into the file buffer on its own, so it is not lost when the buffer is reused
+	bool WriteBlockFromAvro() {
+		auto size = static_cast<idx_t>(avro_writer_tell(writer));
+		if (size == 0) {
+			return false;
+		}
+		WriteData(memory_buffer.GetData(), size);
+		SetDestination();
+		return true;
+	}
+
 	void SetDestination() {
 		avro_writer_memory_set_dest(writer, memory_buffer.GetData(), static_cast<int64_t>(memory_buffer.GetCapacity()));
 	}
@@ -1226,12 +1255,12 @@ struct WriteAvroBatch {
 // Callbacks
 //===--------------------------------------------------------------------===//
 void WriteAvroBind(cxx::CopyFunction::CopyToBindInput &input) {
-	auto context = input.GetContext();
+	auto &context = input.GetContext();
 	input.SetBindData<WriteAvroBindData>(input, context);
 }
 
 void WriteAvroInit(cxx::CopyFunction::CopyToInitInput &input) {
-	auto context = input.GetContext();
+	auto &context = input.GetContext();
 	input.SetInitData<WriteAvroGlobalState>(context, input.GetBindData<WriteAvroBindData>(), input.GetFilePath());
 }
 
@@ -1245,7 +1274,7 @@ void WriteAvroFlushBatch(cxx::CopyFunction::CopyToFlushInput &input) {
 	auto &batch = input.GetBatchData<WriteAvroBatch>();
 	auto shared_state = batch.collection.CreateSharedScanState();
 	auto worker_state = batch.collection.CreateWorkerScanState();
-	cxx::DataChunk chunk(input.GetContext(), global_state.types);
+	cxx::DataChunk chunk(input.GetContext().GetFactory(), global_state.types);
 	while (batch.collection.Scan(shared_state, worker_state, chunk)) {
 		global_state.WriteChunk(chunk);
 	}
@@ -1271,8 +1300,8 @@ void WriteAvroStatistics(cxx::CopyFunction::CopyToStatisticsInput &input) {
 
 } // namespace
 
-void AvroCopyFunction::Register(cxx::Extension &extension) {
-	auto function = cxx::CopyFunction::Create(extension);
+void AvroCopyFunction::Register(cxx::Extension &extension, cxx::Context &context) {
+	auto function = cxx::CopyFunction::Create(context.GetFactory());
 	function.SetName("avro");
 	function.SetCopyToBindCallback(WriteAvroBind)
 	    .SetCopyToInitCallback(WriteAvroInit)
@@ -1280,7 +1309,7 @@ void AvroCopyFunction::Register(cxx::Extension &extension) {
 	    .SetCopyToFlushCallback(WriteAvroFlushBatch)
 	    .SetCopyToFinalizeCallback(WriteAvroFinalize)
 	    .SetCopyToStatisticsCallback(WriteAvroStatistics);
-	function.Register();
+	extension.Register(function);
 }
 
 } // namespace avro
