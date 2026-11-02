@@ -7,7 +7,7 @@ require avro
 require icu
 
 statement ok
-SET TimeZone = 'CET';
+SET TimeZone = 'UTC';
 
 query I
 SELECT column_type FROM (DESCRIBE FROM read_avro('test/timestamp_millis.avro')) WHERE column_name = 'ts';
@@ -29,12 +29,12 @@ query I
 SELECT ts from read_avro('test/timestamptz_millis.avro') order by ts NULLS FIRST;
 ----
 NULL
-0001-01-01 00:17:30+00:17
-2019-12-31 20:00:00+01
-2021-06-15 04:30:45.123+02
-2022-01-01 06:00:00+01
-2023-01-01 11:00:00+01
-10000-01-01 00:59:59+01
+0001-01-01 00:00:00+00
+2019-12-31 19:00:00+00
+2021-06-15 02:30:45.123+00
+2022-01-01 05:00:00+00
+2023-01-01 10:00:00+00
+9999-12-31 23:59:59+00
 
 query I
 SELECT ts from read_avro('test/time_millis.avro') order by ts NULLS FIRST;

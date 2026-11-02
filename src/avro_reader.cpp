@@ -854,7 +854,7 @@ private:
 void SetColumnIdentifiers(cxx::TableFunction::GetBindInfoInput &input, cxx::Context &context, const AvroColumn &column,
                           idx_t column_index, std::vector<idx_t> &child_path) {
 	if (column.field_id) {
-		input.SetColumnIdentifier(column_index, child_path, cxx::Value::Create(context, *column.field_id));
+		input.SetColumnIdentifier(column_index, child_path, cxx::Value::Create(context.GetFactory(), *column.field_id));
 	}
 	// a MAP addresses its keys and values directly, without the key/value STRUCT in between
 	auto &children = column.type.GetTypeId() == LogicalTypeId::MAP ? column.children[0].children : column.children;
@@ -866,7 +866,7 @@ void SetColumnIdentifiers(cxx::TableFunction::GetBindInfoInput &input, cxx::Cont
 }
 
 void AvroScanBind(cxx::TableFunction::BindInput &input) {
-	auto context = input.GetContext();
+	auto &context = input.GetContext();
 	//! the file is a path, or a file struct that also holds the options to open it with - e.g. its size, as globbing a
 	//! remote store reported it
 	auto file_arg = input.GetConstantArgument(0);
@@ -883,14 +883,14 @@ void AvroScanBind(cxx::TableFunction::BindInput &input) {
 //! Describes the file: the field ids of its columns, and its key-value metadata as options - which a multi-file reader
 //! exposes as the metadata of the reader of the file
 void AvroScanGetBindInfo(cxx::TableFunction::GetBindInfoInput &input) {
-	auto context = input.GetContext();
+	auto &context = input.GetContext();
 	auto &file = *input.GetBindData<AvroBindData>().file;
 	for (idx_t col_idx = 0; col_idx < file.columns.size(); col_idx++) {
 		std::vector<idx_t> child_path;
 		SetColumnIdentifiers(input, context, file.columns[col_idx], col_idx, child_path);
 	}
 	for (auto &entry : file.metadata) {
-		input.SetOption(entry.first, cxx::Value::Create(context, cxx::varchar_t(entry.second)));
+		input.SetOption(entry.first, cxx::Value::Create(context.GetFactory(), cxx::varchar_t(entry.second)));
 	}
 }
 
@@ -982,9 +982,9 @@ AvroFile::AvroFile(cxx::Context &context, const std::string &path, cxx::FileOpen
 }
 
 void AvroReader::Register(cxx::Extension &extension, cxx::Context &context) {
-	auto function = cxx::TableFunction::Create(extension);
+	auto function = cxx::TableFunction::Create(context.GetFactory());
 	function.SetName("read_single_avro_file");
-	function.GetSignature().AddParameter("file", context.CreateType(LogicalTypeId::ANY));
+	function.GetSignature().AddParameter("file", context.GetFactory().CreateType(LogicalTypeId::ANY));
 	function.SetBindCallback(AvroScanBind)
 	    .SetInitGlobalCallback(AvroScanInitGlobal)
 	    .SetInitLocalCallback(AvroScanInitLocal)
@@ -992,11 +992,11 @@ void AvroReader::Register(cxx::Extension &extension, cxx::Context &context) {
 	    .SetGetBindInfoCallback(AvroScanGetBindInfo)
 	    .SetExecCallback(AvroScanExec)
 	    .SetProjectionPushdown(true);
-	function.Register();
+	extension.Register(function);
 
-	auto multi_file_function = cxx::MultiFileFunction::Create(extension);
+	auto multi_file_function = cxx::MultiFileFunction::Create(context.GetFactory());
 	multi_file_function.SetName("read_avro").SetSingleFileFunction("read_single_avro_file").SetReaderType("Avro");
-	multi_file_function.Register();
+	extension.Register(multi_file_function);
 }
 
 } // namespace avro
