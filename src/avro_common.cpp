@@ -18,8 +18,8 @@ bool StringEqualsCaseInsensitive(const std::string &a, const std::string &b) {
 	return StringLower(a) == StringLower(b);
 }
 
-cxx::LogicalType CreateNullType(const cxx::Context &context) {
-	return context.ParseType("\"NULL\"");
+cxx::LogicalType CreateNullType(cxx::Context &context) {
+	return context.GetFactory().ParseType("\"NULL\"");
 }
 
 AvroFileBuffer AvroFileBuffer::Read(const cxx::Context &context, const std::string &path) {

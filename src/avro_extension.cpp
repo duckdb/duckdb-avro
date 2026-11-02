@@ -7,5 +7,5 @@
 DUCKDB_CPP_EXTENSION_ENTRYPOINT(duckdb::cxx::Extension &extension, duckdb::cxx::Context &context) {
 	duckdb::avro::AvroReader::Register(extension, context);
 	duckdb::avro::AvroMetadata::Register(extension, context);
-	duckdb::avro::AvroCopyFunction::Register(extension);
+	duckdb::avro::AvroCopyFunction::Register(extension, context);
 }

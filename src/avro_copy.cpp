@@ -533,9 +533,9 @@ private:
 	//! The STRUCT(key, value) the entries of a MAP are made of
 	LogicalType MapEntriesType(const LogicalType &type) {
 		std::vector<cxx::TypeParam> params;
-		params.emplace_back("key", cxx::Value::Create(context, type.GetMapKeyType()));
-		params.emplace_back("value", cxx::Value::Create(context, type.GetMapValueType()));
-		return context.CreateType(LogicalTypeId::STRUCT, params);
+		params.emplace_back("key", cxx::Value::Create(context.GetFactory(), type.GetMapKeyType()));
+		params.emplace_back("value", cxx::Value::Create(context.GetFactory(), type.GetMapValueType()));
+		return context.GetFactory().CreateType(LogicalTypeId::STRUCT, params);
 	}
 
 private:
@@ -1255,12 +1255,12 @@ struct WriteAvroBatch {
 // Callbacks
 //===--------------------------------------------------------------------===//
 void WriteAvroBind(cxx::CopyFunction::CopyToBindInput &input) {
-	auto context = input.GetContext();
+	auto &context = input.GetContext();
 	input.SetBindData<WriteAvroBindData>(input, context);
 }
 
 void WriteAvroInit(cxx::CopyFunction::CopyToInitInput &input) {
-	auto context = input.GetContext();
+	auto &context = input.GetContext();
 	input.SetInitData<WriteAvroGlobalState>(context, input.GetBindData<WriteAvroBindData>(), input.GetFilePath());
 }
 
@@ -1274,7 +1274,7 @@ void WriteAvroFlushBatch(cxx::CopyFunction::CopyToFlushInput &input) {
 	auto &batch = input.GetBatchData<WriteAvroBatch>();
 	auto shared_state = batch.collection.CreateSharedScanState();
 	auto worker_state = batch.collection.CreateWorkerScanState();
-	cxx::DataChunk chunk(input.GetContext(), global_state.types);
+	cxx::DataChunk chunk(input.GetContext().GetFactory(), global_state.types);
 	while (batch.collection.Scan(shared_state, worker_state, chunk)) {
 		global_state.WriteChunk(chunk);
 	}
@@ -1300,8 +1300,8 @@ void WriteAvroStatistics(cxx::CopyFunction::CopyToStatisticsInput &input) {
 
 } // namespace
 
-void AvroCopyFunction::Register(cxx::Extension &extension) {
-	auto function = cxx::CopyFunction::Create(extension);
+void AvroCopyFunction::Register(cxx::Extension &extension, cxx::Context &context) {
+	auto function = cxx::CopyFunction::Create(context.GetFactory());
 	function.SetName("avro");
 	function.SetCopyToBindCallback(WriteAvroBind)
 	    .SetCopyToInitCallback(WriteAvroInit)
@@ -1309,7 +1309,7 @@ void AvroCopyFunction::Register(cxx::Extension &extension) {
 	    .SetCopyToFlushCallback(WriteAvroFlushBatch)
 	    .SetCopyToFinalizeCallback(WriteAvroFinalize)
 	    .SetCopyToStatisticsCallback(WriteAvroStatistics);
-	function.Register();
+	extension.Register(function);
 }
 
 } // namespace avro
