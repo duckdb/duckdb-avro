@@ -66,6 +66,22 @@ FROM read_avro('some_example_file_*.avro', filename=true);
 ```
 This will result in an additional column in the result set that contains the actual filename of the Avro file. 
 
+### Files with Different Schemas
+By default the first file decides the columns and types of a multi-file read. Files whose schema evolved can be read in two ways. `union_by_name` opens every file and combines their columns by name, a column a file lacks reading as `NULL`:
+
+```SQL
+FROM read_avro('some_example_file_*.avro', union_by_name=true);
+```
+
+The `schema` argument pins the columns instead, without opening a file to find them: a `MAP` from the column name to its name, type and the default a file without the column reads. Each file is mapped onto that schema by name (case-insensitively), a column of another type is cast, and columns of a file that are not in the map are not read. With `INTEGER` keys the files are mapped by Avro field id (the `field-id` attribute Iceberg writes) instead of by name.
+
+```SQL
+FROM read_avro('some_example_file_*.avro', schema=MAP {
+    'id': {name: 'id', type: 'BIGINT', default_value: NULL},
+    'added_later': {name: 'added_later', type: 'VARCHAR', default_value: 'n/a'}
+});
+```
+
 ### Schema Conversion
 This extension automatically translates the Avro Schema to the DuckDB schema. *All* Avro types can be translated, except for *recursive type definitions*, which DuckDB does not support.
 
