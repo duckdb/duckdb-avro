@@ -1013,6 +1013,30 @@ WriteAvroLocalState::WriteAvroLocalState(FunctionData &bind_data_p) {
 	}
 }
 
+//! When a row does not fit in the rest of the datum buffer, avro-c writes the block so far into the file buffer on its
+//! own. Keeps the file buffer large enough for that block, which is always empty at this point.
+static void ReserveBlockSpace(WriteAvroGlobalState &global_state) {
+	//! Room for a compressed block that is larger than its input, plus the counts and the sync marker
+	auto needed = 2 * global_state.datum_buffer.GetCapacity() + WriteAvroGlobalState::BUFFER_SIZE;
+	auto &buffer = global_state.memory_buffer;
+	if (buffer.GetCapacity() < needed) {
+		buffer.Resize(NextPowerOfTwo(needed));
+		avro_writer_memory_set_dest(global_state.writer, (const char *)buffer.GetData(), buffer.GetCapacity());
+	}
+}
+
+//! Writes out a block avro-c wrote into the file buffer on its own, so it is not lost when the buffer is reused
+static bool WriteBlockFromAvro(WriteAvroGlobalState &global_state) {
+	auto size = static_cast<idx_t>(avro_writer_tell(global_state.writer));
+	if (size == 0) {
+		return false;
+	}
+	auto &buffer = global_state.memory_buffer;
+	global_state.WriteData(buffer.GetData(), size);
+	avro_writer_memory_set_dest(global_state.writer, (const char *)buffer.GetData(), buffer.GetCapacity());
+	return true;
+}
+
 static void WriteAvroSink(ExecutionContext &context, FunctionData &bind_data_p, GlobalFunctionData &gstate_p,
                           LocalFunctionData &lstate_p, DataChunk &input) {
 	auto &global_state = gstate_p.Cast<WriteAvroGlobalState>();
@@ -1047,19 +1071,26 @@ static void WriteAvroSink(ExecutionContext &context, FunctionData &bind_data_p, 
 			new_capacity += value_size;
 			datum_buffer.ResizeAndCopy(NextPowerOfTwo(new_capacity));
 		}
+		ReserveBlockSpace(global_state);
 		avro_writer_memory_set_dest_with_offset(global_state.datum_writer, (const char *)datum_buffer.GetData(),
 		                                        datum_buffer.GetCapacity(), offset_in_datum_buffer);
 
 		int ret;
 		while ((ret = avro_file_writer_append_value(global_state.file_writer.get(), &local_state.row.value)) == ENOSPC) {
+			if (WriteBlockFromAvro(global_state)) {
+				//! The datum buffer was reset when avro-c wrote the block, so the row now starts at its beginning
+				offset_in_datum_buffer = 0;
+			}
 			auto current_capacity = datum_buffer.GetCapacity();
 			datum_buffer.ResizeAndCopy(NextPowerOfTwo(current_capacity * 2));
+			ReserveBlockSpace(global_state);
 			avro_writer_memory_set_dest_with_offset(global_state.datum_writer, (const char *)datum_buffer.GetData(),
 			                                        datum_buffer.GetCapacity(), offset_in_datum_buffer);
 		}
 		if (ret) {
 			throw InvalidInputException(avro_strerror());
 		}
+		WriteBlockFromAvro(global_state);
 
 		offset_in_datum_buffer = avro_writer_tell(global_state.datum_writer);
 		avro_value_reset(&local_state.row.value);
