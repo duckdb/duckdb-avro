@@ -392,7 +392,7 @@ private:
 			auto list_child = type.GetListChildType();
 			auto element_field_id = GetChildFieldIdByName(field_id, "list");
 			json_ptr_t items_type_val;
-			if (list_child.GetTypeId() == LogicalTypeId::STRUCT && element_field_id) {
+			if (list_child.GetTypeId() == LogicalTypeId::STRUCT && element_field_id && element_field_id->set) {
 				auto element_schema_name = "r" + std::to_string(element_field_id->GetFieldId());
 				items_type_val = CreateJSONType(list_child, element_field_id, element_schema_name.c_str());
 			} else {
@@ -404,7 +404,7 @@ private:
 			}
 			json_object_set_new(type_val.get(), "items", items_type_val.release());
 
-			if (element_field_id) {
+			if (element_field_id && element_field_id->set) {
 				json_object_set_new(type_val.get(), "element-id", json_integer(element_field_id->GetFieldId()));
 			}
 		} else if (type_id == LogicalTypeId::MAP) {
@@ -493,7 +493,7 @@ private:
 	                             std::unordered_map<std::string, std::string> &field_names) {
 		auto output_name = SanitizeFieldName(name, field_names);
 		auto schema_name = output_name;
-		if (type.GetTypeId() == LogicalTypeId::STRUCT && field_id) {
+		if (type.GetTypeId() == LogicalTypeId::STRUCT && field_id && field_id->set) {
 			schema_name = "r" + std::to_string(field_id->GetFieldId());
 		}
 		auto struct_field_type = CreateJSONType(type, field_id, schema_name.c_str());
@@ -502,7 +502,7 @@ private:
 		}
 		json_ptr_t struct_field(json_object());
 		json_object_set_new(struct_field.get(), "type", struct_field_type.release());
-		if (field_id) {
+		if (field_id && field_id->set) {
 			json_object_set_new(struct_field.get(), "field-id", json_integer(field_id->GetFieldId()));
 		}
 		json_object_set_new(struct_field.get(), "name", json_string(output_name.c_str()));
@@ -522,7 +522,7 @@ private:
 		}
 		auto key = GetChildFieldIdByName(field_id, "key");
 		auto value = GetChildFieldIdByName(field_id, "value");
-		if (key && value) {
+		if (key && key->set && value && value->set) {
 			ids.key_id = key->GetFieldId();
 			ids.value_id = value->GetFieldId();
 			return true;
