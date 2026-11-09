@@ -164,7 +164,8 @@ mod tests {
 
     #[test]
     fn names() {
-        assert_eq!(Codec::from_name(" DEFLATE ").unwrap(), Codec::Deflate);
+        assert_eq!(Codec::from_name("DEFLATE").unwrap(), Codec::Deflate);
+        assert!(Codec::from_name(" deflate ").unwrap_err().message().contains("Unknown codec ' deflate '"));
         assert_eq!(Codec::from_name("zstandard").unwrap().name(), "zstandard");
         assert!(Codec::from_name("nope").unwrap_err().message().contains("Unknown codec 'nope'"));
     }
