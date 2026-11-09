@@ -239,6 +239,8 @@ pub struct Schema {
     root: SchemaId,
     /// Full name of every named type -> its defining node.
     named: HashMap<String, SchemaId>,
+    /// [`Schema::min_encoded_size`] of every node.
+    min_sizes: Vec<usize>,
 }
 
 impl Index<SchemaId> for Schema {
@@ -266,7 +268,8 @@ impl Schema {
     pub fn primitive(kind: SchemaKind) -> Schema {
         let mut builder = SchemaBuilder::new();
         let root = builder.add(SchemaNode::new(kind));
-        Schema { nodes: builder.nodes, root, named: HashMap::new() }
+        let min_sizes = min_encoded_sizes(&builder.nodes);
+        Schema { nodes: builder.nodes, root, named: HashMap::new(), min_sizes }
     }
 
     pub fn root(&self) -> SchemaId {
@@ -298,6 +301,16 @@ impl Schema {
     /// The defining node of the named type `fullname` (`namespace.name`, or the bare name without a namespace).
     pub fn named(&self, fullname: &str) -> Option<SchemaId> {
         self.named.get(fullname).copied()
+    }
+
+    /// The fewest bytes one value of node `id` occupies in the binary encoding: 0 for `null`, a `fixed` of size 0
+    /// and a record of such fields only; at least 1 for everything else (a `boolean`, the varint of an `int`, `long`
+    /// or `enum`, the length prefix of `bytes` and `string`, the index of a union, the end marker of an array or map).
+    /// A decoder bounds the item count of an array or map block by it ([`crate::Decoder::read_block_count`]). The
+    /// value is conservative, never above the true minimum: a recursive type counts as 0 where it refers back to
+    /// itself, so a legitimate file never fails the bound.
+    pub fn min_encoded_size(&self, id: SchemaId) -> usize {
+        self.min_sizes[id.index()]
     }
 
     /// Full names of all named types with their defining nodes, in definition order.
@@ -421,8 +434,53 @@ impl SchemaBuilder {
                 *target = resolved;
             }
         }
-        Ok(Schema { nodes: self.nodes, root, named })
+        let min_sizes = min_encoded_sizes(&self.nodes);
+        Ok(Schema { nodes: self.nodes, root, named, min_sizes })
     }
+}
+
+/// [`Schema::min_encoded_size`] of every node of a validated arena (references resolved).
+fn min_encoded_sizes(nodes: &[SchemaNode]) -> Vec<usize> {
+    #[derive(Clone, Copy)]
+    enum Memo {
+        Unknown,
+        /// On the current path: a recursive type, counted as 0.
+        InProgress,
+        Known(usize),
+    }
+    fn size(nodes: &[SchemaNode], memo: &mut [Memo], id: SchemaId) -> usize {
+        let index = id.index();
+        match memo[index] {
+            Memo::Known(size) => return size,
+            Memo::InProgress => return 0,
+            Memo::Unknown => memo[index] = Memo::InProgress,
+        }
+        let result = match &nodes[index].kind {
+            SchemaKind::Null => 0,
+            SchemaKind::Boolean
+            | SchemaKind::Int
+            | SchemaKind::Long
+            | SchemaKind::Bytes
+            | SchemaKind::String
+            | SchemaKind::Enum { .. }
+            | SchemaKind::Array { .. }
+            | SchemaKind::Map { .. } => 1,
+            SchemaKind::Float => 4,
+            SchemaKind::Double => 8,
+            SchemaKind::Fixed { size, .. } => *size,
+            SchemaKind::Record { fields, .. } => {
+                fields.iter().fold(0usize, |sum, field| sum.saturating_add(size(nodes, memo, field.ty)))
+            }
+            SchemaKind::Union { branches } => {
+                1 + branches.iter().map(|branch| size(nodes, memo, *branch)).min().unwrap_or(0)
+            }
+            SchemaKind::Ref { target, .. } => size(nodes, memo, *target),
+        };
+        memo[index] = Memo::Known(result);
+        result
+    }
+    let mut memo = vec![Memo::Unknown; nodes.len()];
+    (0..nodes.len()).map(|index| size(nodes, &mut memo, SchemaId(index as u32))).collect()
 }
 
 /// Keys of a schema object that are structure or modelled attributes rather than `extra` ones.

@@ -12,6 +12,12 @@ const MAX_DEPTH: usize = 1000;
 /// The error text for undecodable UTF-8 in a string or map key (the DuckDB layer surfaces it unchanged).
 pub const INVALID_UNICODE: &str = "Avro file contains invalid unicode string";
 
+/// Items per array or map block a decoder accepts when the items encode to zero bytes (`null`, an empty record, a
+/// `fixed` of size 0: [`Schema::min_encoded_size`] is 0). Such a block has no payload to bound its count by, so a
+/// corrupt or malicious count (2^32 nulls in a 178-byte file) would otherwise keep the decoder spinning; 16 Mi
+/// zero-size items per block is far beyond what a writer produces.
+pub const MAX_ZERO_SIZE_BLOCK_ITEMS: usize = 1 << 24;
+
 /// Decodes zigzag varint `value` as the Avro spec defines it.
 #[inline]
 pub fn zigzag_decode(value: u64) -> i64 {
@@ -210,17 +216,38 @@ impl<'a> Decoder<'a> {
     }
 
     /// The header of the next array or map block. A count of `0` ends the collection; a negative count in the
-    /// encoding is returned as its magnitude with the byte size the writer recorded. The count is not capped:
-    /// items may be empty (a record without fields, `null`), so size allocations by `min(count, remaining())`.
+    /// encoding is returned as its magnitude with the byte size the writer recorded.
+    ///
+    /// The count is bounded by `min_item_size`, the fewest bytes one item of the block occupies
+    /// ([`Schema::min_encoded_size`] of the item type, plus that of the key for a map): `count` items cannot need
+    /// more than the remaining bytes, and a block of zero-size items may hold at most [`MAX_ZERO_SIZE_BLOCK_ITEMS`].
+    /// A count beyond either is an invalid-input error, so a corrupt count never drives a loop the input cannot feed.
+    /// Size allocations by `min(count, remaining())` all the same: items may be empty.
     #[inline]
-    pub fn read_block_count(&mut self) -> Result<BlockCount> {
+    pub fn read_block_count(&mut self, min_item_size: usize) -> Result<BlockCount> {
         let count = self.read_long()?;
-        if count >= 0 {
-            return Ok(BlockCount { count: count as usize, byte_size: None });
+        let block = if count >= 0 {
+            BlockCount { count: count as usize, byte_size: None }
+        } else {
+            let count = count.checked_neg().ok_or_else(|| Error::invalid_input("Avro block count overflow"))? as usize;
+            let byte_size = self.read_length("block")?;
+            BlockCount { count, byte_size: Some(byte_size) }
+        };
+        if min_item_size == 0 {
+            if block.count > MAX_ZERO_SIZE_BLOCK_ITEMS {
+                return Err(Error::invalid_input(format!(
+                    "Avro block count {} exceeds the limit of {MAX_ZERO_SIZE_BLOCK_ITEMS} zero-size items per block",
+                    block.count
+                )));
+            }
+        } else if block.count > self.remaining() / min_item_size {
+            return Err(Error::invalid_input(format!(
+                "Avro block count {} exceeds the remaining {} bytes",
+                block.count,
+                self.remaining()
+            )));
         }
-        let count = count.checked_neg().ok_or_else(|| Error::invalid_input("Avro block count overflow"))? as usize;
-        let byte_size = self.read_length("block")?;
-        Ok(BlockCount { count, byte_size: Some(byte_size) })
+        Ok(block)
     }
 
     /// Skips one value of the given schema without materializing it.
@@ -258,8 +285,9 @@ impl<'a> Decoder<'a> {
     }
 
     fn skip_blocks(&mut self, schema: &Schema, item: SchemaId, keyed: bool, depth: usize) -> Result<()> {
+        let min_item_size = schema.min_encoded_size(item).saturating_add(usize::from(keyed));
         loop {
-            let block = self.read_block_count()?;
+            let block = self.read_block_count(min_item_size)?;
             if block.count == 0 {
                 return Ok(());
             }

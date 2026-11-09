@@ -48,7 +48,8 @@ impl Header {
         dec.seek(4);
         let mut metadata = Vec::new();
         loop {
-            let block = dec.read_block_count().map_err(|e| header_error(&e))?;
+            // a string key and a bytes value: two length prefixes at least
+            let block = dec.read_block_count(2).map_err(|e| header_error(&e))?;
             if block.count == 0 {
                 break;
             }

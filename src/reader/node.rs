@@ -166,6 +166,8 @@ pub(crate) enum Node {
         entries: Vec<duckdb_v2_list_entry>,
         child: Box<Node>,
         nulls: Vec<usize>,
+        /// The fewest bytes one item occupies, the bound of a block count.
+        min_item_size: usize,
     },
     Map {
         entries: Vec<duckdb_v2_list_entry>,
@@ -173,6 +175,8 @@ pub(crate) enum Node {
         value: Box<Node>,
         from_array: bool,
         nulls: Vec<usize>,
+        /// The fewest bytes one entry occupies, the bound of a block count.
+        min_item_size: usize,
     },
     Union {
         branch_ids: Vec<SchemaId>,
@@ -224,15 +228,19 @@ impl Node {
             Shape::Struct(fields) => {
                 Node::Struct { fields: fields.iter().map(Node::new).collect(), len: 0, nulls: Vec::new() }
             }
-            Shape::List(element) => {
-                Node::List { entries: Vec::new(), child: Box::new(Node::new(element)), nulls: Vec::new() }
-            }
-            Shape::Map { key, value, from_array } => Node::Map {
+            Shape::List { element, min_item_size } => Node::List {
+                entries: Vec::new(),
+                child: Box::new(Node::new(element)),
+                nulls: Vec::new(),
+                min_item_size: *min_item_size,
+            },
+            Shape::Map { key, value, from_array, min_item_size } => Node::Map {
                 entries: Vec::new(),
                 key: Box::new(Node::new(key)),
                 value: Box::new(Node::new(value)),
                 from_array: *from_array,
                 nulls: Vec::new(),
+                min_item_size: *min_item_size,
             },
             Shape::Union { branch_ids, branch_members, members } => Node::Union {
                 branch_ids: branch_ids.clone(),
@@ -305,7 +313,7 @@ impl Node {
                 *len = 0;
                 nulls.clear();
             }
-            Node::List { entries, child, nulls } => {
+            Node::List { entries, child, nulls, .. } => {
                 entries.clear();
                 child.clear();
                 nulls.clear();
@@ -354,7 +362,7 @@ impl Node {
                 *len += 1;
                 fields.iter_mut().for_each(Node::push_null);
             }
-            Node::List { entries, child, nulls } => {
+            Node::List { entries, child, nulls, .. } => {
                 nulls.push(entries.len());
                 entries.push(duckdb_v2_list_entry { offset: child.len() as u64, length: 0 });
             }
@@ -433,11 +441,11 @@ impl Node {
                 }
                 *len += 1;
             }
-            Node::List { entries, child, .. } => {
+            Node::List { entries, child, min_item_size, .. } => {
                 let offset = child.len() as u64;
                 let mut length = 0u64;
                 loop {
-                    let block = dec.read_block_count().or_err()?;
+                    let block = dec.read_block_count(*min_item_size).or_err()?;
                     if block.count == 0 {
                         break;
                     }
@@ -448,11 +456,11 @@ impl Node {
                 }
                 entries.push(duckdb_v2_list_entry { offset, length });
             }
-            Node::Map { entries, key, value, from_array, .. } => {
+            Node::Map { entries, key, value, from_array, min_item_size, .. } => {
                 let offset = key.len() as u64;
                 let mut length = 0u64;
                 loop {
-                    let block = dec.read_block_count().or_err()?;
+                    let block = dec.read_block_count(*min_item_size).or_err()?;
                     if block.count == 0 {
                         break;
                     }
@@ -542,7 +550,7 @@ impl Node {
                 }
                 set_nulls(vector, *len, nulls)
             }
-            Node::List { entries, child, nulls } => {
+            Node::List { entries, child, nulls, .. } => {
                 let count = entries.len();
                 vector.flat_data_mut::<duckdb_v2_list_entry>(count)?.copy_from_slice(entries);
                 set_nulls(vector, count, nulls)?;

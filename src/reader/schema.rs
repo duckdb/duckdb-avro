@@ -46,12 +46,18 @@ pub(crate) enum Shape {
         width: usize,
     },
     Struct(Vec<Column>),
-    List(Box<Column>),
-    /// An Avro `map` (`from_array: false`, string keys), or an array of key/value records annotated as a map.
+    /// An Avro `array`; `min_item_size` is [`Schema::min_encoded_size`] of its items, the bound of a block count.
+    List {
+        element: Box<Column>,
+        min_item_size: usize,
+    },
+    /// An Avro `map` (`from_array: false`, string keys), or an array of key/value records annotated as a map;
+    /// `min_item_size` is the fewest bytes one entry occupies, the bound of a block count.
     Map {
         key: Box<Column>,
         value: Box<Column>,
         from_array: bool,
+        min_item_size: usize,
     },
     /// A union of several non-null branches: `branch_members[b]` is the DuckDB member a branch is read into (`None`
     /// for a null branch, whose bytes are skipped through `branch_ids[b]`).
@@ -88,7 +94,7 @@ impl Column {
     pub(crate) fn id_children(&self) -> Vec<&Column> {
         match &self.shape {
             Shape::Struct(fields) => fields.iter().collect(),
-            Shape::List(element) => vec![element],
+            Shape::List { element, .. } => vec![element],
             Shape::Map { key, value, .. } => vec![key, value],
             Shape::Union { members, .. } => members.iter().collect(),
             Shape::Nullable { child, .. } => child.id_children(),
@@ -341,9 +347,10 @@ impl Converter<'_> {
             SchemaKind::Array { items, element_id } => {
                 let mut element = self.convert(*items, "list")?;
                 element.field_id = element_id.and_then(|id| i32::try_from(id).ok());
+                let min_item_size = self.schema.min_encoded_size(*items);
                 if node.logical_type.as_deref() != Some("map") {
                     let type_ = LogicalType::list(self.factory, &element.type_)?;
-                    return Ok(Column::new(name, type_, Shape::List(Box::new(element))));
+                    return Ok(Column::new(name, type_, Shape::List { element: Box::new(element), min_item_size }));
                 }
                 let Shape::Struct(mut fields) = element.shape else {
                     return Err(Error::invalid_input(
@@ -363,7 +370,7 @@ impl Converter<'_> {
                 Ok(Column::new(
                     name,
                     type_,
-                    Shape::Map { key: Box::new(key), value: Box::new(value), from_array: true },
+                    Shape::Map { key: Box::new(key), value: Box::new(value), from_array: true, min_item_size },
                 ))
             }
             SchemaKind::Map { values, key_id, value_id } => {
@@ -372,10 +379,12 @@ impl Converter<'_> {
                 let mut value = self.convert(*values, "value")?;
                 value.field_id = value_id.and_then(|id| i32::try_from(id).ok());
                 let type_ = self.map_type(&key.type_, &value.type_)?;
+                // the key is a string: a length prefix at least
+                let min_item_size = self.schema.min_encoded_size(*values).saturating_add(1);
                 Ok(Column::new(
                     name,
                     type_,
-                    Shape::Map { key: Box::new(key), value: Box::new(value), from_array: false },
+                    Shape::Map { key: Box::new(key), value: Box::new(value), from_array: false, min_item_size },
                 ))
             }
             SchemaKind::Union { branches } => {

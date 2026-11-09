@@ -151,7 +151,7 @@ fn walk_value(dec: &mut Decoder<'_>, schema: &Schema, id: SchemaId, sum: &mut Ch
             walk_value(dec, schema, branches[branch], sum)?;
         }
         SchemaKind::Array { items, .. } => loop {
-            let block = dec.read_block_count()?;
+            let block = dec.read_block_count(schema.min_encoded_size(*items))?;
             if block.count == 0 {
                 break;
             }
@@ -160,7 +160,7 @@ fn walk_value(dec: &mut Decoder<'_>, schema: &Schema, id: SchemaId, sum: &mut Ch
             }
         },
         SchemaKind::Map { values, .. } => loop {
-            let block = dec.read_block_count()?;
+            let block = dec.read_block_count(schema.min_encoded_size(*values).saturating_add(1))?;
             if block.count == 0 {
                 break;
             }

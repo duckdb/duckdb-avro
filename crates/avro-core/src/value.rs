@@ -133,8 +133,9 @@ fn read_depth(dec: &mut Decoder<'_>, schema: &Schema, id: SchemaId, depth: usize
         }
         SchemaKind::Array { items, .. } => {
             let mut out = Vec::new();
+            let min_item_size = schema.min_encoded_size(*items);
             loop {
-                let block = dec.read_block_count()?;
+                let block = dec.read_block_count(min_item_size)?;
                 if block.count == 0 {
                     break;
                 }
@@ -147,8 +148,10 @@ fn read_depth(dec: &mut Decoder<'_>, schema: &Schema, id: SchemaId, depth: usize
         }
         SchemaKind::Map { values, .. } => {
             let mut out = Vec::new();
+            // the key is a string: a length prefix at least
+            let min_item_size = schema.min_encoded_size(*values).saturating_add(1);
             loop {
-                let block = dec.read_block_count()?;
+                let block = dec.read_block_count(min_item_size)?;
                 if block.count == 0 {
                     break;
                 }
