@@ -119,12 +119,18 @@ Writing (`COPY ... TO`), as the C++ extension does it:
 | `STRUCT` | `record` |
 | `LIST` | `array` |
 | `MAP` | `array` + `"logicalType": "map"` of `record(key, value)` (the Iceberg form, so it reads back as a `MAP`) |
+| `ENUM` | `enum` of the symbols in order (named like a record; the symbols must be Avro identifiers) |
+| `UNION` | `union` of the member types in member order, `null` first when the field is nullable |
 
 Every field, element, key and value is written as `["null", T]` unless `FIELD_IDS` marks it `__duckdb_nullable:
 false`. A `record` or `fixed` is named after its field (`r<id>` with a field id, `record<n>` / `fixed<n>` for array
 items); Avro wants those names distinct, so a name a nested field repeats (`{'value': {'x': 1}} AS s1, {'value': {'y':
-2}} AS s2`) gets the suffix `_2`, `_3`, ... from the second definition on. Other types (`TINYINT` ... `HUGEINT`, unsigned integers, `ENUM`, `UNION`, `INTERVAL`, `ARRAY`, ...) are
-refused with `Can't convert logical type ... to Avro type`.
+2}} AS s2`) gets the suffix `_2`, `_3`, ... from the second definition on. Avro unions are positional, so the member
+names of a `UNION` are not written and a round trip reads them back as `u<branch index>` (`UNION(a INTEGER, b VARCHAR)`
+becomes `UNION(u1 INTEGER, u2 VARCHAR)` after the `null` branch); a union member cannot be another `UNION` or `"NULL"`,
+and two members that map to the same unnamed Avro type (two `INTEGER`s, two `LIST`s) are refused since an Avro union
+holds every unnamed type once. Other types (`TINYINT` ... `HUGEINT`, unsigned integers, `INTERVAL`, `ARRAY`, ...)
+are refused with `Can't convert logical type ... to Avro type`.
 
 ## Differences from the C++ extension
 

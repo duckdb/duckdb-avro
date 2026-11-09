@@ -4,7 +4,8 @@
 //! [`Prepared`] is the plan with the read views of one chunk's vectors (the C++ `Prepare`); [`Prepared::write`]
 //! encodes one row. The row layout is the schema's: a nullable field is a union (`0` for null, `1` plus the value),
 //! a record its fields back to back, an array one block of `n` items plus the end marker, a MAP an array of
-//! key/value records.
+//! key/value records, an ENUM the symbol index, a UNION the branch index (the member tag, plus one when the field is
+//! nullable and `null` is the first branch) followed by the member's value.
 
 use avro_core::Encoder;
 use duckdb_ext_api::sys::{DUCKDB_V2_VECTOR_TYPE_DICTIONARY, duckdb_v2_hugeint_t};
@@ -14,7 +15,7 @@ use duckdb_ext_api::{Error, ListView, LogicalType, Result, StringView, TypedView
 use super::field_ids::FieldId;
 use super::schema::{EMPTY_STRUCT_MARKER, min_bytes_required_for_decimal};
 use super::types::{
-    decimal_internal_type_id, decimal_width_scale, list_child_type, map_key_value_types, struct_children,
+    decimal_internal_type_id, decimal_width_scale, list_child_type, map_key_value_types, struct_children, union_members,
 };
 
 /// How the elements of one column (or nested child) are encoded.
@@ -46,6 +47,20 @@ pub(crate) enum Plan {
     List {
         child: Box<ColumnPlan>,
     },
+    /// An `enum`: the symbol index, stored in the width the symbol count needs.
+    Enum(EnumWidth),
+    /// A `union`: one plan per member (none of them nullable: a member has no null slot of its own).
+    Union {
+        members: Vec<ColumnPlan>,
+    },
+}
+
+/// The storage type of an ENUM's elements.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum EnumWidth {
+    U8,
+    U16,
+    U32,
 }
 
 /// The storage type of a DECIMAL's elements.
@@ -127,7 +142,22 @@ impl ColumnPlan {
                 let child = ColumnPlan::new(&child_type, field_id.and_then(|id| id.children.find("list")))?;
                 Plan::List { child: Box::new(child) }
             }
-            type_id::ENUM => return Err(Error::not_implemented("Can't convert ENUM Value to Avro yet")),
+            type_id::ENUM => Plan::Enum(match type_.element_width()? {
+                Some(1) => EnumWidth::U8,
+                Some(2) => EnumWidth::U16,
+                _ => EnumWidth::U32,
+            }),
+            type_id::UNION => {
+                let mut members = Vec::new();
+                for (member_name, member_type) in union_members(type_)? {
+                    let mut member =
+                        ColumnPlan::new(&member_type, field_id.and_then(|id| id.children.find(&member_name)))?;
+                    // the union's null branch is the only null slot
+                    member.nullable = false;
+                    members.push(member);
+                }
+                Plan::Union { members }
+            }
             _ => {
                 return Err(Error::not_implemented(format!(
                     "PopulateValue not implemented for type {}",
@@ -178,6 +208,24 @@ impl ColumnPlan {
                 let view = vector.list_view()?;
                 View::List(view, Box::new(child.prepare(&vector.child(0)?)?))
             }
+            Plan::Enum(width) => match width {
+                EnumWidth::U8 => View::Enum8(vector.typed_view::<u8>()?),
+                EnumWidth::U16 => View::Enum16(vector.typed_view::<u16>()?),
+                EnumWidth::U32 => View::Enum32(vector.typed_view::<u32>()?),
+            },
+            Plan::Union { members } => {
+                // a UNION vector is a STRUCT vector of the tag (UTINYINT) and the members
+                if vector.vector_type()? == DUCKDB_V2_VECTOR_TYPE_DICTIONARY {
+                    vector.flatten()?;
+                }
+                let view = vector.view()?;
+                let tags = vector.child(0)?.typed_view::<u8>()?;
+                let mut prepared = Vec::with_capacity(members.len());
+                for (index, member) in members.iter().enumerate() {
+                    prepared.push(member.prepare(&vector.child(index + 1)?)?);
+                }
+                View::Union(view, tags, prepared)
+            }
         };
         Ok(Prepared { plan: self, view })
     }
@@ -200,6 +248,11 @@ enum View<'p> {
     Decimal128(TypedView<duckdb_v2_hugeint_t>, u8),
     Struct(VectorView, Vec<Prepared<'p>>),
     List(ListView, Box<Prepared<'p>>),
+    Enum8(TypedView<u8>),
+    Enum16(TypedView<u16>),
+    Enum32(TypedView<u32>),
+    /// The union's own validity, its tags, and the members.
+    Union(VectorView, TypedView<u8>, Vec<Prepared<'p>>),
 }
 
 /// A plan with the views of one chunk's vector; valid as long as the chunk.
@@ -283,6 +336,29 @@ impl Prepared<'_> {
                     }
                 }
                 enc.write_block_end();
+            }
+            View::Enum8(v) => match v.get_valid(row) {
+                Some(i) => self.non_null(enc).write_enum(usize::from(i)),
+                None => return self.write_null(enc),
+            },
+            View::Enum16(v) => match v.get_valid(row) {
+                Some(i) => self.non_null(enc).write_enum(usize::from(i)),
+                None => return self.write_null(enc),
+            },
+            View::Enum32(v) => match v.get_valid(row) {
+                Some(i) => self.non_null(enc).write_enum(i as usize),
+                None => return self.write_null(enc),
+            },
+            View::Union(view, tags, members) => {
+                let Some(tag) = tags.get_valid(row).filter(|_| view.is_valid(row)) else {
+                    return self.write_null(enc);
+                };
+                let member = members.get(usize::from(tag)).ok_or_else(|| {
+                    Error::invalid_input(format!("UNION tag {tag} beyond the {} members", members.len()))
+                })?;
+                // the branch index: the tag, after the null branch of a nullable field
+                enc.write_union_index(usize::from(tag) + usize::from(self.plan.nullable));
+                member.write(enc, row)?;
             }
         }
         Ok(())

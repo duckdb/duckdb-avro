@@ -1,7 +1,8 @@
-//! Introspection of the DuckDB types the writer converts: the children of STRUCT / LIST / MAP and the width and scale
-//! of a DECIMAL, read from the type's value parameters (`duckdb_v2_logical_type_get_param`: a STRUCT has one TYPE
-//! parameter per field under the field's name, a LIST its element type, a MAP its key and value types, a DECIMAL its
-//! width and scale as UTINYINT).
+//! Introspection of the DuckDB types the writer converts: the children of STRUCT / LIST / MAP / UNION, the symbols
+//! of an ENUM and the width and scale of a DECIMAL, read from the type's value parameters
+//! (`duckdb_v2_logical_type_get_param`: a STRUCT has one TYPE parameter per field under the field's name, a UNION one
+//! per member under the member's name, a LIST its element type, a MAP its key and value types, an ENUM one VARCHAR
+//! parameter per symbol, a DECIMAL its width and scale as UTINYINT).
 
 use duckdb_ext_api::types::type_id;
 use duckdb_ext_api::{Error, LogicalType, Result, TypeId};
@@ -15,6 +16,16 @@ pub(crate) fn struct_children(type_: &LogicalType) -> Result<Vec<(String, Logica
         children.push((name, value.as_type()?));
     }
     Ok(children)
+}
+
+/// The `(name, type)` of every member of a UNION, in member order.
+pub(crate) fn union_members(type_: &LogicalType) -> Result<Vec<(String, LogicalType)>> {
+    struct_children(type_)
+}
+
+/// The symbols of an ENUM, in order.
+pub(crate) fn enum_symbols(type_: &LogicalType) -> Result<Vec<String>> {
+    (0..type_.param_count()?).map(|i| type_.param(i)?.1.as_str()).collect()
 }
 
 /// The element type of a LIST.

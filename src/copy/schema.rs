@@ -19,8 +19,14 @@
 //! | STRUCT                                  | `record` (the `__duckdb_empty_struct_marker` child skipped)   |
 //! | LIST                                    | `array` (nullable items)                                      |
 //! | MAP                                     | `array` + `"logicalType":"map"` of `record(key, value)`       |
+//! | ENUM                                    | `enum` of the symbols in order (they must be Avro identifiers) |
+//! | UNION                                   | `union` of the member types in member order (names dropped)   |
 //!
 //! Every field, element, key and value is nullable (`["null", T]`) unless FIELD_IDS says `__duckdb_nullable: false`.
+//! A nullable UNION gets `null` as its first branch rather than a union around the union (Avro unions do not nest);
+//! its members are the branches as they are, a member has no null slot of its own (a DuckDB union value is NULL as a
+//! whole or has a valid member). Two members whose Avro types are the same unnamed type (two INTEGERs, two LISTs)
+//! cannot be told apart in an Avro union and are refused, as is a UNION member or a `"NULL"` member.
 //!
 //! Named types (`record`, `fixed`) take the name of the field they belong to (`r<field id>` for a record with an
 //! Iceberg field id, `k<key id>_v<value id>` for a map's entries), or `<avro type><n>` where there is no field (array
@@ -35,7 +41,10 @@ use duckdb_ext_api::types::type_id;
 use duckdb_ext_api::{Error, Factory, LogicalType, Result, TypeId};
 
 use super::field_ids::{ChildFieldIds, FieldId};
-use super::types::{cannot_convert, decimal_width_scale, list_child_type, map_key_value_types, struct_children};
+use super::types::{
+    cannot_convert, decimal_width_scale, enum_symbols, list_child_type, map_key_value_types, struct_children,
+    union_members,
+};
 
 /// The child a STRUCT without fields carries; it has no Avro field.
 pub(crate) const EMPTY_STRUCT_MARKER: &str = "__duckdb_empty_struct_marker";
@@ -60,6 +69,8 @@ fn convert_type_to_avro(type_: &LogicalType) -> Result<&'static str> {
         type_id::LIST => "array",
         // a 'logicalType': map over an array of key/value records
         type_id::MAP => "array",
+        type_id::ENUM => "enum",
+        type_id::UNION => "union",
         _ => return Err(cannot_convert(type_)),
     })
 }
@@ -217,13 +228,16 @@ impl<'a> SchemaGenerator<'a> {
         }
     }
 
-    /// Wraps a type in a union with null; `null` itself stays as it is (a union cannot repeat a type).
+    /// Wraps a type in a union with null; `null` itself stays as it is (a union cannot repeat a type) and a union
+    /// gets `null` as its first branch (a union cannot nest).
     fn make_nullable(&mut self, type_: SchemaId) -> SchemaId {
-        if matches!(self.builder.node(type_).kind, SchemaKind::Null) {
-            return type_;
-        }
+        let branches = match &self.builder.node(type_).kind {
+            SchemaKind::Null => return type_,
+            SchemaKind::Union { branches } => branches.clone(),
+            _ => vec![type_],
+        };
         let null = self.builder.add_kind(SchemaKind::Null);
-        self.builder.add_kind(SchemaKind::Union { branches: vec![null, type_] })
+        self.builder.add_kind(SchemaKind::Union { branches: std::iter::once(null).chain(branches).collect() })
     }
 
     fn create_json_type(
@@ -277,6 +291,49 @@ impl<'a> SchemaGenerator<'a> {
             };
             let node = SchemaNode::new(SchemaKind::Array { items, element_id: None }).with_logical_type("map");
             return Ok(self.builder.add(node));
+        }
+
+        if type_id == type_id::ENUM {
+            let symbols = enum_symbols(type_)?;
+            for symbol in &symbols {
+                if !is_avro_id(symbol) {
+                    return Err(Error::invalid_input(format!(
+                        "'{symbol}' is not a valid Avro enum symbol\nThe symbol has to match the regex: \
+                         [A-Za-z_][A-Za-z0-9_]*"
+                    )));
+                }
+            }
+            let name = self.schema_name(avro_type, preset_schema_name)?;
+            return Ok(self.builder.add_kind(SchemaKind::Enum { name, symbols, default: None }));
+        }
+        if type_id == type_id::UNION {
+            let members = union_members(type_)?;
+            let mut branches = Vec::with_capacity(members.len());
+            // an Avro union tells its unnamed branches apart by type: no two of the same type
+            let mut unnamed: HashMap<&'static str, &str> = HashMap::new();
+            for (member_name, member_type) in &members {
+                let member_id = member_type.id()?;
+                if member_id == type_id::UNION || member_id == type_id::SQLNULL {
+                    return Err(Error::not_implemented(format!(
+                        "Can't convert UNION member '{member_name}' of type {} to an Avro union branch",
+                        member_type.to_text()?
+                    )));
+                }
+                let member_field_id = field_id.and_then(|f| f.children.find(member_name));
+                let branch = self.create_json_type(member_type, member_field_id, None)?;
+                let node = self.builder.node(branch);
+                if !node.kind.is_definition()
+                    && let Some(previous) = unnamed.insert(node.kind.type_name(), member_name)
+                {
+                    return Err(Error::invalid_input(format!(
+                        "Can't convert UNION members '{previous}' and '{member_name}' to an Avro union: both are an \
+                         Avro '{}', and a union holds every unnamed type once",
+                        node.kind.type_name()
+                    )));
+                }
+                branches.push(branch);
+            }
+            return Ok(self.builder.add_kind(SchemaKind::Union { branches }));
         }
 
         let primitive = match avro_type {
