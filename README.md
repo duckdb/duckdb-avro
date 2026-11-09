@@ -102,7 +102,7 @@ type, or `avro_schema` for an unnamed one. Reading:
 
 Logical types are honoured on primitives only; an array's `map` annotation is the one exception. An unknown logical
 type (`char`, `time-interval-micros`, any vendor name) or an invalid one is ignored and the underlying type is read,
-as the specification asks. Recursive records are not supported (DuckDB has no recursive types).
+as the specification asks. Recursive records are not supported (see the limitations below).
 
 Writing (`COPY ... TO`), as the C++ extension does it:
 
@@ -151,6 +151,16 @@ are refused with `Can't convert logical type ... to Avro type`.
   error.
 - An array or map block count the remaining bytes cannot hold (or beyond 2^24 zero-size items) fails fast instead of
   spinning the decoder.
+
+## Limitations
+
+- Recursive record schemas are not supported: DuckDB has no recursive types (`Recursive Avro types not supported`).
+- A `decimal` of more than 38 digits is read as the underlying `bytes` / `fixed` `BLOB`, the widest `DECIMAL` being 38.
+- An array or map block count of `INT64_MIN` (which has no magnitude) is rejected as corrupt; fastavro reads such an
+  array as empty.
+- A record with two fields of the same name is rejected, as Java does (fastavro reads the second field).
+- A named type defined twice in one schema is rejected even when the two definitions are identical (older Iceberg
+  Java manifests have such a `decimal` fixed; iceberg-rust special-cases them).
 
 ## Building
 
