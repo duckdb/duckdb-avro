@@ -22,8 +22,8 @@ jobs:
         with:
           components: clippy, rustfmt
       - run: cargo fmt --check
-      - run: cargo clippy --release --all-targets -- -D warnings
-      - run: cargo test --release
+      - run: cargo clippy --release --all-targets --workspace -- -D warnings
+      - run: cargo test --release --workspace
 
   test:
     runs-on: ubuntu-latest

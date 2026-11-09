@@ -72,7 +72,7 @@ unittest: target/release/libavro.so
 	LOCAL_EXTENSION_REPO=$(abspath build/repository) $(UNITTEST) $(if $(TEST_CONFIG),--test-config $(abspath $(TEST_CONFIG))) --test-dir $(CURDIR) "$(TESTS)"
 
 clippy:
-	cargo clippy --release --all-targets
+	cargo clippy --release --all-targets --workspace
 	cargo fmt --check
 
 clean:
