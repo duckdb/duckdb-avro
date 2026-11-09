@@ -35,10 +35,9 @@ impl ChildFieldIds {
     }
 }
 
-/// The id of one field: `set` is false for a nested specification that names children but no id of its own.
+/// The id of one field (a nested specification without an id of its own is rejected when it is parsed).
 #[derive(Debug)]
 pub(crate) struct FieldId {
-    set: bool,
     field_id: i32,
     /// Whether the field's Avro type is wrapped in a union with `null` (the default).
     pub(crate) nullable: bool,
@@ -46,20 +45,12 @@ pub(crate) struct FieldId {
 }
 
 impl FieldId {
-    fn unset() -> FieldId {
-        FieldId { set: false, field_id: 0, nullable: true, children: ChildFieldIds::default() }
-    }
-
     fn new(field_id: i32, nullable: bool) -> FieldId {
-        FieldId { set: true, field_id, nullable, children: ChildFieldIds::default() }
+        FieldId { field_id, nullable, children: ChildFieldIds::default() }
     }
 
-    /// The id; an error for a specification without one, as the C++ reports it.
-    pub(crate) fn field_id(&self) -> Result<i32> {
-        if !self.set {
-            return Err(Error::internal("Field id of the field is not set"));
-        }
-        Ok(self.field_id)
+    pub(crate) fn field_id(&self) -> i32 {
+        self.field_id
     }
 }
 
@@ -143,21 +134,22 @@ fn get_field_ids(
             field_id_value = Some(child_value);
         }
 
-        let field_id = match field_id_value {
-            Some(value) => {
-                let field_id_int = value.cast(factory, &LogicalType::new(factory, type_id::INTEGER)?)?.as_i32()?;
-                if !unique_field_ids.insert(field_id_int as u32) {
-                    return Err(Error::binder(format!("Duplicate field_id {field_id_int} found in FIELD_IDS")));
-                }
-                match field_id_nullable {
-                    Some(nullable) => {
-                        let nullable = nullable.cast(factory, &LogicalType::new(factory, type_id::BOOLEAN)?)?;
-                        FieldId::new(field_id_int, nullable.as_bool()?)
-                    }
-                    None => FieldId::new(field_id_int, true),
-                }
+        // a nested specification needs the column's own id: the C++ raised an internal error when it came to use it
+        let Some(field_id_value) = field_id_value else {
+            return Err(Error::binder(format!(
+                "FIELD_IDS: nested specification for column \"{col_name}\" requires a {DUCKDB_FIELD_ID}"
+            )));
+        };
+        let field_id_int = field_id_value.cast(factory, &LogicalType::new(factory, type_id::INTEGER)?)?.as_i32()?;
+        if !unique_field_ids.insert(field_id_int as u32) {
+            return Err(Error::binder(format!("Duplicate field_id {field_id_int} found in FIELD_IDS")));
+        }
+        let field_id = match field_id_nullable {
+            Some(nullable) => {
+                let nullable = nullable.cast(factory, &LogicalType::new(factory, type_id::BOOLEAN)?)?;
+                FieldId::new(field_id_int, nullable.as_bool()?)
             }
-            None => FieldId::unset(),
+            None => FieldId::new(field_id_int, true),
         };
         // `emplace`: an earlier entry of the same lowercase name is kept
         let inserted = field_ids.ids().entry(col_name.clone()).or_insert(field_id);

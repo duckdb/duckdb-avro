@@ -242,7 +242,7 @@ impl<'a> SchemaGenerator<'a> {
             let element_field_id = field_id.and_then(|f| f.children.find("list"));
             let mut items = match element_field_id {
                 Some(element) if list_child.id()? == type_id::STRUCT => {
-                    let element_schema_name = format!("r{}", element.field_id()?);
+                    let element_schema_name = format!("r{}", element.field_id());
                     self.create_json_type(&list_child, element_field_id, Some(&element_schema_name))?
                 }
                 _ => self.create_json_type(&list_child, element_field_id, None)?,
@@ -250,7 +250,7 @@ impl<'a> SchemaGenerator<'a> {
             if element_field_id.is_none_or(|element| element.nullable) {
                 items = self.make_nullable(items);
             }
-            let element_id = element_field_id.map(|element| element.field_id()).transpose()?.map(i64::from);
+            let element_id = element_field_id.map(|element| i64::from(element.field_id()));
             return Ok(self.builder.add_kind(SchemaKind::Array { items, element_id }));
         }
         if type_id == type_id::MAP {
@@ -341,7 +341,7 @@ impl<'a> SchemaGenerator<'a> {
     ) -> Result<Field> {
         let output_name = self.sanitize_field_name(name, field_names)?;
         let schema_name = match field_id {
-            Some(id) if type_.id()? == type_id::STRUCT => format!("r{}", id.field_id()?),
+            Some(id) if type_.id()? == type_id::STRUCT => format!("r{}", id.field_id()),
             _ => output_name.clone(),
         };
         let mut field_type = self.create_json_type(type_, field_id, Some(&schema_name))?;
@@ -350,7 +350,7 @@ impl<'a> SchemaGenerator<'a> {
         }
         let mut field = Field::new(output_name, field_type);
         if let Some(id) = field_id {
-            field.field_id = Some(i64::from(id.field_id()?));
+            field.field_id = Some(i64::from(id.field_id()));
         }
         Ok(field)
     }
@@ -361,7 +361,7 @@ fn map_key_value_ids(field_id: Option<&FieldId>) -> Result<Option<MapKeyValueIds
         return Ok(None);
     };
     match (field_id.children.find("key"), field_id.children.find("value")) {
-        (Some(key), Some(value)) => Ok(Some(MapKeyValueIds { key_id: key.field_id()?, value_id: value.field_id()? })),
+        (Some(key), Some(value)) => Ok(Some(MapKeyValueIds { key_id: key.field_id(), value_id: value.field_id() })),
         _ => Ok(None),
     }
 }

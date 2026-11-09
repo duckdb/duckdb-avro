@@ -96,3 +96,22 @@ COPY (
 	},
 	ROOT_NAME 'manifest_file'
 );
+
+# A nested specification needs the column's own id (the C++ raised an internal error when it came to use it).
+statement error
+COPY (
+	SELECT {'x': 1} a
+) TO '{TEST_DIR}/field_ids_no_own_id.avro' (
+	FIELD_IDS {'a': {'x': 2}}
+);
+----
+Binder Error: FIELD_IDS: nested specification for column "a" requires a __duckdb_field_id
+
+statement error
+COPY (
+	SELECT 1 a
+) TO '{TEST_DIR}/field_ids_nullable_only.avro' (
+	FIELD_IDS {'a': {'__duckdb_nullable': false}}
+);
+----
+Binder Error: FIELD_IDS: nested specification for column "a" requires a __duckdb_field_id
