@@ -45,6 +45,8 @@ pub(crate) enum Shape {
     Uuid,
     /// A `string` of `uuid`: the RFC 4122 text form, parsed.
     UuidText,
+    /// A `fixed(12)` of `duration`: months, days, milliseconds as little-endian unsigned 32-bit integers.
+    Duration,
     /// A `decimal` on `bytes` (`fixed: None`) or on a fixed of the given size, stored in `width` bytes.
     Decimal {
         fixed: Option<usize>,
@@ -188,6 +190,7 @@ enum Annotated {
     LocalTimestampNanos,
     Decimal { precision: u8, scale: u8 },
     Uuid,
+    Duration,
 }
 
 struct Converter<'a> {
@@ -230,6 +233,7 @@ impl Converter<'_> {
             "timestamp-micros" => Annotated::TimestampMicros { utc },
             "timestamp-nanos" => Annotated::TimestampNanos { utc },
             "uuid" => Annotated::Uuid,
+            "duration" => Annotated::Duration,
             "local-timestamp-millis" => Annotated::LocalTimestampMillis,
             "local-timestamp-micros" => Annotated::LocalTimestampMicros,
             "local-timestamp-nanos" => Annotated::LocalTimestampNanos,
@@ -332,6 +336,12 @@ impl Converter<'_> {
                     Ok(Column::new(name, self.primitive(type_id::UUID)?, Shape::Uuid))
                 }
                 Some(Annotated::Uuid) => Err(Error::invalid_configuration("logical type is uuid, but size != 16")),
+                Some(Annotated::Duration) if *size == 12 => {
+                    Ok(Column::new(name, self.primitive(type_id::INTERVAL)?, Shape::Duration))
+                }
+                Some(Annotated::Duration) => {
+                    Err(Error::invalid_input("Avro logical type 'duration' requires a fixed of size 12"))
+                }
                 Some(_) => Err(self.mismatch(id)),
             },
             SchemaKind::Enum { symbols, .. } => {

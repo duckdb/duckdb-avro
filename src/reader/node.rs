@@ -5,7 +5,7 @@
 //! vector per chunk, never per row. The buffers keep their capacity across chunks ([`Node::clear`]).
 
 use avro_core::{Decoder, Schema, SchemaId};
-use duckdb_ext_api::sys::duckdb_v2_list_entry;
+use duckdb_ext_api::sys::{duckdb_v2_interval_t, duckdb_v2_list_entry};
 use duckdb_ext_api::vector::Element;
 use duckdb_ext_api::{Error, Result, StringWriter, Vector};
 
@@ -155,6 +155,7 @@ pub(crate) enum Node {
     },
     Uuid(Prim<i128>),
     UuidText(Prim<i128>),
+    Duration(Prim<duckdb_v2_interval_t>),
     Decimal {
         fixed: Option<usize>,
         values: DecimalValues,
@@ -216,6 +217,7 @@ impl Node {
             Shape::Fixed(size) => Node::Fixed { size: *size, values: Strings::default() },
             Shape::Uuid => Node::Uuid(Prim::new()),
             Shape::UuidText => Node::UuidText(Prim::new()),
+            Shape::Duration => Node::Duration(Prim::new()),
             Shape::Decimal { fixed, width } => {
                 let values = match width {
                     2 => DecimalValues::I16(Prim::new()),
@@ -275,6 +277,7 @@ impl Node {
             Node::Bytes(s) | Node::String(s) => s.len(),
             Node::Fixed { values, .. } => values.len(),
             Node::Uuid(p) | Node::UuidText(p) => p.len(),
+            Node::Duration(p) => p.len(),
             Node::Decimal { values, .. } => match values {
                 DecimalValues::I16(p) => p.len(),
                 DecimalValues::I32(p) => p.len(),
@@ -305,6 +308,7 @@ impl Node {
             Node::Bytes(s) | Node::String(s) => s.clear(),
             Node::Fixed { values, .. } => values.clear(),
             Node::Uuid(p) | Node::UuidText(p) => p.clear(),
+            Node::Duration(p) => p.clear(),
             Node::Decimal { values, .. } => match values {
                 DecimalValues::I16(p) => p.clear(),
                 DecimalValues::I32(p) => p.clear(),
@@ -354,6 +358,7 @@ impl Node {
             Node::Bytes(s) | Node::String(s) => s.push_null(),
             Node::Fixed { values, .. } => values.push_null(),
             Node::Uuid(p) | Node::UuidText(p) => p.push_null(),
+            Node::Duration(p) => p.push_null(),
             Node::Decimal { values, .. } => match values {
                 DecimalValues::I16(p) => p.push_null(),
                 DecimalValues::I32(p) => p.push_null(),
@@ -434,6 +439,21 @@ impl Node {
                 let bytes = parse_uuid(text)
                     .ok_or_else(|| Error::invalid_input(format!("Avro uuid string '{text}' is not a UUID")))?;
                 p.push(uuid_from_bytes(bytes));
+            }
+            Node::Duration(p) => {
+                let raw = dec.read_fixed(12).or_err()?;
+                let part = |i: usize| u32::from_le_bytes([raw[i], raw[i + 1], raw[i + 2], raw[i + 3]]);
+                let (months, days, millis) = (part(0), part(4), part(8));
+                let fits = |what: &str, value: u32| {
+                    i32::try_from(value).map_err(|_| {
+                        Error::out_of_range(format!("duration {what} value {value} is out of range for an INTERVAL"))
+                    })
+                };
+                p.push(duckdb_v2_interval_t {
+                    months: fits("months", months)?,
+                    days: fits("days", days)?,
+                    micros: i64::from(millis) * MICROS_PER_MSEC,
+                });
             }
             Node::Decimal { fixed, values } => {
                 let raw = match fixed {
@@ -551,6 +571,7 @@ impl Node {
             Node::Bytes(s) | Node::String(s) => s.flush(vector),
             Node::Fixed { values, .. } => values.flush(vector),
             Node::Uuid(p) | Node::UuidText(p) => p.flush(vector),
+            Node::Duration(p) => p.flush(vector),
             Node::Decimal { values, .. } => match values {
                 DecimalValues::I16(p) => p.flush(vector),
                 DecimalValues::I32(p) => p.flush(vector),

@@ -1,0 +1,24 @@
+# name: test/sql/duration.test
+# description: the duration logical type (fixed(12): months, days, milliseconds) reads as INTERVAL
+# group: [sql]
+
+require avro
+
+# test/corpus/duration.avro (scripts/create_corpus_fixtures.py): arrow-testing and arrow-rs write it
+query II
+SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('test/corpus/duration.avro'));
+----
+d	INTERVAL
+
+query I
+SELECT d FROM read_avro('test/corpus/duration.avro');
+----
+1 month 2 days 00:00:00.003
+01:00:00
+00:00:00
+
+# the three counts are unsigned in Avro, signed in an INTERVAL
+statement error
+SELECT d FROM read_avro('test/corpus/duration_out_of_range.avro');
+----
+Out of Range Error: duration months value 2147483648 is out of range for an INTERVAL

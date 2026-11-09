@@ -2780,7 +2780,7 @@ pub struct duckdb_v2_uhugeint_t {
 
 /// An INTERVAL (`interval_t`): months, days and microseconds.
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct duckdb_v2_interval_t {
     pub months: i32,
     pub days: i32,
