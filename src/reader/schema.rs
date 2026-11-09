@@ -184,6 +184,8 @@ enum Annotated {
     TimestampMicros { utc: bool },
     TimestampNanos { utc: bool },
     LocalTimestampMillis,
+    LocalTimestampMicros,
+    LocalTimestampNanos,
     Decimal { precision: u8, scale: u8 },
     Uuid,
 }
@@ -229,6 +231,8 @@ impl Converter<'_> {
             "timestamp-nanos" => Annotated::TimestampNanos { utc },
             "uuid" => Annotated::Uuid,
             "local-timestamp-millis" => Annotated::LocalTimestampMillis,
+            "local-timestamp-micros" => Annotated::LocalTimestampMicros,
+            "local-timestamp-nanos" => Annotated::LocalTimestampNanos,
             // unknown: ignored, the underlying type is read
             _ => return Ok(None),
         };
@@ -284,6 +288,8 @@ impl Converter<'_> {
                     Some(Annotated::LocalTimestampMillis) => {
                         (self.primitive(type_id::TIMESTAMP)?, Shape::TimestampMillis)
                     }
+                    Some(Annotated::LocalTimestampMicros) => (self.primitive(type_id::TIMESTAMP)?, Shape::Long),
+                    Some(Annotated::LocalTimestampNanos) => (self.primitive(type_id::TIMESTAMP_NS)?, Shape::Long),
                     Some(_) => return Err(self.mismatch(id)),
                 };
                 Ok(Column::new(name, type_, shape))

@@ -1,0 +1,23 @@
+# name: test/sql/local_timestamps.test
+# description: local-timestamp-micros and local-timestamp-nanos (Avro 1.10) read as TIMESTAMP and TIMESTAMP_NS
+# group: [sql]
+
+require avro
+
+require icu
+
+statement ok
+SET TimeZone = 'America/New_York';
+
+# test/corpus/local_timestamps.avro (scripts/create_corpus_fixtures.py): 2023-11-14 22:13:20 in both units; a local
+# timestamp has no time zone, so the session's does not move it
+query II
+SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('test/corpus/local_timestamps.avro'));
+----
+us	TIMESTAMP
+ns	TIMESTAMP_NS
+
+query II
+SELECT us, ns FROM read_avro('test/corpus/local_timestamps.avro');
+----
+2023-11-14 22:13:20	2023-11-14 22:13:20
