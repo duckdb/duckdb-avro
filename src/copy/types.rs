@@ -44,6 +44,9 @@ pub(crate) fn decimal_internal_type_id(width: u8) -> TypeId {
 }
 
 /// The error the C++ reports for a type the writer has no Avro type for.
-pub(crate) fn cannot_convert(type_: &LogicalType) -> Result<Error> {
-    Ok(Error::not_implemented(format!("Can't convert logical type '{}' to Avro type", type_.to_text()?)))
+pub(crate) fn cannot_convert(type_: &LogicalType) -> Error {
+    match type_.to_text() {
+        Ok(text) => Error::not_implemented(format!("Can't convert logical type '{text}' to Avro type")),
+        Err(error) => error,
+    }
 }

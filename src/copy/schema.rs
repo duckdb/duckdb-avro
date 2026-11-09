@@ -53,7 +53,7 @@ fn convert_type_to_avro(type_: &LogicalType) -> Result<&'static str> {
         type_id::LIST => "array",
         // a 'logicalType': map over an array of key/value records
         type_id::MAP => "array",
-        _ => return Err(cannot_convert(type_)?),
+        _ => return Err(cannot_convert(type_)),
     })
 }
 
