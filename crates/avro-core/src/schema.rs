@@ -352,6 +352,11 @@ impl SchemaBuilder {
         self.add(SchemaNode::new(kind))
     }
 
+    /// A node added before (a builder-side caller deciding on a node's kind, e.g. whether it is already `null`).
+    pub fn node(&self, id: SchemaId) -> &SchemaNode {
+        &self.nodes[id.index()]
+    }
+
     /// Adds a reference to the named type `name` (resolved by [`SchemaBuilder::finish`]).
     pub fn add_ref(&mut self, name: Name) -> SchemaId {
         self.add(SchemaNode::new(SchemaKind::Ref { name, target: SchemaId(u32::MAX) }))
