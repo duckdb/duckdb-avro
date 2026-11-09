@@ -509,6 +509,12 @@ class FileRunner:
             return True
         if expected.startswith('<REGEX>:') or expected.startswith('<!REGEX>:'):
             return regex_matches(actual + '\n', expected)
+        # The Python client renders an exception type it has no class for (InvalidConfigurationException, ...) as a
+        # bare duckdb.Error carrying the message without its "<Type> Error: " prefix; DuckDB's own runner sees the
+        # prefix. Match such an expectation without the prefix when the actual text starts without one.
+        prefixed = re.match(r'^[A-Za-z ]+ Error: ', expected)
+        if prefixed and not re.match(r'^[A-Za-z ]+ Error: ', actual):
+            return self.error_matches(expected[prefixed.end():], actual)
         return False
 
     def cmd_statement(self, cmd):
