@@ -91,15 +91,16 @@ type, or `avro_schema` for an unnamed one. Reading:
 | `long` + `timestamp-nanos` | `TIMESTAMP_NS`, or `TIMESTAMP_TZ_NS` with `adjust-to-utc: true` |
 | `long` + `local-timestamp-millis` | `TIMESTAMP` |
 | `fixed(16)` + `uuid` | `UUID` (another size is an error) |
-| `bytes` or `fixed` + `decimal` | `DECIMAL(precision, scale)` |
+| `bytes` or `fixed` + `decimal` | `DECIMAL(precision, scale)`; `BLOB` when the attributes are invalid (no integer precision, precision outside 1..38, scale outside 0..precision) |
 | `enum` | `ENUM` of the symbols |
 | `record` (or `error`, the protocol error record) | `STRUCT`; a record without fields is `"NULL"` |
 | `array` | `LIST`; with `"logicalType": "map"` over key/value records a `MAP(key, value)` |
 | `map` | `MAP(VARCHAR, value)` |
 | `union` | null branches dropped; one branch left: that type, nullable; none left: `"NULL"`; several: `UNION(u<i> T, ...)`, `i` the branch index |
 
-Logical types are honoured on primitives only; an array's `map` annotation is the one exception. Recursive records
-are not supported (DuckDB has no recursive types).
+Logical types are honoured on primitives only; an array's `map` annotation is the one exception. An unknown logical
+type (`char`, `time-interval-micros`, any vendor name) or an invalid one is ignored and the underlying type is read,
+as the specification asks. Recursive records are not supported (DuckDB has no recursive types).
 
 Writing (`COPY ... TO`), as the C++ extension does it:
 
@@ -127,7 +128,9 @@ refused with `Can't convert logical type ... to Avro type`.
   applied the logical type regardless.
 - Recursion is detected by schema node, not by the record's simple name, so two distinct records that share a name
   across namespaces are not mistaken for a recursive type.
-- A `decimal` whose precision or scale is outside 0..255 is an error instead of being truncated.
+- A `decimal` with invalid attributes (a precision above 38, say, or Hive 0.x's `"precision": "5"`) is read as a
+  `BLOB` of the underlying type, as the specification asks for an invalid logical type; the C++ fails on it. An
+  unknown logical type on an `int` or `long` is ignored like one on a `string` (the C++ fails on the former).
 - An unknown `CODEC` is rejected when the `COPY` is bound, not when the first block is written.
 - `avro.codec` names are matched case-insensitively.
 - `TIMESTAMP_MS` is written with `timestamp-millis`; the C++ writes the millisecond values under `timestamp-micros`

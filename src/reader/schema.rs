@@ -6,6 +6,10 @@
 //! when annotated with `"logicalType": "map"` over key/value records), maps `MAP(VARCHAR, v)`, enums ENUMs, fixed and
 //! bytes BLOBs. A union drops its null branches: one branch left is read as that type, nullable; none left is the
 //! `"NULL"` type; several become `UNION(u<branch index> T, ...)`. Logical types are honoured on primitives only.
+//!
+//! As the spec asks, an unknown logical type (`char`, `time-interval-micros`, vendor names of every kind) and an
+//! invalid one (a `decimal` without a usable precision or scale) are ignored: the underlying type is read. A known
+//! logical type on an Avro type it does not belong to (`date` on a `string`) stays an error.
 
 use avro_core::{Field, Schema, SchemaId, SchemaKind};
 use duckdb_ext_api::types::type_id;
@@ -13,6 +17,8 @@ use duckdb_ext_api::{Error, Factory, LogicalType, Result, Value};
 
 /// The column name of a root value that is neither a record nor a named type.
 const UNNAMED_ROOT: &str = "avro_schema";
+/// The widest DECIMAL the engine has; a `decimal` of more digits is read as its underlying `bytes` / `fixed`.
+const MAX_DECIMAL_PRECISION: i64 = 38;
 
 /// How the values of a schema node are decoded.
 #[derive(Debug, Clone)]
@@ -196,7 +202,8 @@ impl Converter<'_> {
         LogicalType::new(self.factory, id)
     }
 
-    /// The `logicalType` attribute of a primitive node, validated against the Avro type it annotates.
+    /// The `logicalType` attribute of a primitive node; `None` when there is none, or when it is unknown or invalid
+    /// (ignored per the spec: the underlying type is read).
     fn annotation(&self, id: SchemaId) -> Result<Option<Annotated>> {
         let node = &self.schema[id];
         let Some(logical_type) = node.logical_type.as_deref() else { return Ok(None) };
@@ -204,13 +211,14 @@ impl Converter<'_> {
         let annotated = match logical_type {
             "date" => Annotated::Date,
             "decimal" => {
-                let precision = node.precision.unwrap_or(0);
+                // invalid (so ignored): no integer precision, a precision no DECIMAL holds, a scale outside
+                // 0..=precision. The spec defaults a missing scale to 0.
+                let Some(precision) = node.precision else { return Ok(None) };
                 let scale = node.scale.unwrap_or(0);
-                let precision = u8::try_from(precision)
-                    .map_err(|_| Error::invalid_input(format!("Avro decimal precision {precision} is out of range")))?;
-                let scale = u8::try_from(scale)
-                    .map_err(|_| Error::invalid_input(format!("Avro decimal scale {scale} is out of range")))?;
-                Annotated::Decimal { precision, scale }
+                if !(1..=MAX_DECIMAL_PRECISION).contains(&precision) || !(0..=precision).contains(&scale) {
+                    return Ok(None);
+                }
+                Annotated::Decimal { precision: precision as u8, scale: scale as u8 }
             }
             "time-millis" => Annotated::TimeMillis,
             "time-micros" => Annotated::TimeMicros,
@@ -224,7 +232,8 @@ impl Converter<'_> {
                 Annotated::Uuid
             }
             "local-timestamp-millis" => Annotated::LocalTimestampMillis,
-            other => return Err(Error::not_implemented(format!("Unknown Avro logical type {other}"))),
+            // unknown: ignored, the underlying type is read
+            _ => return Ok(None),
         };
         Ok(Some(annotated))
     }

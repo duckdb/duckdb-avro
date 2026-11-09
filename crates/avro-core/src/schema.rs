@@ -714,20 +714,31 @@ fn int_attr(json: &Json, key: &str) -> Result<Option<i64>> {
     }
 }
 
+/// The logical type attributes. The spec asks a reader to ignore an invalid logical type and use the underlying
+/// type, so an attribute of the wrong JSON type (Hive 0.x wrote `"precision": "5"`) is not an error: it is kept
+/// verbatim among the `extra` attributes (so `to_json` reproduces it) and the modelled slot stays empty, which the
+/// consumer treats as the attribute being absent.
 fn apply_common_attrs(node: &mut SchemaNode, json: &Json) -> Result<()> {
     if let Some(lt) = json.get("logicalType") {
-        node.logical_type = Some(
-            lt.as_str()
-                .ok_or_else(|| Error::invalid_input("Avro attribute \"logicalType\" must be a string"))?
-                .to_owned(),
-        );
+        match lt.as_str() {
+            Some(lt) => node.logical_type = Some(lt.to_owned()),
+            None => node.extra.push(("logicalType".to_owned(), lt.clone())),
+        }
     }
-    node.precision = int_attr(json, "precision")?;
-    node.scale = int_attr(json, "scale")?;
+    for (key, slot) in [("precision", &mut node.precision), ("scale", &mut node.scale)] {
+        match json.get(key) {
+            None | Some(Json::Null) => {}
+            Some(v) => match v.as_i64() {
+                Some(i) => *slot = Some(i),
+                None => node.extra.push((key.to_owned(), v.clone())),
+            },
+        }
+    }
     if let Some(utc) = json.get("adjust-to-utc") {
-        node.adjust_to_utc = Some(
-            utc.as_bool().ok_or_else(|| Error::invalid_input("Avro attribute \"adjust-to-utc\" must be a boolean"))?,
-        );
+        match utc.as_bool() {
+            Some(utc) => node.adjust_to_utc = Some(utc),
+            None => node.extra.push(("adjust-to-utc".to_owned(), utc.clone())),
+        }
     }
     Ok(())
 }
@@ -997,6 +1008,24 @@ mod tests {
     }
 
     #[test]
+    fn invalid_logical_type_attributes_are_kept_verbatim() {
+        // Hive 0.x: precision and scale as strings; a numeric logicalType. Neither is modelled, both survive to_json
+        let text = r#"{"type":"record","name":"r","fields":[{"name":"d","type":{"type":"bytes","logicalType":"decimal","precision":"5","scale":"2"}},{"name":"x","type":{"type":"long","logicalType":5}}]}"#;
+        let schema = Schema::parse(text).unwrap();
+        let d = match &schema[schema.root()].kind {
+            SchemaKind::Record { fields, .. } => &schema[fields[0].ty],
+            _ => panic!("record"),
+        };
+        assert_eq!(d.logical_type.as_deref(), Some("decimal"));
+        assert_eq!((d.precision, d.scale), (None, None));
+        assert_eq!(
+            schema.to_json(),
+            r#"{"type":"record","name":"r","fields":[{"name":"d","type":{"type":"bytes","logicalType":"decimal","precision":"5","scale":"2"}},{"name":"x","type":{"type":"long","logicalType":5}}]}"#
+        );
+        assert_eq!(Schema::parse(&schema.to_json()).unwrap(), schema);
+    }
+
+    #[test]
     fn rejects_bad_schemas() {
         for bad in [
             r#"{"type":"record","name":"r"}"#,
@@ -1008,7 +1037,6 @@ mod tests {
             r#"{"type":"enum","name":"e"}"#,
             r#"{"type":"array"}"#,
             r#"{"type":"map"}"#,
-            r#"{"type":"long","logicalType":5}"#,
             r#"42"#,
             r#"{"type":"record","name":"r","fields":[{"name":"","type":"int"}]}"#,
         ] {
