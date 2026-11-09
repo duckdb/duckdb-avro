@@ -73,6 +73,23 @@ impl Vector {
             data_count: 0,
         };
         api_call!(duckdb_v2_vector_get_view(self.raw, &mut view));
+        if view.data_count == 0 {
+            // The public engine's `duckdb_v2_vector_view` has four members (data, validity, sel, count): it zeroes
+            // its own 32 bytes and never writes `data_count`, which is the fifth field here. Derive the bound of the
+            // physical indices the way the engine fills the view: a FLAT vector (`sel` null) addresses `count`
+            // entries; a CONSTANT vector hands out the zero selection vector and a DICTIONARY one its selection, so the
+            // largest selected index plus one bounds the entries every row can reach (1 for a constant).
+            view.data_count = if view.sel.is_null() {
+                view.count
+            } else if view.count == 0 {
+                0
+            } else {
+                // SAFETY(ffi L8.I3): the C API's `duckdb_v2_vector_get_view` contract: a non-null `sel` holds `count`
+                // indices, alive as long as the vector the view was read from.
+                let sel = unsafe { std::slice::from_raw_parts(view.sel, view.count as usize) };
+                sel.iter().copied().max().map_or(0, |max| max as idx_t + 1)
+            };
+        }
         Ok(VectorView { raw: view })
     }
 

@@ -2741,8 +2741,9 @@ pub struct duckdb_v2_extension_input {
     pub err: *mut duckdb_v2_error_info_handle,
 }
 
-/// A read-only view of a vector's data, validity and selection (`duckdb_v2_vector_view`). `data_count` is this
-/// port's addition 23: the number of entries `data` addresses (the bound of every physical index).
+/// A read-only view of a vector's data, validity and selection (`duckdb_v2_vector_view`). `data_count` is not a
+/// member of the engine's struct (data, validity, sel, count): the engine never writes it and the wrapper derives it
+/// (`Vector::view` of `duckdb-ext-api`) as the number of entries `data` addresses, the bound of every physical index.
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct duckdb_v2_vector_view {
