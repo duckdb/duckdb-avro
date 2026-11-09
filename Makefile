@@ -48,7 +48,7 @@ build/avro.duckdb_extension: target/release/libavro.so
 	python3 -I scripts/append_extension_metadata.py --extension $@ --platform $(PLATFORM) --abi-type C_STRUCT_UNSTABLE --version "$(FOOTER_VERSION)" --extension-version $(EXT_VERSION)
 
 test: build/avro.duckdb_extension
-	AVRO_EXTENSION=$(abspath build/avro.duckdb_extension) $(PYTHON) -I scripts/run_sqllogic.py test/sql/*.test test/sql/copy/*.test
+	AVRO_EXTENSION=$(abspath build/avro.duckdb_extension) $(PYTHON) -I scripts/run_sqllogic.py test/sql/*.test test/sql/copy/*.test test/sql/copy/*.test_slow
 
 # the C++ runner: the binary's own version tag and platform name the repository directory the stamped copy goes into
 DUCKDB ?=
