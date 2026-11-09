@@ -7,6 +7,8 @@
 use duckdb_ext_api::{Context, Extension, Result};
 
 mod copy;
+mod metadata;
+mod reader;
 
 duckdb_ext_api::duckdb_extension!(avro, avro_init_c_api_v2, "v0.1.0", load);
 
@@ -14,8 +16,9 @@ duckdb_ext_api::duckdb_extension!(avro, avro_init_c_api_v2, "v0.1.0", load);
 pub(crate) const LOG_TYPE: &str = "Avro";
 
 fn load(extension: &Extension, context: &Context) -> Result<()> {
+    reader::register(extension, context)?;
+    metadata::register(extension, context)?;
     copy::register(extension, context)?;
-    // TODO: register read_avro, avro_metadata and the COPY TO writer.
     context.log(duckdb_ext_api::sys::DUCKDB_V2_LOG_LEVEL_DEBUG, LOG_TYPE, "avro loaded")?;
     Ok(())
 }

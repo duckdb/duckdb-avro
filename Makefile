@@ -5,7 +5,8 @@
 #   make test            test/sql through scripts/run_sqllogic.py on the pinned wheel (cwd = repository root, the
 #                        tests name their fixtures relative to it)
 #   make unittest DUCKDB=<duckdb binary of the same build>
-#                        the same tests through DuckDB's own C++ sqllogictest runner (test/unittest next to the binary)
+#                        the same tests through DuckDB's own C++ sqllogictest runner (test/unittest next to the binary);
+#                        the build's own extensions (icu, ...) are linked next to avro so that `require icu` autoloads
 #   make clippy          cargo clippy + cargo fmt --check
 #   make clean
 #
@@ -58,10 +59,14 @@ TESTS ?= test/sql/*
 DUCKDB_TAG = $(shell $(DUCKDB) -init /dev/null -csv -noheader -c "SELECT CASE WHEN library_version LIKE '%-dev%' THEN source_id ELSE library_version END FROM pragma_version()" 2>/dev/null)
 DUCKDB_PLATFORM = $(shell $(DUCKDB) -init /dev/null -csv -noheader -c "PRAGMA platform" 2>/dev/null)
 UNITTEST_EXT = build/repository/$(DUCKDB_TAG)/$(DUCKDB_PLATFORM)/avro.duckdb_extension
+# the extensions the engine build produced next to the binary (icu, json, parquet, ...), which a test's `require icu`
+# autoinstalls from the same repository directory
+DUCKDB_REPOSITORY = $(dir $(DUCKDB))repository/$(DUCKDB_TAG)/$(DUCKDB_PLATFORM)
 unittest: target/release/libavro.so
 	@test -n "$(DUCKDB)" || (echo "usage: make unittest DUCKDB=<duckdb binary>" && exit 1)
 	@test -n "$(DUCKDB_TAG)" || (echo "$(DUCKDB) did not report its version" && exit 1)
 	mkdir -p $(dir $(UNITTEST_EXT))
+	@for ext in $(wildcard $(DUCKDB_REPOSITORY)/*.duckdb_extension); do ln -sf $$ext $(dir $(UNITTEST_EXT)); done
 	cp $< $(UNITTEST_EXT)
 	python3 -I scripts/append_extension_metadata.py --extension $(UNITTEST_EXT) --platform $(DUCKDB_PLATFORM) --abi-type C_STRUCT_UNSTABLE --version "$(DUCKDB_TAG)" --extension-version $(EXT_VERSION)
 	LOCAL_EXTENSION_REPO=$(abspath build/repository) $(UNITTEST) $(if $(TEST_CONFIG),--test-config $(abspath $(TEST_CONFIG))) --test-dir $(CURDIR) "$(TESTS)"
