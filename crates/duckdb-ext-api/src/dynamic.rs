@@ -599,8 +599,8 @@ impl<'a> TableInOutCtx<'a> {
     }
 }
 
-/// The implementation of a table function. The bind data is any `Send + Sync` state; the global and local states
-/// any `Send` state.
+/// The implementation of a table function. The bind data and the global state are any `Send + Sync` state; the
+/// local state any `Send` state.
 pub trait TableImpl: Send + Sync + 'static {
     fn bind(&self, ctx: &TableBindCtx) -> Result<Box<dyn Any + Send + Sync>>;
     /// `table_function_combine_schema_t` of the multi-file wrapper around this function: combines the schemas of the
@@ -610,7 +610,7 @@ pub trait TableImpl: Send + Sync + 'static {
         Ok(None)
     }
     /// Returns the global state and the maximum number of threads.
-    fn init_global(&self, ctx: &TableInitCtx, bind_data: &dyn Any) -> Result<(Box<dyn Any + Send>, usize)>;
+    fn init_global(&self, ctx: &TableInitCtx, bind_data: &dyn Any) -> Result<(Box<dyn Any + Send + Sync>, usize)>;
     fn init_local(&self, ctx: &TableInitCtx, bind_data: &dyn Any, global: &dyn Any) -> Result<Box<dyn Any + Send>>;
     fn exec(&self, ctx: &TableExecCtx<'_>, bind_data: &dyn Any) -> Result<()>;
     /// `table_function_claim_batch_t` (`TableFunction::claim_batches`): assigns the next batch of the file to the

@@ -647,8 +647,9 @@ impl TableInitGlobalInfo {
         duckdb_v2_table_function_init_global_get_column_index
     );
 
-    /// Stores the state every thread of the scan shares (synchronize access yourself).
-    pub fn set_global_state<T: 'static>(&self, state: T) -> Result<()> {
+    /// Stores the state every thread of the scan shares (`Sync`: the threads read it concurrently; synchronize your
+    /// own mutation).
+    pub fn set_global_state<T: Send + Sync + 'static>(&self, state: T) -> Result<()> {
         let mut opaque = Opaque::new(state);
         api_call!(duckdb_v2_table_function_init_global_set_global_state(self.raw, &mut opaque));
         Ok(())
@@ -835,7 +836,8 @@ impl TableInitLocalInfo {
         duckdb_v2_table_function_init_local_get_column_index
     );
 
-    pub fn set_local_state<T: 'static>(&self, state: T) -> Result<()> {
+    /// Stores the state of one scanning thread (`Send`: the engine may run the thread's exec calls on another thread).
+    pub fn set_local_state<T: Send + 'static>(&self, state: T) -> Result<()> {
         let mut opaque = Opaque::new(state);
         api_call!(duckdb_v2_table_function_init_local_set_local_state(self.raw, &mut opaque));
         Ok(())
