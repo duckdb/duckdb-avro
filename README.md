@@ -96,7 +96,7 @@ type, or `avro_schema` for an unnamed one. Reading:
 | `bytes` or `fixed` + `decimal` | `DECIMAL(precision, scale)`; `BLOB` when the attributes are invalid (no integer precision, precision outside 1..38, scale outside 0..precision) |
 | `enum` | `ENUM` of the symbols |
 | `record` (or `error`, the protocol error record) | `STRUCT`; a record without fields is `"NULL"` |
-| `array` | `LIST`; with `"logicalType": "map"` over key/value records a `MAP(key, value)` |
+| `array` | `LIST`; with `"logicalType": "map"` over key/value records a `MAP(key, value)` (the records may be nullable, as BigQuery's Iceberg manifest exports write them; a null item is skipped) |
 | `map` | `MAP(VARCHAR, value)` |
 | `union` | null branches dropped; one branch left: that type, nullable; none left: `"NULL"`; several: `UNION(u<i> T, ...)`, `i` the branch index |
 

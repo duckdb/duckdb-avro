@@ -181,6 +181,8 @@ pub(crate) enum Node {
         key: Box<Node>,
         value: Box<Node>,
         from_array: bool,
+        /// The branch ids and the record's branch when the items of a map-annotated array are nullable records.
+        item_union: Option<(Vec<SchemaId>, usize)>,
         nulls: Vec<usize>,
         /// The fewest bytes one entry occupies, the bound of a block count.
         min_item_size: usize,
@@ -244,11 +246,12 @@ impl Node {
                 nulls: Vec::new(),
                 min_item_size: *min_item_size,
             },
-            Shape::Map { key, value, from_array, min_item_size } => Node::Map {
+            Shape::Map { key, value, from_array, item_union, min_item_size } => Node::Map {
                 entries: Vec::new(),
                 key: Box::new(Node::new(key)),
                 value: Box::new(Node::new(value)),
                 from_array: *from_array,
+                item_union: item_union.clone(),
                 nulls: Vec::new(),
                 min_item_size: *min_item_size,
             },
@@ -497,15 +500,22 @@ impl Node {
                 }
                 entries.push(duckdb_v2_list_entry { offset, length });
             }
-            Node::Map { entries, key, value, from_array, min_item_size, .. } => {
+            Node::Map { entries, key, value, from_array, item_union, min_item_size, .. } => {
                 let offset = key.len() as u64;
-                let mut length = 0u64;
                 loop {
                     let block = dec.read_block_count(*min_item_size).or_err()?;
                     if block.count == 0 {
                         break;
                     }
                     for _ in 0..block.count {
+                        if let Some((branch_ids, branch)) = item_union {
+                            let selected = dec.read_union_index(branch_ids.len()).or_err()?;
+                            if selected != *branch {
+                                // a null item: no entry (a MAP has no place for one)
+                                dec.skip(schema, branch_ids[selected]).or_err()?;
+                                continue;
+                            }
+                        }
                         if *from_array {
                             key.decode(dec, schema)?;
                         } else {
@@ -516,8 +526,8 @@ impl Node {
                         }
                         value.decode(dec, schema)?;
                     }
-                    length += block.count as u64;
                 }
+                let length = key.len() as u64 - offset;
                 entries.push(duckdb_v2_list_entry { offset, length });
             }
             Node::Union { branch_ids, branch_members, members, tags, nulls } => {

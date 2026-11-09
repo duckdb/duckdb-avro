@@ -3,8 +3,9 @@
 //! columns of several files onto one another by).
 //!
 //! The rules follow the C++ extension: records are STRUCTs (an empty record the `"NULL"` type), arrays LISTs (or a MAP
-//! when annotated with `"logicalType": "map"` over key/value records), maps `MAP(VARCHAR, v)`, enums ENUMs, fixed and
-//! bytes BLOBs. A union drops its null branches: one branch left is read as that type, nullable; none left is the
+//! when annotated with `"logicalType": "map"` over key/value records; the records may be wrapped in a union with null,
+//! as BigQuery's Iceberg manifest exports write them, and a null item is then skipped when decoding since a MAP has no
+//! place for an entry without key and value), maps `MAP(VARCHAR, v)`, enums ENUMs, fixed and bytes BLOBs. A union drops its null branches: one branch left is read as that type, nullable; none left is the
 //! `"NULL"` type; several become `UNION(u<branch index> T, ...)`. Logical types are honoured on primitives only.
 //!
 //! As the spec asks, an unknown logical type (`char`, `time-interval-micros`, vendor names of every kind) and an
@@ -64,11 +65,14 @@ pub(crate) enum Shape {
         min_item_size: usize,
     },
     /// An Avro `map` (`from_array: false`, string keys), or an array of key/value records annotated as a map;
-    /// `min_item_size` is the fewest bytes one entry occupies, the bound of a block count.
+    /// `min_item_size` is the fewest bytes one entry occupies, the bound of a block count. `item_union` is set when
+    /// the array's items are a union of null and the record: the branch ids and the record's branch; a null item is
+    /// skipped.
     Map {
         key: Box<Column>,
         value: Box<Column>,
         from_array: bool,
+        item_union: Option<(Vec<SchemaId>, usize)>,
         min_item_size: usize,
     },
     /// A union of several non-null branches: `branch_members[b]` is the DuckDB member a branch is read into (`None`
@@ -379,7 +383,12 @@ impl Converter<'_> {
                     let type_ = LogicalType::list(self.factory, &element.type_)?;
                     return Ok(Column::new(name, type_, Shape::List { element: Box::new(element), min_item_size }));
                 }
-                let Shape::Struct(mut fields) = element.shape else {
+                // the items may be a union of null and the key/value record (BigQuery's Iceberg manifest export)
+                let (item_union, shape) = match element.shape {
+                    Shape::Nullable { branch_ids, branch, child } => (Some((branch_ids, branch)), child.shape),
+                    shape => (None, shape),
+                };
+                let Shape::Struct(mut fields) = shape else {
                     return Err(Error::invalid_input(
                         "Avro array with logical type 'map' must contain key/value records",
                     ));
@@ -397,7 +406,13 @@ impl Converter<'_> {
                 Ok(Column::new(
                     name,
                     type_,
-                    Shape::Map { key: Box::new(key), value: Box::new(value), from_array: true, min_item_size },
+                    Shape::Map {
+                        key: Box::new(key),
+                        value: Box::new(value),
+                        from_array: true,
+                        item_union,
+                        min_item_size,
+                    },
                 ))
             }
             SchemaKind::Map { values, key_id, value_id } => {
@@ -411,7 +426,13 @@ impl Converter<'_> {
                 Ok(Column::new(
                     name,
                     type_,
-                    Shape::Map { key: Box::new(key), value: Box::new(value), from_array: false, min_item_size },
+                    Shape::Map {
+                        key: Box::new(key),
+                        value: Box::new(value),
+                        from_array: false,
+                        item_union: None,
+                        min_item_size,
+                    },
                 ))
             }
             SchemaKind::Union { branches } => {
