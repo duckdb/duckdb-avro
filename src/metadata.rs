@@ -1,4 +1,7 @@
 //! `avro_metadata(path)`: the key-value metadata of an Avro object container file's header, in file order.
+//!
+//! The metadata is `map<string, bytes>`: a value need not be text (apache/avro's `syncInMeta.avro` stores the sync
+//! marker in one). The VARCHAR `value` column renders a value that is not UTF-8 lossily, with replacement characters.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -54,7 +57,7 @@ impl TableExec for AvroMetadata {
         let values = StringWriter::new(&output.vector(1)?, rows.len())?;
         for (row, (key, value)) in rows.iter().enumerate() {
             keys.write_str(row, key)?;
-            values.write(row, value)?;
+            values.write_str(row, &String::from_utf8_lossy(value))?;
         }
         output.set_size(rows.len())
     }

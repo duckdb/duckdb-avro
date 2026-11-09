@@ -12,7 +12,7 @@ kept unchanged under `test/` as the acceptance suite.
 |---|---|
 | `read_avro(files, ...)` | the rows of one or more files: a path, a glob, a list of paths, or a list of file structs |
 | `read_single_avro_file(file)` | the rows of one file (the function `read_avro` is built on) |
-| `avro_metadata(path)` | the key-value entries of a file's header (`avro.schema`, `avro.codec`, anything the writer added) |
+| `avro_metadata(path)` | the key-value entries of a file's header (`avro.schema`, `avro.codec`, anything the writer added); a value that is not UTF-8 is rendered with replacement characters |
 | `COPY ... TO 'x.avro' (FORMAT avro, ...)` | writes a query result as an Avro file |
 
 ```sql
