@@ -21,6 +21,12 @@
 //! | MAP                                     | `array` + `"logicalType":"map"` of `record(key, value)`       |
 //!
 //! Every field, element, key and value is nullable (`["null", T]`) unless FIELD_IDS says `__duckdb_nullable: false`.
+//!
+//! Named types (`record`, `fixed`) take the name of the field they belong to (`r<field id>` for a record with an
+//! Iceberg field id, `k<key id>_v<value id>` for a map's entries), or `<avro type><n>` where there is no field (array
+//! items). Avro requires those names to be distinct within a schema, which the field names of a nested query are not
+//! (`{'value': {'x': 1}} AS s1, {'value': {'y': 2}} AS s2` has two records called `value`): a name already taken gets
+//! the suffix `_2`, `_3`, ... in order of definition. Names that do not collide are unchanged.
 
 use std::collections::{HashMap, HashSet};
 
@@ -156,7 +162,8 @@ impl<'a> SchemaGenerator<'a> {
     /// The schema: a record named `root_name` with one field per column.
     pub(crate) fn generate(&mut self) -> Result<Schema> {
         verify_avro_name(&self.root_name)?;
-        self.verify_named_schema_uniqueness(&self.root_name.clone())?;
+        // the root's name is taken first: a field of the same name gets the suffix
+        self.named_schemas.insert(self.root_name.clone());
         let mut fields = Vec::with_capacity(self.names.len());
         let mut field_names = HashMap::new();
         // the ids are read while the builder is written: hold them outside `self` for the loop
@@ -179,31 +186,32 @@ impl<'a> SchemaGenerator<'a> {
         Ok(schema)
     }
 
-    fn verify_named_schema_uniqueness(&mut self, name: &str) -> Result<()> {
-        if !self.named_schemas.insert(name.to_owned()) {
-            return Err(Error::binder(format!(
-                "Avro schema by the name of '{name}' already exists, names of 'record', 'enum' and 'fixed' types have \
-                 to be distinct"
-            )));
+    /// `name`, or `name_2`, `name_3`, ... when a named schema took it already (the field names of a nested query need
+    /// not be distinct, Avro's type names must be).
+    fn unique_schema_name(&mut self, name: &str) -> String {
+        let mut candidate = name.to_owned();
+        let mut suffix = 2;
+        while self.named_schemas.contains(&candidate) {
+            candidate = format!("{name}_{suffix}");
+            suffix += 1;
         }
-        Ok(())
+        self.named_schemas.insert(candidate.clone());
+        candidate
     }
 
     fn generate_schema_name(&mut self, base: &str) -> Result<String> {
         let name = format!("{base}{}", self.generated_name_id);
         self.generated_name_id += 1;
         verify_avro_name(&name)?;
-        self.verify_named_schema_uniqueness(&name)?;
-        Ok(name)
+        Ok(self.unique_schema_name(&name))
     }
 
-    /// The name of a named schema: the preset one, or a generated `<avro type><n>`.
+    /// The name of a named schema: the preset one, or a generated `<avro type><n>`; made unique either way.
     fn schema_name(&mut self, avro_type: &str, preset: Option<&str>) -> Result<Name> {
         match preset {
             Some(preset) => {
                 verify_avro_name(preset)?;
-                self.verify_named_schema_uniqueness(preset)?;
-                Ok(Name::simple(preset))
+                Ok(Name::simple(self.unique_schema_name(preset)))
             }
             None => Ok(Name::simple(self.generate_schema_name(avro_type)?)),
         }

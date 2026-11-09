@@ -121,7 +121,9 @@ Writing (`COPY ... TO`), as the C++ extension does it:
 | `MAP` | `array` + `"logicalType": "map"` of `record(key, value)` (the Iceberg form, so it reads back as a `MAP`) |
 
 Every field, element, key and value is written as `["null", T]` unless `FIELD_IDS` marks it `__duckdb_nullable:
-false`. Other types (`TINYINT` ... `HUGEINT`, unsigned integers, `ENUM`, `UNION`, `INTERVAL`, `ARRAY`, ...) are
+false`. A `record` or `fixed` is named after its field (`r<id>` with a field id, `record<n>` / `fixed<n>` for array
+items); Avro wants those names distinct, so a name a nested field repeats (`{'value': {'x': 1}} AS s1, {'value': {'y':
+2}} AS s2`) gets the suffix `_2`, `_3`, ... from the second definition on. Other types (`TINYINT` ... `HUGEINT`, unsigned integers, `ENUM`, `UNION`, `INTERVAL`, `ARRAY`, ...) are
 refused with `Can't convert logical type ... to Avro type`.
 
 ## Differences from the C++ extension
