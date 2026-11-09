@@ -154,6 +154,7 @@ pub(crate) enum Node {
         values: Strings,
     },
     Uuid(Prim<i128>),
+    UuidText(Prim<i128>),
     Decimal {
         fixed: Option<usize>,
         values: DecimalValues,
@@ -214,6 +215,7 @@ impl Node {
             Shape::String => Node::String(Strings::default()),
             Shape::Fixed(size) => Node::Fixed { size: *size, values: Strings::default() },
             Shape::Uuid => Node::Uuid(Prim::new()),
+            Shape::UuidText => Node::UuidText(Prim::new()),
             Shape::Decimal { fixed, width } => {
                 let values = match width {
                     2 => DecimalValues::I16(Prim::new()),
@@ -272,7 +274,7 @@ impl Node {
             Node::Double(p) => p.len(),
             Node::Bytes(s) | Node::String(s) => s.len(),
             Node::Fixed { values, .. } => values.len(),
-            Node::Uuid(p) => p.len(),
+            Node::Uuid(p) | Node::UuidText(p) => p.len(),
             Node::Decimal { values, .. } => match values {
                 DecimalValues::I16(p) => p.len(),
                 DecimalValues::I32(p) => p.len(),
@@ -302,7 +304,7 @@ impl Node {
             Node::Double(p) => p.clear(),
             Node::Bytes(s) | Node::String(s) => s.clear(),
             Node::Fixed { values, .. } => values.clear(),
-            Node::Uuid(p) => p.clear(),
+            Node::Uuid(p) | Node::UuidText(p) => p.clear(),
             Node::Decimal { values, .. } => match values {
                 DecimalValues::I16(p) => p.clear(),
                 DecimalValues::I32(p) => p.clear(),
@@ -351,7 +353,7 @@ impl Node {
             Node::Double(p) => p.push_null(),
             Node::Bytes(s) | Node::String(s) => s.push_null(),
             Node::Fixed { values, .. } => values.push_null(),
-            Node::Uuid(p) => p.push_null(),
+            Node::Uuid(p) | Node::UuidText(p) => p.push_null(),
             Node::Decimal { values, .. } => match values {
                 DecimalValues::I16(p) => p.push_null(),
                 DecimalValues::I32(p) => p.push_null(),
@@ -423,15 +425,15 @@ impl Node {
             Node::Fixed { size, values } => values.push(dec.read_fixed(*size).or_err()?),
             Node::Uuid(p) => {
                 let raw = dec.read_fixed(16).or_err()?;
-                let mut upper = 0u64;
-                let mut lower = 0u64;
-                for i in 0..8 {
-                    upper = (upper << 8) | u64::from(raw[i]);
-                    lower = (lower << 8) | u64::from(raw[8 + i]);
-                }
-                // the engine's UUID order: the sign bit of the upper half flipped
-                let upper = upper ^ (1u64 << 63);
-                p.push(((upper as i128) << 64) | lower as i128);
+                let mut bytes = [0u8; 16];
+                bytes.copy_from_slice(raw);
+                p.push(uuid_from_bytes(bytes));
+            }
+            Node::UuidText(p) => {
+                let text = dec.read_string().or_err()?;
+                let bytes = parse_uuid(text)
+                    .ok_or_else(|| Error::invalid_input(format!("Avro uuid string '{text}' is not a UUID")))?;
+                p.push(uuid_from_bytes(bytes));
             }
             Node::Decimal { fixed, values } => {
                 let raw = match fixed {
@@ -548,7 +550,7 @@ impl Node {
             Node::Double(p) => p.flush(vector),
             Node::Bytes(s) | Node::String(s) => s.flush(vector),
             Node::Fixed { values, .. } => values.flush(vector),
-            Node::Uuid(p) => p.flush(vector),
+            Node::Uuid(p) | Node::UuidText(p) => p.flush(vector),
             Node::Decimal { values, .. } => match values {
                 DecimalValues::I16(p) => p.flush(vector),
                 DecimalValues::I32(p) => p.flush(vector),
@@ -604,6 +606,39 @@ impl Node {
     }
 }
 
+/// The engine's storage form of a UUID's 16 bytes: a big-endian integer with the sign bit of the upper half flipped,
+/// so that the integers order like the UUIDs.
+fn uuid_from_bytes(bytes: [u8; 16]) -> i128 {
+    let upper = u64::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]])
+        ^ (1u64 << 63);
+    let lower =
+        u64::from_be_bytes([bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]]);
+    ((upper as i128) << 64) | lower as i128
+}
+
+/// The 16 bytes of a UUID in RFC 4122 text form (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, hex digits of either case);
+/// `None` for anything else.
+fn parse_uuid(text: &str) -> Option<[u8; 16]> {
+    let text = text.as_bytes();
+    if text.len() != 36 {
+        return None;
+    }
+    let mut bytes = [0u8; 16];
+    let mut nibbles = 0;
+    for (i, &c) in text.iter().enumerate() {
+        if matches!(i, 8 | 13 | 18 | 23) {
+            if c != b'-' {
+                return None;
+            }
+            continue;
+        }
+        let digit = (c as char).to_digit(16)? as u8;
+        bytes[nibbles / 2] |= if nibbles % 2 == 0 { digit << 4 } else { digit };
+        nibbles += 1;
+    }
+    Some(bytes)
+}
+
 /// A big-endian two's complement integer of any length as an `i128` (sign-extended; bytes beyond 16 shift out, as the
 /// C++ reader's shifts do).
 fn read_decimal(raw: &[u8]) -> i128 {
@@ -630,6 +665,28 @@ impl<T> AvroResultExt<T> for avro_core::Result<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn uuid_text() {
+        let expected = [0x12, 0x3e, 0x45, 0x67, 0xe8, 0x9b, 0x12, 0xd3, 0xa4, 0x56, 0x42, 0x66, 0x14, 0x17, 0x40, 0x00];
+        assert_eq!(parse_uuid("123e4567-e89b-12d3-a456-426614174000"), Some(expected));
+        assert_eq!(parse_uuid("123E4567-E89B-12D3-A456-426614174000"), Some(expected));
+        for bad in [
+            "",
+            "123e4567-e89b-12d3-a456-42661417400",
+            "123e4567-e89b-12d3-a456-4266141740000",
+            "123e4567e89b12d3a456426614174000",
+            "123e4567-e89b-12d3-a456_426614174000",
+            "123e4567-e89b-12d3-a456-42661417400g",
+            "123e4567-e89b-12d3-a456-4266141740é",
+        ] {
+            assert_eq!(parse_uuid(bad), None, "{bad}");
+        }
+        // 00000000-0000-0000-0000-000000000001 is stored with the high bit of the upper half flipped
+        let mut one = [0u8; 16];
+        one[15] = 1;
+        assert_eq!(uuid_from_bytes(one), (i128::MIN >> 64 << 64) | 1);
+    }
 
     #[test]
     fn decimals_sign_extend() {

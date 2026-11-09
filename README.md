@@ -90,7 +90,7 @@ type, or `avro_schema` for an unnamed one. Reading:
 | `long` + `timestamp-millis` / `timestamp-micros` | `TIMESTAMP`, or `TIMESTAMP WITH TIME ZONE` with `adjust-to-utc: true` |
 | `long` + `timestamp-nanos` | `TIMESTAMP_NS`, or `TIMESTAMP_TZ_NS` with `adjust-to-utc: true` |
 | `long` + `local-timestamp-millis` | `TIMESTAMP` |
-| `fixed(16)` + `uuid` | `UUID` (another size is an error) |
+| `string` + `uuid`, `fixed(16)` + `uuid` | `UUID` (the text form is parsed: 36 characters, hex digits of either case; another fixed size is an error) |
 | `bytes` or `fixed` + `decimal` | `DECIMAL(precision, scale)`; `BLOB` when the attributes are invalid (no integer precision, precision outside 1..38, scale outside 0..precision) |
 | `enum` | `ENUM` of the symbols |
 | `record` (or `error`, the protocol error record) | `STRUCT`; a record without fields is `"NULL"` |

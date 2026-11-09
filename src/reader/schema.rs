@@ -43,6 +43,8 @@ pub(crate) enum Shape {
     Fixed(usize),
     /// A `fixed(16)` of `uuid`.
     Uuid,
+    /// A `string` of `uuid`: the RFC 4122 text form, parsed.
+    UuidText,
     /// A `decimal` on `bytes` (`fixed: None`) or on a fixed of the given size, stored in `width` bytes.
     Decimal {
         fixed: Option<usize>,
@@ -225,12 +227,7 @@ impl Converter<'_> {
             "timestamp-millis" => Annotated::TimestampMillis { utc },
             "timestamp-micros" => Annotated::TimestampMicros { utc },
             "timestamp-nanos" => Annotated::TimestampNanos { utc },
-            "uuid" => {
-                if node.fixed_size() != Some(16) {
-                    return Err(Error::invalid_configuration("logical type is uuid, but size != 16"));
-                }
-                Annotated::Uuid
-            }
+            "uuid" => Annotated::Uuid,
             "local-timestamp-millis" => Annotated::LocalTimestampMillis,
             // unknown: ignored, the underlying type is read
             _ => return Ok(None),
@@ -303,12 +300,12 @@ impl Converter<'_> {
                 }
                 Ok(Column::new(name, self.primitive(type_id::DOUBLE)?, Shape::Double))
             }
-            SchemaKind::String => {
-                if self.annotation(id)?.is_some() {
-                    return Err(self.mismatch(id));
-                }
-                Ok(Column::new(name, self.primitive(type_id::VARCHAR)?, Shape::String))
-            }
+            SchemaKind::String => match self.annotation(id)? {
+                None => Ok(Column::new(name, self.primitive(type_id::VARCHAR)?, Shape::String)),
+                // the spec's uuid annotates a string (the fixed(16) form came with Avro 1.12)
+                Some(Annotated::Uuid) => Ok(Column::new(name, self.primitive(type_id::UUID)?, Shape::UuidText)),
+                Some(_) => Err(self.mismatch(id)),
+            },
             SchemaKind::Bytes => match self.annotation(id)? {
                 None => Ok(Column::new(name, self.primitive(type_id::BLOB)?, Shape::Bytes)),
                 Some(Annotated::Decimal { precision, scale }) => Ok(Column::new(
@@ -325,7 +322,10 @@ impl Converter<'_> {
                     LogicalType::decimal(self.factory, precision, scale)?,
                     Shape::Decimal { fixed: Some(*size), width: decimal_width(precision) },
                 )),
-                Some(Annotated::Uuid) => Ok(Column::new(name, self.primitive(type_id::UUID)?, Shape::Uuid)),
+                Some(Annotated::Uuid) if *size == 16 => {
+                    Ok(Column::new(name, self.primitive(type_id::UUID)?, Shape::Uuid))
+                }
+                Some(Annotated::Uuid) => Err(Error::invalid_configuration("logical type is uuid, but size != 16")),
                 Some(_) => Err(self.mismatch(id)),
             },
             SchemaKind::Enum { symbols, .. } => {
