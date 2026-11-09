@@ -12,6 +12,7 @@ fn write_then_read_every_codec() {
     let root = b.add_kind(SchemaKind::Record {
         name: Name::simple("root"),
         fields: vec![Field::new("a", long), Field::new("b", opt)],
+        is_error: false,
     });
     let schema = b.finish(root).unwrap();
     let rows = 3000;

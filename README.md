@@ -93,7 +93,7 @@ type, or `avro_schema` for an unnamed one. Reading:
 | `fixed(16)` + `uuid` | `UUID` (another size is an error) |
 | `bytes` or `fixed` + `decimal` | `DECIMAL(precision, scale)` |
 | `enum` | `ENUM` of the symbols |
-| `record` | `STRUCT`; a record without fields is `"NULL"` |
+| `record` (or `error`, the protocol error record) | `STRUCT`; a record without fields is `"NULL"` |
 | `array` | `LIST`; with `"logicalType": "map"` over key/value records a `MAP(key, value)` |
 | `map` | `MAP(VARCHAR, value)` |
 | `union` | null branches dropped; one branch left: that type, nullable; none left: `"NULL"`; several: `UNION(u<i> T, ...)`, `i` the branch index |
@@ -182,7 +182,8 @@ reorder the function table with `scripts/pin_api_table.py` against that build's 
 - `test/`: the upstream suite, `test/sql/*.test` and `test/sql/copy/*.test`, with the fixture files.
 - `scripts/`: `pin_api_table.py` (re-pinning), `append_extension_metadata.py` (the footer), `run_sqllogic.py` (the
   test runner), and the generators of the independent fixtures (`create_decimal_bytes.py`, `create_timestamp_*.py`,
-  `create_malformed.py`: the hand-built malformed files, stdlib only).
+  `create_malformed.py`: the hand-built malformed files, `create_corpus_fixtures.py`: the `test/corpus` reproductions of
+  the real-world corpus findings; both stdlib only).
 
 ## Tests
 

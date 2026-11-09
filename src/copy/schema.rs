@@ -168,7 +168,11 @@ impl<'a> SchemaGenerator<'a> {
         });
         self.field_ids = field_ids;
         result?;
-        let root = self.builder.add_kind(SchemaKind::Record { name: Name::simple(self.root_name.clone()), fields });
+        let root = self.builder.add_kind(SchemaKind::Record {
+            name: Name::simple(self.root_name.clone()),
+            fields,
+            is_error: false,
+        });
         let builder = std::mem::take(&mut self.builder);
         let schema = builder.finish(root).map_err(|e| Error::invalid_input(e.message()))?;
         verify_identifiers(&schema)?;
@@ -235,7 +239,7 @@ impl<'a> SchemaGenerator<'a> {
             }
             // the record's own name comes after its children, as the C++ generates them
             let name = self.schema_name(avro_type, preset_schema_name)?;
-            return Ok(self.builder.add_kind(SchemaKind::Record { name, fields }));
+            return Ok(self.builder.add_kind(SchemaKind::Record { name, fields, is_error: false }));
         }
         if type_id == type_id::LIST {
             let list_child = list_child_type(type_)?;
@@ -371,7 +375,7 @@ fn map_key_value_ids(field_id: Option<&FieldId>) -> Result<Option<MapKeyValueIds
 fn verify_identifiers(schema: &Schema) -> Result<()> {
     for node in schema.nodes() {
         match &node.kind {
-            SchemaKind::Record { name, fields } => {
+            SchemaKind::Record { name, fields, .. } => {
                 if !is_avro_id(&name.name) || fields.iter().any(|field| !is_avro_id(&field.name)) {
                     return Err(Error::invalid_input("Invalid Avro identifier"));
                 }

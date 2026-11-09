@@ -328,7 +328,7 @@ impl Converter<'_> {
                 let type_ = LogicalType::with_params(self.factory, type_id::ENUM, &params)?;
                 Ok(Column::new(name, type_, Shape::Enum { count: symbols.len(), width: enum_width(symbols.len()) }))
             }
-            SchemaKind::Record { name: record_name, fields } => {
+            SchemaKind::Record { name: record_name, fields, .. } => {
                 if self.ancestors.contains(&id) {
                     return Err(Error::invalid_input(format!(
                         "Recursive Avro types not supported: {}",

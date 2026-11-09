@@ -102,6 +102,9 @@ pub enum SchemaKind {
     Record {
         name: Name,
         fields: Vec<Field>,
+        /// Declared as `{"type": "error"}`, the error record of an Avro protocol (the same shape as a record; Java
+        /// accepts it anywhere a record is allowed, and so do files in the wild). Written back as `error`.
+        is_error: bool,
     },
     Enum {
         name: Name,
@@ -143,7 +146,8 @@ impl SchemaKind {
             SchemaKind::Double => "double",
             SchemaKind::Bytes => "bytes",
             SchemaKind::String => "string",
-            SchemaKind::Record { .. } => "record",
+            SchemaKind::Record { is_error: false, .. } => "record",
+            SchemaKind::Record { is_error: true, .. } => "error",
             SchemaKind::Enum { .. } => "enum",
             SchemaKind::Array { .. } => "array",
             SchemaKind::Map { .. } => "map",
@@ -392,7 +396,7 @@ impl SchemaBuilder {
         let mut named = HashMap::new();
         for (index, node) in self.nodes.iter().enumerate() {
             match &node.kind {
-                SchemaKind::Record { name, fields } => {
+                SchemaKind::Record { name, fields, .. } => {
                     let mut seen = HashSet::new();
                     for field in fields {
                         check(field.ty)?;
@@ -523,7 +527,8 @@ impl ParseState {
                     }
                 };
                 let mut node = match type_name {
-                    "record" => return self.record(json, enclosing_ns, depth),
+                    "record" => return self.record(json, enclosing_ns, depth, false),
+                    "error" => return self.record(json, enclosing_ns, depth, true),
                     "enum" => self.enum_(json, enclosing_ns)?,
                     "fixed" => self.fixed(json, enclosing_ns)?,
                     "array" => {
@@ -612,15 +617,15 @@ impl ParseState {
         Ok(name)
     }
 
-    fn record(&mut self, json: &Json, enclosing_ns: Option<&str>, depth: usize) -> Result<SchemaId> {
+    fn record(&mut self, json: &Json, enclosing_ns: Option<&str>, depth: usize, is_error: bool) -> Result<SchemaId> {
         let members = json.as_object().unwrap_or(&[]);
-        let name = self.define(json, enclosing_ns, "Record")?;
+        let name = self.define(json, enclosing_ns, if is_error { "Error" } else { "Record" })?;
         let fields_json = json
             .get("fields")
             .and_then(Json::as_array)
             .ok_or_else(|| Error::invalid_input("Record type must have \"fields\""))?;
         // the record's node must sit at the reserved id: add a placeholder, fill in the fields afterwards
-        let mut node = SchemaNode::new(SchemaKind::Record { name: name.clone(), fields: Vec::new() });
+        let mut node = SchemaNode::new(SchemaKind::Record { name: name.clone(), fields: Vec::new(), is_error });
         node.extra = extras(members, &["name", "namespace", "fields"]);
         apply_common_attrs(&mut node, json)?;
         let id = self.builder.add(node);
@@ -778,11 +783,11 @@ impl JsonWriter<'_> {
                 self.attrs(node, out);
                 out.push('}');
             }
-            SchemaKind::Record { name, fields } => {
+            SchemaKind::Record { name, fields, is_error } => {
                 if !self.defined.insert(name.fullname()) {
                     return self.reference(name, parent_ns, out);
                 }
-                out.push_str("{\"type\":\"record\"");
+                out.push_str(if *is_error { "{\"type\":\"error\"" } else { "{\"type\":\"record\"" });
                 self.name_prefix(name, parent_ns, out);
                 out.push_str(",\"fields\":[");
                 for (i, field) in fields.iter().enumerate() {
@@ -977,6 +982,21 @@ mod tests {
     }
 
     #[test]
+    fn error_is_a_record() {
+        // Java's Schema.parse accepts the protocol error record wherever a record is allowed
+        let text = r#"{"type":"record","name":"r","fields":[{"name":"e","type":{"type":"error","name":"E","fields":[{"name":"msg","type":"string"}]}},{"name":"again","type":"E"}]}"#;
+        let schema = Schema::parse(text).unwrap();
+        let e = schema.named("E").unwrap();
+        assert!(matches!(schema[e].kind, SchemaKind::Record { is_error: true, .. }));
+        assert_eq!(schema[e].kind.type_name(), "error");
+        assert_eq!(
+            schema.to_json(),
+            r#"{"type":"record","name":"r","fields":[{"name":"e","type":{"type":"error","name":"E","fields":[{"name":"msg","type":{"type":"string"}}]}},{"name":"again","type":"E"}]}"#
+        );
+        assert_eq!(Schema::parse(&schema.to_json()).unwrap(), schema);
+    }
+
+    #[test]
     fn rejects_bad_schemas() {
         for bad in [
             r#"{"type":"record","name":"r"}"#,
@@ -1003,11 +1023,13 @@ mod tests {
         let rec = b.add_kind(SchemaKind::Record {
             name: Name::simple("node"),
             fields: vec![Field::new("v", int).with_field_id(1)],
+            is_error: false,
         });
         let again = b.add_ref(Name::simple("node"));
         let root = b.add_kind(SchemaKind::Record {
             name: Name::simple("root"),
             fields: vec![Field::new("a", rec), Field::new("b", again)],
+            is_error: false,
         });
         let schema = b.finish(root).unwrap();
         assert_eq!(

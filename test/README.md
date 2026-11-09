@@ -7,4 +7,4 @@ make venv                                    # once: a virtualenv with the pinne
 make test                                    # all of test/sql through scripts/run_sqllogic.py on the pinned wheel
 make unittest DUCKDB=<duckdb binary>         # the same files through DuckDB's own C++ sqllogictest runner (test/unittest next to the binary)
 ```
-The tests name their fixtures relative to the repository root (`test/*.avro`); hand-built malformed fixtures come from `scripts/create_malformed.py`, the others from the `scripts/create_*.py` generators and the C++ extension's test data.
+The tests name their fixtures relative to the repository root (`test/*.avro`); hand-built malformed fixtures come from `scripts/create_malformed.py`, the minimal reproductions of the real-world corpus findings under `test/corpus/` from `scripts/create_corpus_fixtures.py` (both stdlib only), the others from the `scripts/create_*.py` generators and the C++ extension's test data.

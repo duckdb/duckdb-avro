@@ -38,6 +38,7 @@ fn schema() -> Schema {
     let inner = b.add_kind(SchemaKind::Record {
         name: Name::new("inner", Some("example")),
         fields: vec![Field::new("a", int).with_field_id(100), Field::new("b", opt_string).with_field_id(101)],
+        is_error: false,
     });
     let inner_again = b.add_ref(Name::new("inner", Some("example")));
     let map = b.add_kind(SchemaKind::Map { values: inner_again, key_id: Some(31), value_id: Some(32) });
@@ -62,6 +63,7 @@ fn schema() -> Schema {
             Field::new("by_name", map),
             Field::new("many", many),
         ],
+        is_error: false,
     });
     b.finish(root).expect("valid schema")
 }
