@@ -3,7 +3,7 @@
 `avro` is a DuckDB extension that reads and writes [Apache Avro](https://avro.apache.org) object container files,
 written in Rust against DuckDB's C API v2 and nothing else, so one build loads into any DuckDB of the pinned version
 (the CLI with `-unsigned`, the Python package, ...). It is a rewrite of the C++ `duckdb-avro` extension, whose
-source lives on the `cpp-upstream` branch of this repository; that extension's sqllogictests and fixture files are
+source is in this repository's history (commit b7b157f, upstream main of 2026-11-04); that extension's sqllogictests and fixture files are
 kept unchanged under `test/` as the acceptance suite.
 
 ## Functions
