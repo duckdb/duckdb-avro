@@ -624,10 +624,6 @@ class FileRunner:
             self.fail(cmd, f'query unexpectedly failed:\n{sql}\n  {e}')
             return
         column_count = len(types)
-        expected_columns = len(types_spec)
-        if expected_columns != column_count:
-            self.fail(cmd, f'expected {expected_columns} columns, but got {column_count}:\n{sql}')
-            return
         # sort
         if sort_style == 'rowsort':
             rows = sorted(rows)
@@ -660,6 +656,12 @@ class FileRunner:
                 return
             if label is not None and not expected:
                 return
+        # the column count is checked for a comparison by values only, as DuckDB's runner does (a query compared by
+        # label or hash passes whatever its type string says)
+        expected_columns = len(types_spec)
+        if expected_columns != column_count:
+            self.fail(cmd, f'expected {expected_columns} columns, but got {column_count}:\n{sql}')
+            return
         # row-wise (tab separated) or one value per line
         row_wise = column_count > 1 and len(expected) == len(rows)
         if not row_wise:
