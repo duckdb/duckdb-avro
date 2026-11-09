@@ -24,8 +24,10 @@ pub(crate) enum Shape {
     Int,
     /// An Avro `long`: BIGINT, TIME (micros), the TIMESTAMP variants (micros or nanos).
     Long,
-    /// An Avro `int` of `time-millis`, scaled to micros.
+    /// An Avro `int` of `time-millis`, range-checked and scaled to micros.
     TimeMillis,
+    /// An Avro `long` of `time-micros`, range-checked.
+    TimeMicros,
     /// An Avro `long` of `timestamp-millis` / `local-timestamp-millis`, scaled to micros.
     TimestampMillis,
     Float,
@@ -264,7 +266,7 @@ impl Converter<'_> {
                 let timestamp = |utc: bool| if utc { type_id::TIMESTAMP_TZ } else { type_id::TIMESTAMP };
                 let (type_, shape) = match self.annotation(id)? {
                     None => (self.primitive(type_id::BIGINT)?, Shape::Long),
-                    Some(Annotated::TimeMicros) => (self.primitive(type_id::TIME)?, Shape::Long),
+                    Some(Annotated::TimeMicros) => (self.primitive(type_id::TIME)?, Shape::TimeMicros),
                     Some(Annotated::TimestampMillis { utc }) => {
                         (self.primitive(timestamp(utc))?, Shape::TimestampMillis)
                     }

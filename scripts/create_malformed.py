@@ -1,7 +1,7 @@
 """Writes the hand-built Avro object container files of test/sql/malformed.test (stdlib only: python3 -I).
 
-A block count a reader must not trust, and its legitimate counterpart: an array of 100000 nulls, a positive count
-with no payload behind it.
+A block count a reader must not trust (R1 of the review), time values outside a day (R2), and the legitimate
+counterpart of the first: an array of 100000 nulls, a positive count with no payload behind it.
 
     python3 -I scripts/create_malformed.py
 """
@@ -72,4 +72,13 @@ write(
 write(
     "array_of_nulls.avro",
     container(record('{"type":"array","items":"null"}'), [(2, varint(100000) + varint(0) + varint(0))]),
+)
+# time-millis of 2,000,000,000 ms (over 23 days) and time-micros one past 24:00:00
+write(
+    "time_millis_out_of_range.avro",
+    container(record('{"type":"int","logicalType":"time-millis"}'), [(1, varint(2_000_000_000))]),
+)
+write(
+    "time_micros_out_of_range.avro",
+    container(record('{"type":"long","logicalType":"time-micros"}'), [(1, varint(86_400_000_001))]),
 )

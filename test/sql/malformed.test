@@ -49,3 +49,14 @@ query I
 SELECT count(*) FROM read_avro('test/array_of_nulls.avro');
 ----
 2
+
+# time-millis / time-micros outside 00:00:00..24:00:00 are an Out of Range error, not an internal one
+statement error
+SELECT * FROM read_avro('test/time_millis_out_of_range.avro');
+----
+Out of Range Error: time-millis value 2000000000 is out of range
+
+statement error
+SELECT * FROM read_avro('test/time_micros_out_of_range.avro');
+----
+Out of Range Error: time-micros value 86400000001 is out of range

@@ -13,6 +13,10 @@ use super::schema::{Column, Shape};
 
 /// Microseconds per millisecond.
 const MICROS_PER_MSEC: i64 = 1000;
+/// The largest `time-millis` value: 24:00:00, which DuckDB's TIME admits.
+const MAX_TIME_MILLIS: i64 = 86_400_000;
+/// The largest `time-micros` value: 24:00:00.
+const MAX_TIME_MICROS: i64 = 86_400_000_000;
 
 /// The values of a chunk's rows for a vector of plain elements.
 #[derive(Debug, Default)]
@@ -139,6 +143,7 @@ pub(crate) enum Node {
     Int(Prim<i32>),
     Long(Prim<i64>),
     TimeMillis(Prim<i64>),
+    TimeMicros(Prim<i64>),
     TimestampMillis(Prim<i64>),
     Float(Prim<f32>),
     Double(Prim<f64>),
@@ -201,6 +206,7 @@ impl Node {
             Shape::Int => Node::Int(Prim::new()),
             Shape::Long => Node::Long(Prim::new()),
             Shape::TimeMillis => Node::TimeMillis(Prim::new()),
+            Shape::TimeMicros => Node::TimeMicros(Prim::new()),
             Shape::TimestampMillis => Node::TimestampMillis(Prim::new()),
             Shape::Float => Node::Float(Prim::new()),
             Shape::Double => Node::Double(Prim::new()),
@@ -261,7 +267,7 @@ impl Node {
             Node::Null { len, .. } => *len,
             Node::Boolean(p) => p.len(),
             Node::Int(p) => p.len(),
-            Node::Long(p) | Node::TimeMillis(p) | Node::TimestampMillis(p) => p.len(),
+            Node::Long(p) | Node::TimeMillis(p) | Node::TimeMicros(p) | Node::TimestampMillis(p) => p.len(),
             Node::Float(p) => p.len(),
             Node::Double(p) => p.len(),
             Node::Bytes(s) | Node::String(s) => s.len(),
@@ -291,7 +297,7 @@ impl Node {
             Node::Null { len, .. } => *len = 0,
             Node::Boolean(p) => p.clear(),
             Node::Int(p) => p.clear(),
-            Node::Long(p) | Node::TimeMillis(p) | Node::TimestampMillis(p) => p.clear(),
+            Node::Long(p) | Node::TimeMillis(p) | Node::TimeMicros(p) | Node::TimestampMillis(p) => p.clear(),
             Node::Float(p) => p.clear(),
             Node::Double(p) => p.clear(),
             Node::Bytes(s) | Node::String(s) => s.clear(),
@@ -340,7 +346,7 @@ impl Node {
             Node::Null { len, .. } => *len += 1,
             Node::Boolean(p) => p.push_null(),
             Node::Int(p) => p.push_null(),
-            Node::Long(p) | Node::TimeMillis(p) | Node::TimestampMillis(p) => p.push_null(),
+            Node::Long(p) | Node::TimeMillis(p) | Node::TimeMicros(p) | Node::TimestampMillis(p) => p.push_null(),
             Node::Float(p) => p.push_null(),
             Node::Double(p) => p.push_null(),
             Node::Bytes(s) | Node::String(s) => s.push_null(),
@@ -389,7 +395,20 @@ impl Node {
             Node::Boolean(p) => p.push(u8::from(dec.read_boolean().or_err()?)),
             Node::Int(p) => p.push(dec.read_int().or_err()?),
             Node::Long(p) => p.push(dec.read_long().or_err()?),
-            Node::TimeMillis(p) => p.push(i64::from(dec.read_int().or_err()?) * MICROS_PER_MSEC),
+            Node::TimeMillis(p) => {
+                let millis = i64::from(dec.read_int().or_err()?);
+                if !(0..=MAX_TIME_MILLIS).contains(&millis) {
+                    return Err(Error::out_of_range(format!("time-millis value {millis} is out of range")));
+                }
+                p.push(millis * MICROS_PER_MSEC);
+            }
+            Node::TimeMicros(p) => {
+                let micros = dec.read_long().or_err()?;
+                if !(0..=MAX_TIME_MICROS).contains(&micros) {
+                    return Err(Error::out_of_range(format!("time-micros value {micros} is out of range")));
+                }
+                p.push(micros);
+            }
             Node::TimestampMillis(p) => {
                 let millis = dec.read_long().or_err()?;
                 let micros = millis.checked_mul(MICROS_PER_MSEC).ok_or_else(|| {
@@ -524,7 +543,7 @@ impl Node {
             }
             Node::Boolean(p) => p.flush(vector),
             Node::Int(p) => p.flush(vector),
-            Node::Long(p) | Node::TimeMillis(p) | Node::TimestampMillis(p) => p.flush(vector),
+            Node::Long(p) | Node::TimeMillis(p) | Node::TimeMicros(p) | Node::TimestampMillis(p) => p.flush(vector),
             Node::Float(p) => p.flush(vector),
             Node::Double(p) => p.flush(vector),
             Node::Bytes(s) | Node::String(s) => s.flush(vector),
