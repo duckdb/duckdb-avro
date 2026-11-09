@@ -1,0 +1,5 @@
+# The DuckDB build this extension is pinned to: the C API v2 function table follows its header (scripts/pin_api_table.py),
+# the metadata footer names its version tag. `make venv` installs the Python wheel of exactly this build.
+DUCKDB_WHEEL=2.0.1.dev2611081931
+DUCKDB_VERSION=v2.0.1-alpha54043
+DUCKDB_SOURCE_ID=29b26cb106
