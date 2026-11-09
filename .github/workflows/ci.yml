@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# a newer push supersedes the runs of the same branch
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - run: cargo fmt --check
+      - run: cargo clippy --release --all-targets -- -D warnings
+      - run: cargo test --release
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pinned DuckDB (DUCKDB_PIN)
+        run: |
+          make venv
+          venv/bin/python -c "import duckdb; print(duckdb.__version__, duckdb.sql('SELECT library_version, source_id FROM pragma_version()').fetchall()[0])"
+
+      - name: Build the extension
+        run: make
+
+      - name: Smoke test
+        run: |
+          venv/bin/python -c "
+          import duckdb
+          con = duckdb.connect(config={'allow_unsigned_extensions': 'true'})
+          con.sql(\"LOAD 'build/avro.duckdb_extension'\")
+          rows = con.sql(\"SELECT extension_name, loaded FROM duckdb_extensions() WHERE extension_name = 'avro'\").fetchall()
+          print(rows)
+          assert rows == [('avro', True)], rows"
+
+      - name: Test
+        run: make test
