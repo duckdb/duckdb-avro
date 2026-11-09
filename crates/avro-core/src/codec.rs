@@ -31,7 +31,7 @@ impl Codec {
 
     /// Looks a codec up by name, case-insensitively; the error names the unknown codec.
     pub fn from_name(name: &str) -> Result<Codec> {
-        let lower = name.trim().to_ascii_lowercase();
+        let lower = name.to_ascii_lowercase();
         Codec::ALL
             .into_iter()
             .find(|c| c.name() == lower)
