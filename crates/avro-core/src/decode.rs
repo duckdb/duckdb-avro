@@ -85,7 +85,13 @@ impl<'a> Decoder<'a> {
         Ok(out)
     }
 
-    /// An unsigned varint (before zigzag decoding), at most 10 bytes, 64-bit overflow detected.
+    /// An unsigned varint (before zigzag decoding) of at most 10 bytes, truncated to 64 bits.
+    ///
+    /// The tenth byte carries bits 63..69 of the value, of which only bit 63 fits: the others are dropped, as the
+    /// reference implementations do (Java's `BinaryDecoder.readLong`, fastavro, avro-c and the C++ extension all
+    /// wrap). Writers do produce such values: pyiceberg zigzag-encodes a snapshot id above `INT64_MAX` into a 10-byte
+    /// varint whose last byte sets bit 64, and every other reader turns it into the wrapped negative number. More than
+    /// 10 bytes is still an error.
     #[inline]
     pub fn read_varint(&mut self) -> Result<u64> {
         // fast path: a single byte
@@ -100,9 +106,7 @@ impl<'a> Decoder<'a> {
         loop {
             let b = *self.data.get(self.pos).ok_or_else(|| self.eof("a varint"))?;
             self.pos += 1;
-            if shift == 63 && b > 1 {
-                return Err(Error::invalid_input(format!("Avro varint overflows 64 bits at offset {}", self.pos)));
-            }
+            // at shift 63 only the low bit of the byte remains in the u64: the shift discards the rest
             value |= u64::from(b & 0x7f) << shift;
             if b < 0x80 {
                 return Ok(value);
@@ -328,9 +332,15 @@ mod tests {
         assert_eq!(d.read_long().unwrap(), i64::MIN);
         assert!(d.is_empty());
         assert!(d.read_long().is_err());
-        // overflow: 10 bytes with the last above 1
-        let mut d = Decoder::new(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x02]);
-        assert!(d.read_long().is_err());
+        // 10 bytes with bits above the 64th set: truncated like the reference implementations do (pyiceberg's
+        // encoding of 9876543210123456789, read as -653171173268680982 by Java and fastavro)
+        let mut d = Decoder::new(&[0xab, 0xc4, 0xa3, 0x83, 0x96, 0xee, 0xc3, 0x90, 0x92, 0x02]);
+        assert_eq!(d.read_long().unwrap(), -653171173268680982);
+        assert!(d.is_empty());
+        // the tenth byte's bits above its lowest are dropped: the same value as with 0x01
+        let mut d = Decoder::new(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f]);
+        assert_eq!(d.read_long().unwrap(), i64::MIN);
+        // more than 10 bytes is an error
         let mut d = Decoder::new(&[0xff; 11]);
         assert!(d.read_long().is_err());
         // an int wider than 32 bits
