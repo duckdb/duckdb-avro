@@ -108,7 +108,7 @@ Writing (`COPY ... TO`), as the C++ extension does it:
 | `BOOLEAN`, `INTEGER`, `BIGINT`, `FLOAT`, `DOUBLE` | `boolean`, `int`, `long`, `float`, `double` |
 | `VARCHAR`, `BLOB`, `"NULL"` | `string`, `bytes`, `null` |
 | `DATE`, `TIME` | `int` + `date`, `long` + `time-micros` |
-| `TIMESTAMP`, `TIMESTAMP_MS` | `long` + `timestamp-micros` (a `TIMESTAMP_MS` value is written unscaled, as in the C++) |
+| `TIMESTAMP`, `TIMESTAMP_MS` | `long` + `timestamp-micros`, `long` + `timestamp-millis` |
 | `TIMESTAMP WITH TIME ZONE` | `long` + `timestamp-micros`, `adjust-to-utc: true` |
 | `TIMESTAMP_NS`, `TIMESTAMP_TZ_NS` | `long` + `timestamp-nanos` (+ `adjust-to-utc`) |
 | `UUID` | `fixed(16)` + `uuid` |
@@ -130,6 +130,14 @@ refused with `Can't convert logical type ... to Avro type`.
 - A `decimal` whose precision or scale is outside 0..255 is an error instead of being truncated.
 - An unknown `CODEC` is rejected when the `COPY` is bound, not when the first block is written.
 - `avro.codec` names are matched case-insensitively.
+- `TIMESTAMP_MS` is written with `timestamp-millis`; the C++ writes the millisecond values under `timestamp-micros`
+  (upstream bug report pending).
+- User `METADATA` keys starting with `avro.` are rejected; avro-c would let them collide with the schema and codec
+  entries.
+- `time-millis` / `time-micros` values outside 00:00:00..24:00:00 are an Out of Range error instead of an internal
+  error.
+- An array or map block count the remaining bytes cannot hold (or beyond 2^24 zero-size items) fails fast instead of
+  spinning the decoder.
 
 ## Building
 
@@ -173,11 +181,12 @@ reorder the function table with `scripts/pin_api_table.py` against that build's 
   `schema.rs` is the DuckDB-to-Avro conversion, `field_ids.rs` the `FIELD_IDS` option).
 - `test/`: the upstream suite, `test/sql/*.test` and `test/sql/copy/*.test`, with the fixture files.
 - `scripts/`: `pin_api_table.py` (re-pinning), `append_extension_metadata.py` (the footer), `run_sqllogic.py` (the
-  test runner), and the generators of the independent fixtures (`create_decimal_bytes.py`, `create_timestamp_*.py`).
+  test runner), and the generators of the independent fixtures (`create_decimal_bytes.py`, `create_timestamp_*.py`,
+  `create_malformed.py`: the hand-built malformed files, stdlib only).
 
 ## Tests
 
-`make test` runs all 32 test files (`test/sql/*.test`, `test/sql/copy/*.test` and `*.test_slow`) with
+`make test` runs all 34 test files (`test/sql/*.test`, `test/sql/copy/*.test` and `*.test_slow`) with
 `scripts/run_sqllogic.py`, a sqllogictest runner on the pinned Python wheel that follows DuckDB's C++ runner for the
 directives the tests use. `make unittest DUCKDB=<binary>` runs the same files through the C++ runner (above);
 `TESTS=` selects a subset. `cargo test --release` runs the unit tests of the crates (codec round trips, schema JSON,
