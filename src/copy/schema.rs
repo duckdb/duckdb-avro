@@ -10,7 +10,8 @@
 //! | "NULL"                                  | `null` (never wrapped in a union)                             |
 //! | DATE                                    | `int` + `date`                                                |
 //! | TIME                                    | `long` + `time-micros`                                        |
-//! | TIMESTAMP, TIMESTAMP_MS                 | `long` + `timestamp-micros` (a TIMESTAMP_MS is written raw, as the C++ does) |
+//! | TIMESTAMP                               | `long` + `timestamp-micros`                                   |
+//! | TIMESTAMP_MS                            | `long` + `timestamp-millis` (the stored milliseconds unchanged) |
 //! | TIMESTAMP_TZ                            | `long` + `timestamp-micros`, `adjust-to-utc`                  |
 //! | TIMESTAMP_NS / TIMESTAMPTZ_NS           | `long` + `timestamp-nanos` (+ `adjust-to-utc`)                |
 //! | UUID                                    | `fixed(16)` + `uuid`                                          |
@@ -74,7 +75,8 @@ fn temporal_logical_type(type_: &LogicalType) -> Result<&'static str> {
     Ok(match type_.id()? {
         type_id::DATE => "date",
         type_id::TIME => "time-micros",
-        type_id::TIMESTAMP | type_id::TIMESTAMP_MS | type_id::TIMESTAMP_TZ => "timestamp-micros",
+        type_id::TIMESTAMP | type_id::TIMESTAMP_TZ => "timestamp-micros",
+        type_id::TIMESTAMP_MS => "timestamp-millis",
         type_id::TIMESTAMP_NS | type_id::TIMESTAMP_TZ_NS => "timestamp-nanos",
         _ => {
             return Err(Error::not_implemented(format!(
