@@ -338,7 +338,7 @@ fn invalid_field_ids() -> Result<()> {
         (
             "SELECT 1 a",
             "FIELD_IDS {'a': {'__duckdb_nullable': false}}",
-            DuckDBError::RuntimeInternal,
+            DuckDBError::QueryBinder,
             "Field id of the field is not set",
         ),
     ];

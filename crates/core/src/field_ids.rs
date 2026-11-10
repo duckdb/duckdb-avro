@@ -39,7 +39,7 @@ impl FieldId {
     /// The id; a field that is only listed for the ids of its children has none, which is an error here.
     pub fn field_id(&self) -> Result<i32> {
         self.id
-            .ok_or_else(|| internal("Field id of the field is not set"))
+            .ok_or_else(|| binder("Field id of the field is not set"))
     }
 }
 
