@@ -6,14 +6,25 @@ pub fn zigzag_encode(value: i64) -> u64 {
     ((value << 1) ^ (value >> 63)) as u64
 }
 
-/// Appends an unsigned varint to `out`.
+/// The unsigned varint of `value`: its bytes in a 10-byte array and how many of them there are (`1..=10`).
 #[inline]
-pub fn write_varint(out: &mut Vec<u8>, mut value: u64) {
+fn varint_bytes(mut value: u64) -> ([u8; 10], usize) {
+    let mut bytes = [0u8; 10];
+    let mut n = 0;
     while value >= 0x80 {
-        out.push((value as u8) | 0x80);
+        bytes[n] = (value as u8) | 0x80;
         value >>= 7;
+        n += 1;
     }
-    out.push(value as u8);
+    bytes[n] = value as u8;
+    (bytes, n + 1)
+}
+
+/// Appends an unsigned varint to `out` (one reservation for all its bytes).
+#[inline]
+pub fn write_varint(out: &mut Vec<u8>, value: u64) {
+    let (bytes, n) = varint_bytes(value);
+    out.extend_from_slice(&bytes[..n]);
 }
 
 /// Appends a zigzag varint `long` to `out`.
