@@ -93,13 +93,14 @@ clippy:
 	cargo fmt --check
 
 # one package at a time, harnesses in sequence (each CBMC run takes up to 17 GB); the CI job runs the same without
-# kani-heavy, the feature of the avro-core harnesses a 16 GiB runner cannot hold or that take many minutes.
+# kani-heavy, the feature (of avro-core and of the extension) of the harnesses a 16 GiB runner cannot hold or that take
+# many minutes.
 # `-Z stubbing` lets the JSON number harnesses stand in for `core`'s float parsing.
 KANI_FLAGS := -Z stubbing
 kani:
 	cargo kani $(KANI_FLAGS) -p avro-core --features kani-heavy
 	cargo kani $(KANI_FLAGS) -p duckdb-ext-api
-	cargo kani $(KANI_FLAGS) -p duckdb-avro
+	cargo kani $(KANI_FLAGS) -p duckdb-avro --features kani-heavy
 
 # DuckDB-Wasm: the cargo `wasm` profile (Cargo.toml) on the emscripten target; rustc links through emcc, so emscripten
 # has to be on PATH. The same FOOTER_VERSION mechanism as the native build names the engine build the module is for.

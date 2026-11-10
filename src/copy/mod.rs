@@ -20,9 +20,14 @@ mod types;
 
 /// The pure value conversions the proof harnesses of `crate::verification` check.
 #[cfg(kani)]
-pub(crate) use encode::{hugeint_to_i128, uuid_bytes, write_decimal};
+pub(crate) use encode::{Plan, hugeint_to_i128, primitive_plan, union_branch_index, uuid_bytes, write_decimal};
 #[cfg(kani)]
-pub(crate) use schema::{is_avro_id, min_bytes_required_for_decimal};
+pub(crate) use schema::{
+    UUID_FIXED_SIZE, adjust_to_utc, avro_type_name, is_avro_id, is_named_schema, is_temporal,
+    min_bytes_required_for_decimal, temporal_logical_type_name,
+};
+#[cfg(kani)]
+pub(crate) use types::decimal_internal_type_id;
 
 use std::io::Write;
 use std::sync::Mutex;

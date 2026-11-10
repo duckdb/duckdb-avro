@@ -14,7 +14,7 @@
 
 use avro_core::{Field, Schema, SchemaId, SchemaKind};
 use duckdb_ext_api::types::type_id;
-use duckdb_ext_api::{Error, Factory, LogicalType, Result, Value};
+use duckdb_ext_api::{Error, Factory, LogicalType, Result, TypeId, Value};
 
 /// The column name of a root value that is neither a record nor a named type.
 const UNNAMED_ROOT: &str = "avro_schema";
@@ -255,7 +255,8 @@ pub(crate) fn union_member_name(index: usize) -> String {
 }
 
 /// The DuckDB logical type a primitive node's `logicalType` attribute selects.
-enum Annotated {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Annotated {
     Date,
     TimeMillis,
     TimeMicros,
@@ -268,6 +269,124 @@ enum Annotated {
     Decimal { precision: u8, scale: u8 },
     Uuid,
     Duration,
+}
+
+/// The `logicalType` attribute `logical_type` of a primitive node, with its `adjust-to-utc` (false when absent),
+/// `precision` and `scale` attributes; `None` when the name is unknown or the annotation invalid (ignored per the
+/// spec: the underlying type is read).
+pub(crate) fn parse_annotation(
+    logical_type: &str,
+    adjust_to_utc: bool,
+    precision: Option<i64>,
+    scale: Option<i64>,
+) -> Option<Annotated> {
+    let utc = adjust_to_utc;
+    Some(match logical_type {
+        "date" => Annotated::Date,
+        "decimal" => {
+            // invalid (so ignored): no integer precision, a precision no DECIMAL holds, a scale outside 0..=precision
+            let (precision, scale) = decimal_annotation(precision, scale)?;
+            Annotated::Decimal { precision, scale }
+        }
+        "time-millis" => Annotated::TimeMillis,
+        "time-micros" => Annotated::TimeMicros,
+        "timestamp-millis" => Annotated::TimestampMillis { utc },
+        "timestamp-micros" => Annotated::TimestampMicros { utc },
+        "timestamp-nanos" => Annotated::TimestampNanos { utc },
+        "uuid" => Annotated::Uuid,
+        "duration" => Annotated::Duration,
+        "local-timestamp-millis" => Annotated::LocalTimestampMillis,
+        "local-timestamp-micros" => Annotated::LocalTimestampMicros,
+        "local-timestamp-nanos" => Annotated::LocalTimestampNanos,
+        // unknown: ignored, the underlying type is read
+        _ => return None,
+    })
+}
+
+/// A primitive Avro type as [`leaf`] sees it (`null` is not one: it is the `"NULL"` type whatever its annotation).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LeafKind {
+    Boolean,
+    Int,
+    Long,
+    Float,
+    Double,
+    String,
+    Bytes,
+    Fixed(usize),
+}
+
+/// The DuckDB type [`leaf`] selects: a type by id, or a DECIMAL.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LeafType {
+    Id(TypeId),
+    Decimal { precision: u8, scale: u8 },
+}
+
+/// Why [`leaf`] refuses a node: a known logical type on an Avro type it does not belong to, `uuid` on a fixed whose
+/// size is not 16, `duration` on a fixed whose size is not 12.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LeafError {
+    Mismatch,
+    UuidSize,
+    DurationSize,
+}
+
+/// The primitive Avro type `kind` of a schema node, or `None` for a nested or named type.
+fn leaf_kind(kind: &SchemaKind) -> Option<LeafKind> {
+    Some(match kind {
+        SchemaKind::Boolean => LeafKind::Boolean,
+        SchemaKind::Int => LeafKind::Int,
+        SchemaKind::Long => LeafKind::Long,
+        SchemaKind::Float => LeafKind::Float,
+        SchemaKind::Double => LeafKind::Double,
+        SchemaKind::String => LeafKind::String,
+        SchemaKind::Bytes => LeafKind::Bytes,
+        SchemaKind::Fixed { size, .. } => LeafKind::Fixed(*size),
+        _ => return None,
+    })
+}
+
+/// The type-mapping rule for the primitives: the DuckDB type and the shape a node of `kind` with `annotation` (its
+/// parsed `logicalType`, `None` when absent, unknown or invalid) is read as.
+pub(crate) fn leaf(kind: LeafKind, annotation: Option<Annotated>) -> std::result::Result<(LeafType, Shape), LeafError> {
+    use LeafType::Id;
+    let timestamp = |utc: bool| Id(if utc { type_id::TIMESTAMP_TZ } else { type_id::TIMESTAMP });
+    Ok(match (kind, annotation) {
+        (LeafKind::Boolean, None) => (Id(type_id::BOOLEAN), Shape::Boolean),
+        (LeafKind::Int, None) => (Id(type_id::INTEGER), Shape::Int),
+        (LeafKind::Int, Some(Annotated::Date)) => (Id(type_id::DATE), Shape::Int),
+        (LeafKind::Int, Some(Annotated::TimeMillis)) => (Id(type_id::TIME), Shape::TimeMillis),
+        (LeafKind::Long, None) => (Id(type_id::BIGINT), Shape::Long),
+        (LeafKind::Long, Some(Annotated::TimeMicros)) => (Id(type_id::TIME), Shape::TimeMicros),
+        (LeafKind::Long, Some(Annotated::TimestampMillis { utc })) => (timestamp(utc), Shape::TimestampMillis),
+        (LeafKind::Long, Some(Annotated::TimestampMicros { utc })) => (timestamp(utc), Shape::Long),
+        (LeafKind::Long, Some(Annotated::TimestampNanos { utc })) => {
+            (Id(if utc { type_id::TIMESTAMP_TZ_NS } else { type_id::TIMESTAMP_NS }), Shape::Long)
+        }
+        (LeafKind::Long, Some(Annotated::LocalTimestampMillis)) => (Id(type_id::TIMESTAMP), Shape::TimestampMillis),
+        (LeafKind::Long, Some(Annotated::LocalTimestampMicros)) => (Id(type_id::TIMESTAMP), Shape::Long),
+        (LeafKind::Long, Some(Annotated::LocalTimestampNanos)) => (Id(type_id::TIMESTAMP_NS), Shape::Long),
+        (LeafKind::Float, None) => (Id(type_id::FLOAT), Shape::Float),
+        (LeafKind::Double, None) => (Id(type_id::DOUBLE), Shape::Double),
+        (LeafKind::String, None) => (Id(type_id::VARCHAR), Shape::String),
+        // the spec's uuid annotates a string (the fixed(16) form came with Avro 1.12)
+        (LeafKind::String, Some(Annotated::Uuid)) => (Id(type_id::UUID), Shape::UuidText),
+        (LeafKind::Bytes, None) => (Id(type_id::BLOB), Shape::Bytes),
+        (LeafKind::Bytes, Some(Annotated::Decimal { precision, scale })) => {
+            (LeafType::Decimal { precision, scale }, Shape::Decimal { fixed: None, width: decimal_width(precision) })
+        }
+        (LeafKind::Fixed(size), None) => (Id(type_id::BLOB), Shape::Fixed(size)),
+        (LeafKind::Fixed(size), Some(Annotated::Decimal { precision, scale })) => (
+            LeafType::Decimal { precision, scale },
+            Shape::Decimal { fixed: Some(size), width: decimal_width(precision) },
+        ),
+        (LeafKind::Fixed(16), Some(Annotated::Uuid)) => (Id(type_id::UUID), Shape::Uuid),
+        (LeafKind::Fixed(_), Some(Annotated::Uuid)) => return Err(LeafError::UuidSize),
+        (LeafKind::Fixed(12), Some(Annotated::Duration)) => (Id(type_id::INTERVAL), Shape::Duration),
+        (LeafKind::Fixed(_), Some(Annotated::Duration)) => return Err(LeafError::DurationSize),
+        (_, Some(_)) => return Err(LeafError::Mismatch),
+    })
 }
 
 struct Converter<'a> {
@@ -288,32 +407,29 @@ impl Converter<'_> {
 
     /// The `logicalType` attribute of a primitive node; `None` when there is none, or when it is unknown or invalid
     /// (ignored per the spec: the underlying type is read).
-    fn annotation(&self, id: SchemaId) -> Result<Option<Annotated>> {
+    fn annotation(&self, id: SchemaId) -> Option<Annotated> {
         let node = &self.schema[id];
-        let Some(logical_type) = node.logical_type.as_deref() else { return Ok(None) };
-        let utc = node.adjust_to_utc.unwrap_or(false);
-        let annotated = match logical_type {
-            "date" => Annotated::Date,
-            "decimal" => {
-                // invalid (so ignored): no integer precision, a precision no DECIMAL holds, a scale outside
-                // 0..=precision
-                let Some((precision, scale)) = decimal_annotation(node.precision, node.scale) else { return Ok(None) };
-                Annotated::Decimal { precision, scale }
+        let logical_type = node.logical_type.as_deref()?;
+        parse_annotation(logical_type, node.adjust_to_utc.unwrap_or(false), node.precision, node.scale)
+    }
+
+    /// A primitive node: [`leaf`] of its kind and annotation, with the engine's type for what it selects.
+    fn leaf_column(&self, id: SchemaId, kind: LeafKind, name: &str) -> Result<Column> {
+        let (type_, shape) = match leaf(kind, self.annotation(id)) {
+            Ok(leaf) => leaf,
+            Err(LeafError::Mismatch) => return Err(self.mismatch(id)),
+            Err(LeafError::UuidSize) => {
+                return Err(Error::invalid_configuration("logical type is uuid, but size != 16"));
             }
-            "time-millis" => Annotated::TimeMillis,
-            "time-micros" => Annotated::TimeMicros,
-            "timestamp-millis" => Annotated::TimestampMillis { utc },
-            "timestamp-micros" => Annotated::TimestampMicros { utc },
-            "timestamp-nanos" => Annotated::TimestampNanos { utc },
-            "uuid" => Annotated::Uuid,
-            "duration" => Annotated::Duration,
-            "local-timestamp-millis" => Annotated::LocalTimestampMillis,
-            "local-timestamp-micros" => Annotated::LocalTimestampMicros,
-            "local-timestamp-nanos" => Annotated::LocalTimestampNanos,
-            // unknown: ignored, the underlying type is read
-            _ => return Ok(None),
+            Err(LeafError::DurationSize) => {
+                return Err(Error::invalid_input("Avro logical type 'duration' requires a fixed of size 12"));
+            }
         };
-        Ok(Some(annotated))
+        let type_ = match type_ {
+            LeafType::Id(type_id) => self.primitive(type_id)?,
+            LeafType::Decimal { precision, scale } => LogicalType::decimal(self.factory, precision, scale)?,
+        };
+        Ok(Column::new(name, type_, shape))
     }
 
     fn mismatch(&self, id: SchemaId) -> Error {
@@ -329,94 +445,20 @@ impl Converter<'_> {
     fn convert(&mut self, id: SchemaId, name: &str) -> Result<Column> {
         let id = self.schema.resolve(id);
         let node = &self.schema[id];
+        if let Some(kind) = leaf_kind(&node.kind) {
+            return self.leaf_column(id, kind, name);
+        }
         match &node.kind {
-            SchemaKind::Null => {
-                self.annotation(id)?;
-                Ok(Column::new(name, self.null_type()?, Shape::Null(id)))
-            }
-            SchemaKind::Boolean => {
-                if self.annotation(id)?.is_some() {
-                    return Err(self.mismatch(id));
-                }
-                Ok(Column::new(name, self.primitive(type_id::BOOLEAN)?, Shape::Boolean))
-            }
-            SchemaKind::Int => {
-                let (type_, shape) = match self.annotation(id)? {
-                    None => (self.primitive(type_id::INTEGER)?, Shape::Int),
-                    Some(Annotated::Date) => (self.primitive(type_id::DATE)?, Shape::Int),
-                    Some(Annotated::TimeMillis) => (self.primitive(type_id::TIME)?, Shape::TimeMillis),
-                    Some(_) => return Err(self.mismatch(id)),
-                };
-                Ok(Column::new(name, type_, shape))
-            }
-            SchemaKind::Long => {
-                let timestamp = |utc: bool| if utc { type_id::TIMESTAMP_TZ } else { type_id::TIMESTAMP };
-                let (type_, shape) = match self.annotation(id)? {
-                    None => (self.primitive(type_id::BIGINT)?, Shape::Long),
-                    Some(Annotated::TimeMicros) => (self.primitive(type_id::TIME)?, Shape::TimeMicros),
-                    Some(Annotated::TimestampMillis { utc }) => {
-                        (self.primitive(timestamp(utc))?, Shape::TimestampMillis)
-                    }
-                    Some(Annotated::TimestampMicros { utc }) => (self.primitive(timestamp(utc))?, Shape::Long),
-                    Some(Annotated::TimestampNanos { utc }) => {
-                        let id = if utc { type_id::TIMESTAMP_TZ_NS } else { type_id::TIMESTAMP_NS };
-                        (self.primitive(id)?, Shape::Long)
-                    }
-                    Some(Annotated::LocalTimestampMillis) => {
-                        (self.primitive(type_id::TIMESTAMP)?, Shape::TimestampMillis)
-                    }
-                    Some(Annotated::LocalTimestampMicros) => (self.primitive(type_id::TIMESTAMP)?, Shape::Long),
-                    Some(Annotated::LocalTimestampNanos) => (self.primitive(type_id::TIMESTAMP_NS)?, Shape::Long),
-                    Some(_) => return Err(self.mismatch(id)),
-                };
-                Ok(Column::new(name, type_, shape))
-            }
-            SchemaKind::Float => {
-                if self.annotation(id)?.is_some() {
-                    return Err(self.mismatch(id));
-                }
-                Ok(Column::new(name, self.primitive(type_id::FLOAT)?, Shape::Float))
-            }
-            SchemaKind::Double => {
-                if self.annotation(id)?.is_some() {
-                    return Err(self.mismatch(id));
-                }
-                Ok(Column::new(name, self.primitive(type_id::DOUBLE)?, Shape::Double))
-            }
-            SchemaKind::String => match self.annotation(id)? {
-                None => Ok(Column::new(name, self.primitive(type_id::VARCHAR)?, Shape::String)),
-                // the spec's uuid annotates a string (the fixed(16) form came with Avro 1.12)
-                Some(Annotated::Uuid) => Ok(Column::new(name, self.primitive(type_id::UUID)?, Shape::UuidText)),
-                Some(_) => Err(self.mismatch(id)),
-            },
-            SchemaKind::Bytes => match self.annotation(id)? {
-                None => Ok(Column::new(name, self.primitive(type_id::BLOB)?, Shape::Bytes)),
-                Some(Annotated::Decimal { precision, scale }) => Ok(Column::new(
-                    name,
-                    LogicalType::decimal(self.factory, precision, scale)?,
-                    Shape::Decimal { fixed: None, width: decimal_width(precision) },
-                )),
-                Some(_) => Err(self.mismatch(id)),
-            },
-            SchemaKind::Fixed { size, .. } => match self.annotation(id)? {
-                None => Ok(Column::new(name, self.primitive(type_id::BLOB)?, Shape::Fixed(*size))),
-                Some(Annotated::Decimal { precision, scale }) => Ok(Column::new(
-                    name,
-                    LogicalType::decimal(self.factory, precision, scale)?,
-                    Shape::Decimal { fixed: Some(*size), width: decimal_width(precision) },
-                )),
-                Some(Annotated::Uuid) if *size == 16 => {
-                    Ok(Column::new(name, self.primitive(type_id::UUID)?, Shape::Uuid))
-                }
-                Some(Annotated::Uuid) => Err(Error::invalid_configuration("logical type is uuid, but size != 16")),
-                Some(Annotated::Duration) if *size == 12 => {
-                    Ok(Column::new(name, self.primitive(type_id::INTERVAL)?, Shape::Duration))
-                }
-                Some(Annotated::Duration) => {
-                    Err(Error::invalid_input("Avro logical type 'duration' requires a fixed of size 12"))
-                }
-                Some(_) => Err(self.mismatch(id)),
-            },
+            // whatever its annotation
+            SchemaKind::Null => Ok(Column::new(name, self.null_type()?, Shape::Null(id))),
+            SchemaKind::Boolean
+            | SchemaKind::Int
+            | SchemaKind::Long
+            | SchemaKind::Float
+            | SchemaKind::Double
+            | SchemaKind::String
+            | SchemaKind::Bytes
+            | SchemaKind::Fixed { .. } => Err(Error::internal("primitive Avro type not taken by leaf_kind")),
             SchemaKind::Enum { symbols, .. } => {
                 let values = symbols
                     .iter()

@@ -56,6 +56,11 @@ description = "avro: a reader and writer for Apache Avro object container files 
 [lints]
 workspace = true
 
+[features]
+# the Kani proof harnesses (`make kani`, `#[cfg(kani)]`) that need more memory or minutes than a CI runner has; no code
+# behind it in a normal build
+kani-heavy = []
+
 [lib]
 name = "avro"
 path = "src/lib.rs"

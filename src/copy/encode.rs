@@ -10,7 +10,7 @@
 use avro_core::Encoder;
 use duckdb_ext_api::sys::{DUCKDB_V2_VECTOR_TYPE_DICTIONARY, duckdb_v2_hugeint_t};
 use duckdb_ext_api::types::type_id;
-use duckdb_ext_api::{Error, ListView, LogicalType, Result, StringView, TypedView, Vector, VectorView};
+use duckdb_ext_api::{Error, ListView, LogicalType, Result, StringView, TypeId, TypedView, Vector, VectorView};
 
 use super::field_ids::FieldId;
 use super::schema::{EMPTY_STRUCT_MARKER, min_bytes_required_for_decimal};
@@ -55,6 +55,36 @@ pub(crate) enum Plan {
     },
 }
 
+/// The plan of a DuckDB type whose encoding needs nothing but its id: the primitives, DATE / TIME / the TIMESTAMP
+/// flavours as their stored integers, UUID and the `null` type. `None` for the parameterized and nested types
+/// (DECIMAL, STRUCT, MAP, LIST, ENUM, UNION) and for the types the writer refuses.
+pub(crate) fn primitive_plan(id: TypeId) -> Option<Plan> {
+    Some(match id {
+        type_id::BOOLEAN => Plan::Boolean,
+        type_id::BLOB => Plan::Bytes,
+        type_id::DOUBLE => Plan::Double,
+        type_id::FLOAT => Plan::Float,
+        type_id::INTEGER | type_id::DATE => Plan::Int32,
+        type_id::BIGINT
+        | type_id::TIME
+        | type_id::TIMESTAMP
+        | type_id::TIMESTAMP_MS
+        | type_id::TIMESTAMP_NS
+        | type_id::TIMESTAMP_TZ
+        | type_id::TIMESTAMP_TZ_NS => Plan::Int64,
+        type_id::VARCHAR => Plan::String,
+        type_id::UUID => Plan::Uuid,
+        type_id::SQLNULL => Plan::Null,
+        _ => return None,
+    })
+}
+
+/// The Avro union branch a DuckDB UNION value of member `tag` is written as: the member's index, after the `null`
+/// branch when the field is nullable (the writer puts `null` first).
+pub(crate) fn union_branch_index(tag: u8, nullable: bool) -> usize {
+    usize::from(tag) + usize::from(nullable)
+}
+
 /// The storage type of an ENUM's elements.
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum EnumWidth {
@@ -86,21 +116,8 @@ impl ColumnPlan {
     pub(crate) fn new(type_: &LogicalType, field_id: Option<&FieldId>) -> Result<ColumnPlan> {
         let nullable = field_id.is_none_or(|id| id.nullable);
         let type_name = type_.name()?;
-        let plan = match type_.id()? {
-            type_id::BOOLEAN => Plan::Boolean,
-            type_id::BLOB => Plan::Bytes,
-            type_id::DOUBLE => Plan::Double,
-            type_id::FLOAT => Plan::Float,
-            type_id::INTEGER | type_id::DATE => Plan::Int32,
-            type_id::BIGINT
-            | type_id::TIME
-            | type_id::TIMESTAMP
-            | type_id::TIMESTAMP_MS
-            | type_id::TIMESTAMP_NS
-            | type_id::TIMESTAMP_TZ
-            | type_id::TIMESTAMP_TZ_NS => Plan::Int64,
-            type_id::VARCHAR => Plan::String,
-            type_id::UUID => Plan::Uuid,
+        let type_id = type_.id()?;
+        let plan = match type_id {
             type_id::DECIMAL => {
                 let (width, _) = decimal_width_scale(type_)?;
                 let internal = match decimal_internal_type_id(width) {
@@ -112,7 +129,6 @@ impl ColumnPlan {
                 };
                 Plan::Decimal { width, internal }
             }
-            type_id::SQLNULL => Plan::Null,
             type_id::STRUCT => {
                 let mut children = Vec::new();
                 for (index, (child_name, child_type)) in struct_children(type_)?.into_iter().enumerate() {
@@ -158,12 +174,15 @@ impl ColumnPlan {
                 }
                 Plan::Union { members }
             }
-            _ => {
-                return Err(Error::not_implemented(format!(
-                    "PopulateValue not implemented for type {}",
-                    type_.to_text()?
-                )));
-            }
+            _ => match primitive_plan(type_id) {
+                Some(plan) => plan,
+                None => {
+                    return Err(Error::not_implemented(format!(
+                        "PopulateValue not implemented for type {}",
+                        type_.to_text()?
+                    )));
+                }
+            },
         };
         Ok(ColumnPlan { plan, nullable, type_name })
     }
@@ -356,8 +375,7 @@ impl Prepared<'_> {
                 let member = members.get(usize::from(tag)).ok_or_else(|| {
                     Error::invalid_input(format!("UNION tag {tag} beyond the {} members", members.len()))
                 })?;
-                // the branch index: the tag, after the null branch of a nullable field
-                enc.write_union_index(usize::from(tag) + usize::from(self.plan.nullable));
+                enc.write_union_index(union_branch_index(tag, self.plan.nullable));
                 member.write(enc, row)?;
             }
         }

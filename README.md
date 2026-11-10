@@ -252,7 +252,11 @@ proof over that bound rather than a sample. Proven so far (bounds in parentheses
   well-formed UTF-8 (payloads <= 7 bytes); `skip` of every leaf kind lands where the typed reader lands and fails only
   where it fails (slices <= 12 bytes, every `fixed` size and enum count); encoder -> decoder round trips of `long`,
   `int`, `boolean`, `float`, `double`, `bytes`/`fixed` (<= 8 bytes), enum/union indices and block counts (the sized
-  form behind `kani-heavy`); the CRC-32 table and `crc32` of 0-2 bytes against the bitwise definition.
+  form behind `kani-heavy`); `read_raw` / `read_fixed` take exactly `n` bytes or nothing and leave the position where
+  they say (slices <= 16 bytes, every `n` and start); the encoder's `long` is the spec's zigzag varint byte by byte
+  (all i64, no over-long form) and `boolean` / `float` / `double` / the block end the spec's bytes; the container
+  writer's block prefix reads back as its row count and payload size (all counts and sizes); the CRC-32 table and
+  `crc32` of 0-2 bytes against the bitwise definition.
 - Schema: `min_encoded_size` of every leaf kind (`fixed` <= 32 bytes); `Name::parse`/`fullname` split at the last dot
   and invert each other except for a lone leading dot (strings <= 12 bytes, `kani-heavy`).
 - Codec names: `Codec::from_name` accepts exactly the seven names case-insensitively, no trimming (ASCII <= 10 bytes).
@@ -264,14 +268,26 @@ proof over that bound rather than a sample. Proven so far (bounds in parentheses
   `time-micros` scaling and ranges (all i32/i64), `duration` (all 12-byte patterns), UUID storage form both ways and
   `parse_uuid` (strings <= 40 bytes); the reader's union member names `u0..u255` and the u8 tag, the lenient `decimal`
   attribute rule (all optional i64 pairs), ENUM/DECIMAL storage widths hold every value.
+- Type mapping: the reader's `logicalType` parser on every name the spec defines (and unknown, miscased, empty
+  names) for every `adjust-to-utc` and attribute pair; its primitive decision table on every Avro primitive (every
+  `fixed` size) times every annotation against a spec table written by logical type (type, decoding shape and error
+  class); the writer's type tables over every type id (each row of its table, every other id refused, the temporal
+  logical types and `adjust-to-utc`, the named types, and the encoder's plan writing the Avro type the schema
+  declares); every primitive type the writer accepts reads back as itself through the two halves (TIMESTAMP_MS as
+  TIMESTAMP; DECIMAL at every precision and scale, with the writer's `fixed` size and the reader's storage width);
+  the writer's union branch index (`null` first when nullable) against the reader's union layout for every tag
+  (<= 8 members) and the layout's numbering of every null / non-null pattern (<= 8 branches); the DECIMAL storage
+  types of writer and reader agree at every width.
 - Writer: the identifier check against the grammar (strings <= 8 bytes).
 - C API wrapper (`duckdb-ext-api`): validity mask bit arithmetic (2048 rows: exactly bit `row` changes), both
   `string_t` forms (<= 64 bytes), the derived entry count of a selection view (<= 8 indices).
 
 Running: `make kani` (needs `cargo install --locked kani-verifier && cargo kani setup`), or per package `cargo kani -Z
-stubbing -p avro-core` / `-p duckdb-ext-api` / `-p duckdb-avro`; the `kani-heavy` feature of `avro-core` enables the
-three harnesses that need more than a 16 GiB runner holds or run for several minutes. CI runs everything else, about
-twenty minutes. The harnesses are the `#[cfg(kani)] mod verification` blocks next to
+stubbing -p avro-core` / `-p duckdb-ext-api` / `-p duckdb-avro`; the `kani-heavy` features of `avro-core` and the
+extension enable the four harnesses that need more than a 16 GiB runner holds or run for several minutes (the sized
+block count, the 12-byte names, the written integers, and `String::from_utf8_lossy` of <= 4 bytes, what
+`avro_metadata` renders a non-text value with). CI runs everything else, about 22 minutes. The harnesses are the
+`#[cfg(kani)] mod verification` blocks next to
 the code (`crates/avro-core/src/{decode,encode,crc32,schema,json,codec,container}.rs`,
 `crates/duckdb-ext-api/src/verification.rs`, `src/verification.rs`); under `cfg(kani)` error messages are the bare
 format strings (`core::fmt` is out of CBMC's reach, no property is about message text) and `core`'s float parsing is
@@ -280,10 +296,12 @@ stubbed where a harness says so.
 Deliberately not covered: the compression codecs (third-party crates, far beyond bounded model checking); the
 recursive JSON value parser and `Schema::parse` (CBMC inlines recursion once per call site per unwinding, and every
 level allocates growable strings and vectors: a one-byte document is already out of reach); the container header,
-block index and writer, `write_string`, the field-name sanitizer and the union layout, which build owned strings and
-vectors of symbolic length (each such append costs CBMC minutes; their count bounds, grammar and identifier checks are
-proven separately); and anything that crosses the C API into the engine (callbacks, vectors, types). Those stay with
-the sqllogictests and the real-world corpus. No real bug has been found by the proofs so far.
+block index and writer, `write_string` and the field-name sanitizer, which build owned strings and vectors of symbolic
+length (each such append costs CBMC minutes; their count bounds, grammar and identifier checks are proven separately;
+the union layout is proven at concrete branch counts, the engine's bound of 255 members is out of reach); the schema
+walks themselves (`root_columns`, the schema generator, the column plans), which call the engine's type constructors;
+and anything else that crosses the C API into the engine (callbacks, vectors, types). Those stay with the
+sqllogictests and the real-world corpus. No real bug has been found by the proofs so far.
 
 ## CI
 
@@ -291,7 +309,7 @@ the sqllogictests and the real-world corpus. No real bug has been found by the p
 test`), `test` (install the pinned wheel, `make`, load the extension and check `duckdb_extensions()`, `make test`) and
 `kani` (the proof harnesses of `make kani` through `model-checking/kani-github-action`, without the `kani-heavy`
 harnesses: 16 GiB of runner memory). Nothing of DuckDB is built; `lint` and `test` take a few minutes, `kani` about
-twenty (CBMC, one harness at a time).
+22 (CBMC, one harness at a time).
 
 ## Performance
 

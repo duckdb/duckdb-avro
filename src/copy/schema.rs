@@ -51,7 +51,12 @@ pub(crate) const EMPTY_STRUCT_MARKER: &str = "__duckdb_empty_struct_marker";
 
 /// The Avro type name a DuckDB type maps to (also the base of a generated schema name).
 fn convert_type_to_avro(type_: &LogicalType) -> Result<&'static str> {
-    Ok(match type_.id()? {
+    avro_type_name(type_.id()?).ok_or_else(|| cannot_convert(type_))
+}
+
+/// The table above: the Avro type of a DuckDB type id, `None` for a type the writer has no Avro type for.
+pub(crate) fn avro_type_name(id: TypeId) -> Option<&'static str> {
+    Some(match id {
         type_id::VARCHAR => "string",
         type_id::BLOB => "bytes",
         type_id::INTEGER => "int",
@@ -71,11 +76,12 @@ fn convert_type_to_avro(type_: &LogicalType) -> Result<&'static str> {
         type_id::MAP => "array",
         type_id::ENUM => "enum",
         type_id::UNION => "union",
-        _ => return Err(cannot_convert(type_)),
+        _ => return None,
     })
 }
 
-fn is_temporal(id: TypeId) -> bool {
+/// Whether a DuckDB type is written with a temporal `logicalType` ([`temporal_logical_type_name`]).
+pub(crate) fn is_temporal(id: TypeId) -> bool {
     matches!(
         id,
         type_id::DATE
@@ -88,21 +94,35 @@ fn is_temporal(id: TypeId) -> bool {
     )
 }
 
-fn temporal_logical_type(type_: &LogicalType) -> Result<&'static str> {
-    Ok(match type_.id()? {
+/// The `logicalType` a temporal DuckDB type is annotated with; `None` for every other type.
+pub(crate) fn temporal_logical_type_name(id: TypeId) -> Option<&'static str> {
+    Some(match id {
         type_id::DATE => "date",
         type_id::TIME => "time-micros",
         type_id::TIMESTAMP | type_id::TIMESTAMP_TZ => "timestamp-micros",
         type_id::TIMESTAMP_MS => "timestamp-millis",
         type_id::TIMESTAMP_NS | type_id::TIMESTAMP_TZ_NS => "timestamp-nanos",
-        _ => {
-            return Err(Error::not_implemented(format!(
-                "Can't convert logical type '{}' to Avro temporal type",
-                type_.to_text()?
-            )));
-        }
+        _ => return None,
     })
 }
+
+fn temporal_logical_type(type_: &LogicalType) -> Result<&'static str> {
+    match temporal_logical_type_name(type_.id()?) {
+        Some(name) => Ok(name),
+        None => Err(Error::not_implemented(format!(
+            "Can't convert logical type '{}' to Avro temporal type",
+            type_.to_text()?
+        ))),
+    }
+}
+
+/// Whether the writer sets `adjust-to-utc` on a temporal type: the TIMESTAMP WITH TIME ZONE flavours.
+pub(crate) fn adjust_to_utc(id: TypeId) -> bool {
+    matches!(id, type_id::TIMESTAMP_TZ | type_id::TIMESTAMP_TZ_NS)
+}
+
+/// The size of the `fixed` a UUID is written as.
+pub(crate) const UUID_FIXED_SIZE: usize = 16;
 
 /// Bits needed for the largest value of each precision (before the sign bit): `ceil(P * log2(10))`.
 const BITS_REQUIRED: [u32; 39] = [
@@ -116,7 +136,7 @@ pub(crate) fn min_bytes_required_for_decimal(precision: u8) -> usize {
 }
 
 /// Whether the Avro type of a DuckDB type is a named one (`record`, `enum`, `fixed`).
-fn is_named_schema(id: TypeId) -> bool {
+pub(crate) fn is_named_schema(id: TypeId) -> bool {
     matches!(id, type_id::STRUCT | type_id::ENUM | type_id::UUID | type_id::DECIMAL)
 }
 
@@ -349,7 +369,7 @@ impl<'a> SchemaGenerator<'a> {
         };
         let node = if is_temporal(type_id) {
             let mut node = SchemaNode::new(primitive).with_logical_type(temporal_logical_type(type_)?);
-            if type_id == type_id::TIMESTAMP_TZ || type_id == type_id::TIMESTAMP_TZ_NS {
+            if adjust_to_utc(type_id) {
                 node = node.with_adjust_to_utc(true);
             }
             node
@@ -360,7 +380,7 @@ impl<'a> SchemaGenerator<'a> {
                 .with_decimal(i64::from(width), i64::from(scale))
         } else if type_id == type_id::UUID {
             let name = self.schema_name(avro_type, preset_schema_name)?;
-            SchemaNode::new(SchemaKind::Fixed { name, size: 16 }).with_logical_type("uuid")
+            SchemaNode::new(SchemaKind::Fixed { name, size: UUID_FIXED_SIZE }).with_logical_type("uuid")
         } else {
             if is_named_schema(type_id) {
                 // unreachable for the types `convert_type_to_avro` accepts; kept for parity with the C++
