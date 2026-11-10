@@ -121,7 +121,7 @@ fn is_named_schema(id: TypeId) -> bool {
 }
 
 /// avro-c's identifier rule: `[A-Za-z_][A-Za-z0-9_]*`.
-fn is_avro_id(name: &str) -> bool {
+pub(crate) fn is_avro_id(name: &str) -> bool {
     !name.is_empty()
         && name.bytes().enumerate().all(|(i, c)| c.is_ascii_alphabetic() || c == b'_' || (i > 0 && c.is_ascii_digit()))
 }
@@ -380,18 +380,7 @@ impl<'a> SchemaGenerator<'a> {
         if name.is_empty() {
             return Err(Error::invalid_input("Cannot sanitize an empty Avro field name"));
         }
-        let mut result = String::with_capacity(name.len());
-        for (i, c) in name.bytes().enumerate() {
-            let digit = c.is_ascii_digit();
-            if c.is_ascii_alphabetic() || c == b'_' || (i > 0 && digit) {
-                result.push(c as char);
-            } else if digit {
-                result.push('_');
-                result.push(c as char);
-            } else {
-                result.push_str(&format!("_x{c:X}"));
-            }
-        }
+        let result = sanitize_identifier(name);
         if let Some(previous) = field_names.get(&result) {
             return Err(Error::binder(format!(
                 "SANITIZE_FIELD_NAMES maps both '{previous}' and '{name}' to '{result}' in the same Avro record"
@@ -423,6 +412,33 @@ impl<'a> SchemaGenerator<'a> {
         }
         Ok(field)
     }
+}
+
+/// Iceberg's `AvroSchemaUtil.sanitize` of a non-empty name: letters, `_` and non-leading digits stay, a leading digit
+/// gets a `_` in front, every other byte becomes `_x` plus its uppercase hex (one or two digits, as `{:X}` prints).
+/// The result is an Avro identifier.
+pub(crate) fn sanitize_identifier(name: &str) -> String {
+    const HEX: [&str; 16] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
+    // at most four bytes out per byte in
+    let mut result = String::with_capacity(4 * name.len());
+    for (i, c) in name.bytes().enumerate() {
+        let digit = c.is_ascii_digit();
+        if c.is_ascii_alphabetic() || c == b'_' || (i > 0 && digit) {
+            // an ASCII byte: a one-byte str at a char boundary (pushed as such, not as a `char`: see
+            // `union_member_name` in the reader)
+            result.push_str(&name[i..i + 1]);
+        } else if digit {
+            result.push('_');
+            result.push_str(&name[i..i + 1]);
+        } else {
+            result.push_str("_x");
+            if c >= 0x10 {
+                result.push_str(HEX[usize::from(c >> 4)]);
+            }
+            result.push_str(HEX[usize::from(c & 0xf)]);
+        }
+    }
+    result
 }
 
 fn map_key_value_ids(field_id: Option<&FieldId>) -> Result<Option<MapKeyValueIds>> {
@@ -504,6 +520,15 @@ mod tests {
         for (p, bytes) in expected {
             assert_eq!(min_bytes_required_for_decimal(p), bytes, "precision {p}");
         }
+    }
+
+    #[test]
+    fn sanitized_identifiers() {
+        assert_eq!(sanitize_identifier("a b"), "a_x20b");
+        assert_eq!(sanitize_identifier("1a"), "_1a");
+        assert_eq!(sanitize_identifier("a1"), "a1");
+        assert_eq!(sanitize_identifier("\u{1}\u{e9}"), "_x1_xC3_xA9");
+        assert_eq!(sanitize_identifier("_x20"), "_x20");
     }
 
     #[test]

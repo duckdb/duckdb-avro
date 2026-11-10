@@ -31,6 +31,8 @@ pub use duckdb_capi_sys as sys;
 pub mod api;
 pub mod error;
 mod text;
+#[cfg(kani)]
+mod verification;
 
 pub mod aggregate;
 pub mod cast;

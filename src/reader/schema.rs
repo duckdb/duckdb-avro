@@ -181,6 +181,79 @@ pub(crate) fn enum_width(count: usize) -> usize {
     }
 }
 
+/// The `decimal` attributes a reader honours: `(precision, scale)` when the precision is present and one a DECIMAL
+/// holds (1..=38) and the scale (0 when absent, as the spec defaults it) lies in `0..=precision`; `None` otherwise,
+/// which makes the annotation invalid and so ignored (the underlying `bytes` / `fixed` is read). The schema parser
+/// leaves an attribute that is not a JSON integer (Hive 0.x wrote `"precision": "5"`) absent.
+pub(crate) fn decimal_annotation(precision: Option<i64>, scale: Option<i64>) -> Option<(u8, u8)> {
+    let precision = precision?;
+    let scale = scale.unwrap_or(0);
+    if !(1..=MAX_DECIMAL_PRECISION).contains(&precision) || !(0..=precision).contains(&scale) {
+        return None;
+    }
+    Some((precision as u8, scale as u8))
+}
+
+/// How a union is read, from which of its branches are null types: a null branch has no DuckDB member, the others
+/// are the members in branch order. No member: every value is NULL. One: that branch's type, nullable. More: a UNION.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum UnionLayout {
+    Null,
+    /// The one non-null branch.
+    Nullable {
+        branch: usize,
+    },
+    Union {
+        member_count: usize,
+    },
+}
+
+/// The union rule over `null_branch` (one flag per branch): the DuckDB member of every branch (`None` for a null
+/// branch, else its position among the non-null branches) and the layout.
+pub(crate) fn union_layout(null_branch: &[bool]) -> (Vec<Option<usize>>, UnionLayout) {
+    let mut branch_members = vec![None; null_branch.len()];
+    let mut member_count = 0;
+    let mut first = None;
+    for (branch, &is_null) in null_branch.iter().enumerate() {
+        if !is_null {
+            branch_members[branch] = Some(member_count);
+            member_count += 1;
+            first.get_or_insert(branch);
+        }
+    }
+    let layout = match (member_count, first) {
+        (0, _) => UnionLayout::Null,
+        (1, Some(branch)) => UnionLayout::Nullable { branch },
+        _ => UnionLayout::Union { member_count },
+    };
+    (branch_members, layout)
+}
+
+/// The DuckDB member name of union branch `index`: `u<index>` (what `format!("u{index}")` gives). The digits are
+/// pushed as one-byte `&str`s (a `char` push of a symbolic value makes CBMC, in the proof harnesses, branch on its
+/// UTF-8 encoding).
+pub(crate) fn union_member_name(index: usize) -> String {
+    const DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+    let mut digits = [0u8; 20];
+    let mut n = 0;
+    let mut rest = index;
+    loop {
+        digits[n] = (rest % 10) as u8;
+        n += 1;
+        rest /= 10;
+        if rest == 0 {
+            break;
+        }
+    }
+    let mut name = String::with_capacity(n + 1);
+    name.push('u');
+    while n > 0 {
+        n -= 1;
+        name.push_str(DIGITS[usize::from(digits[n])]);
+    }
+    name
+}
+
 /// The DuckDB logical type a primitive node's `logicalType` attribute selects.
 enum Annotated {
     Date,
@@ -223,13 +296,9 @@ impl Converter<'_> {
             "date" => Annotated::Date,
             "decimal" => {
                 // invalid (so ignored): no integer precision, a precision no DECIMAL holds, a scale outside
-                // 0..=precision. The spec defaults a missing scale to 0.
-                let Some(precision) = node.precision else { return Ok(None) };
-                let scale = node.scale.unwrap_or(0);
-                if !(1..=MAX_DECIMAL_PRECISION).contains(&precision) || !(0..=precision).contains(&scale) {
-                    return Ok(None);
-                }
-                Annotated::Decimal { precision: precision as u8, scale: scale as u8 }
+                // 0..=precision
+                let Some((precision, scale)) = decimal_annotation(node.precision, node.scale) else { return Ok(None) };
+                Annotated::Decimal { precision, scale }
             }
             "time-millis" => Annotated::TimeMillis,
             "time-micros" => Annotated::TimeMicros,
@@ -436,36 +505,29 @@ impl Converter<'_> {
                 ))
             }
             SchemaKind::Union { branches } => {
-                let mut members = Vec::new();
-                let mut branch_members = Vec::with_capacity(branches.len());
-                let mut branch_ids = Vec::with_capacity(branches.len());
+                let branch_ids = branches.clone();
+                let mut children = Vec::with_capacity(branches.len());
                 for (index, &branch) in branches.iter().enumerate() {
-                    branch_ids.push(branch);
-                    let child = self.convert(branch, &format!("u{index}"))?;
-                    if let Shape::Null(_) = child.shape {
-                        branch_members.push(None);
-                        continue;
-                    }
-                    branch_members.push(Some(members.len()));
-                    members.push(child);
+                    children.push(self.convert(branch, &union_member_name(index))?);
                 }
-                match members.len() {
-                    0 => {
+                let null_branch: Vec<bool> =
+                    children.iter().map(|child| matches!(child.shape, Shape::Null(_))).collect();
+                let (branch_members, layout) = union_layout(&null_branch);
+                let mut members: Vec<Column> =
+                    children.into_iter().filter(|child| !matches!(child.shape, Shape::Null(_))).collect();
+                match layout {
+                    UnionLayout::Null => {
                         if branches.is_empty() {
                             return Err(Error::invalid_input("Empty union type"));
                         }
                         Ok(Column::new(name, self.null_type()?, Shape::Null(id)))
                     }
-                    1 => {
-                        let branch = branch_members
-                            .iter()
-                            .position(|m| m.is_some())
-                            .ok_or_else(|| Error::internal("union member without a branch"))?;
+                    UnionLayout::Nullable { branch } => {
                         let child = members.pop().ok_or_else(|| Error::internal("union member"))?;
                         let type_ = child.type_.try_clone()?;
                         Ok(Column::new(name, type_, Shape::Nullable { branch_ids, branch, child: Box::new(child) }))
                     }
-                    _ => {
+                    UnionLayout::Union { .. } => {
                         let types = members
                             .iter()
                             .map(|m| Value::type_value(self.factory, &m.type_))

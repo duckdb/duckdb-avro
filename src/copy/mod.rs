@@ -22,7 +22,7 @@ mod types;
 #[cfg(kani)]
 pub(crate) use encode::{hugeint_to_i128, uuid_bytes, write_decimal};
 #[cfg(kani)]
-pub(crate) use schema::min_bytes_required_for_decimal;
+pub(crate) use schema::{is_avro_id, min_bytes_required_for_decimal};
 
 use std::io::Write;
 use std::sync::Mutex;

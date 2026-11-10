@@ -79,16 +79,14 @@ impl Vector {
             // physical indices the way the engine fills the view: a FLAT vector (`sel` null) addresses `count`
             // entries; a CONSTANT vector hands out the zero selection vector and a DICTIONARY one its selection, so the
             // largest selected index plus one bounds the entries every row can reach (1 for a constant).
-            view.data_count = if view.sel.is_null() {
-                view.count
-            } else if view.count == 0 {
-                0
+            let sel = if view.sel.is_null() {
+                None
             } else {
                 // SAFETY(ffi L8.I3): the C API's `duckdb_v2_vector_get_view` contract: a non-null `sel` holds `count`
                 // indices, alive as long as the vector the view was read from.
-                let sel = unsafe { std::slice::from_raw_parts(view.sel, view.count as usize) };
-                sel.iter().copied().max().map_or(0, |max| max as idx_t + 1)
+                Some(unsafe { std::slice::from_raw_parts(view.sel, view.count as usize) })
             };
+            view.data_count = derived_data_count(sel, view.count);
         }
         Ok(VectorView { raw: view })
     }
@@ -254,6 +252,16 @@ impl Vector {
     }
 }
 
+/// The entry count of a view the engine did not fill one in for (`Vector::view`): `count` without a selection (a FLAT
+/// vector addresses `count` entries), else the largest selected index plus one (0 for no rows), so that every
+/// physical index a row maps to is below it.
+pub(crate) fn derived_data_count(sel: Option<&[duckdb_v2_sel_t]>, count: idx_t) -> idx_t {
+    match sel {
+        None => count,
+        Some(sel) => sel.iter().copied().max().map_or(0, |max| idx_t::from(max) + 1),
+    }
+}
+
 /// Builds a `string_t` for `bytes`, allocating from the vector's arena when they do not inline.
 pub fn make_bytes(vector: &Vector, bytes: &[u8]) -> Result<duckdb_v2_bytes> {
     if bytes.len() <= DUCKDB_V2_BYTES_INLINE_LENGTH as usize {
@@ -265,7 +273,7 @@ pub fn make_bytes(vector: &Vector, bytes: &[u8]) -> Result<duckdb_v2_bytes> {
 
 /// The inlined `string_t` of `bytes` (`bytes.len() <= DUCKDB_V2_BYTES_INLINE_LENGTH`): the bytes live inside the
 /// entry (one memcpy, as `string_t`'s constructor copies).
-fn bytes_inlined(bytes: &[u8]) -> duckdb_v2_bytes {
+pub(crate) fn bytes_inlined(bytes: &[u8]) -> duckdb_v2_bytes {
     let mut inlined = [0u8; DUCKDB_V2_BYTES_INLINE_LENGTH as usize];
     inlined[..bytes.len()].copy_from_slice(bytes);
     let inlined =
@@ -275,7 +283,7 @@ fn bytes_inlined(bytes: &[u8]) -> duckdb_v2_bytes {
 
 /// The out-of-line `string_t` of `bytes` (`bytes.len() > DUCKDB_V2_BYTES_INLINE_LENGTH`): the 4-byte prefix plus a
 /// pointer at the bytes, which the entry references for as long as it is read - the caller states where they live.
-fn bytes_pointer(bytes: &[u8]) -> duckdb_v2_bytes {
+pub(crate) fn bytes_pointer(bytes: &[u8]) -> duckdb_v2_bytes {
     let mut prefix = [0u8; 4];
     prefix.copy_from_slice(&bytes[..4]);
     let pointer = duckdb_v2_bytes_pointer {
@@ -711,6 +719,14 @@ pub struct ValidityMut<'a> {
 }
 
 impl ValidityMut<'_> {
+    /// A mask over `words` for `count` rows (the proof harnesses' stand-in for the engine's mask; `words` holds at
+    /// least `count.div_ceil(64)` words).
+    #[cfg(kani)]
+    pub(crate) fn over_words(words: &mut [u64], count: usize) -> ValidityMut<'_> {
+        assert!(words.len() >= count.div_ceil(64));
+        ValidityMut { words: words.as_mut_ptr(), count, _vector: std::marker::PhantomData }
+    }
+
     /// The number of rows the mask covers.
     pub fn count(&self) -> usize {
         self.count

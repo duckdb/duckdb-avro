@@ -1,7 +1,9 @@
-//! Kani proof harnesses (`cargo kani -p duckdb-avro`, `make kani`) over the extension's pure value conversions: the
-//! reader's decimal, time, timestamp, duration and UUID logic (`reader::node`) and the writer's decimal sizing and
-//! UUID layout (`copy::schema`, `copy::encode`). Nothing here touches the engine: the helpers take and return plain
-//! integers and byte arrays, so the harnesses run without a DuckDB build.
+//! Kani proof harnesses (`cargo kani -p duckdb-avro`, `make kani`) over the extension's pure value conversions and
+//! schema rules: the reader's decimal, time, timestamp, duration and UUID logic (`reader::node`), its union member
+//! names, `decimal` attribute rule and storage widths (`reader::schema`), the writer's decimal sizing and UUID layout
+//! (`copy::schema`, `copy::encode`) and its identifier check. Nothing here touches the engine: the helpers take and
+//! return plain integers, byte arrays and short strings, so the harnesses run without a DuckDB build. (The sanitizer
+//! and the union layout build growable strings and vectors, which put them beyond CBMC at any useful bound.)
 //!
 //! Each harness states its input bound; CBMC explores every value within it (all i32 / i64 / i128 / byte patterns
 //! where the type is fixed-width, every length up to the bound where a slice is involved). A harness that drops a
@@ -11,11 +13,52 @@
 use avro_core::Encoder;
 use duckdb_ext_api::sys::duckdb_v2_hugeint_t;
 
-use crate::copy::{hugeint_to_i128, min_bytes_required_for_decimal, uuid_bytes, write_decimal};
+use crate::copy::{hugeint_to_i128, is_avro_id, min_bytes_required_for_decimal, uuid_bytes, write_decimal};
 use crate::reader::{
-    duration_to_interval, parse_uuid, read_decimal, time_micros_checked, time_millis_to_micros,
-    timestamp_millis_to_micros, uuid_from_bytes,
+    decimal_annotation, decimal_width, duration_to_interval, enum_width, parse_uuid, read_decimal, time_micros_checked,
+    time_millis_to_micros, timestamp_millis_to_micros, union_member_name, uuid_from_bytes,
 };
+
+/// Well-formed UTF-8 by the byte-sequence table of the Unicode standard (Table 3-7), independently of `core::str`.
+fn well_formed_utf8(bytes: &[u8]) -> bool {
+    let mut i = 0;
+    while i < bytes.len() {
+        let (len, lo, hi) = match bytes[i] {
+            0x00..=0x7f => (1, 0x80, 0xbf),
+            0xc2..=0xdf => (2, 0x80, 0xbf),
+            0xe0 => (3, 0xa0, 0xbf),
+            0xe1..=0xec | 0xee..=0xef => (3, 0x80, 0xbf),
+            0xed => (3, 0x80, 0x9f),
+            0xf0 => (4, 0x90, 0xbf),
+            0xf1..=0xf3 => (4, 0x80, 0xbf),
+            0xf4 => (4, 0x80, 0x8f),
+            _ => return false,
+        };
+        if i + len > bytes.len() || (len > 1 && !(lo..=hi).contains(&bytes[i + 1])) {
+            return false;
+        }
+        let mut k = 2;
+        while k < len {
+            if !(0x80..=0xbf).contains(&bytes[i + k]) {
+                return false;
+            }
+            k += 1;
+        }
+        i += len;
+    }
+    true
+}
+
+/// Every string of at most `N` bytes: a symbolic length of `buf` assumed well-formed UTF-8 (building the string from
+/// symbolic chars or validating it with `str::from_utf8` costs CBMC orders of magnitude more).
+fn any_str<const N: usize>(buf: &[u8; N]) -> &str {
+    let len: usize = kani::any();
+    kani::assume(len <= N);
+    let bytes = &buf[..len];
+    kani::assume(well_formed_utf8(bytes));
+    // SAFETY: `well_formed_utf8` is the UTF-8 definition, assumed to hold for `bytes` just above
+    unsafe { std::str::from_utf8_unchecked(bytes) }
+}
 
 /// `10^p` for `p` in `0..=38` (an i128 holds 10^38), computed by the compiler so that CBMC sees a table lookup and
 /// not 38 symbolic 128-bit multiplications.
@@ -110,7 +153,9 @@ fn timestamp_millis_scaling_never_panics_and_is_exact() {
             assert!(fits);
             assert_eq!(i128::from(micros), i128::from(millis) * 1000);
         }
-        Err(_) => assert!(!fits),
+        Err(_) => {
+            assert!(!fits);
+        }
     }
 }
 
@@ -200,4 +245,85 @@ fn parse_uuid_accepts_exactly_the_hyphenated_hex_form() {
         }
     }
     assert_eq!(result, valid.then_some(expected));
+}
+
+/// The identifier grammar `[A-Za-z_][A-Za-z0-9_]*` over bytes, written out: a non-empty string whose first byte is an
+/// ASCII letter or `_` and whose other bytes are ASCII letters, digits or `_` (a non-ASCII byte is none of those).
+fn reference_identifier(bytes: &[u8]) -> bool {
+    let Some(&first) = bytes.first() else { return false };
+    if !(first.is_ascii_alphabetic() || first == b'_') {
+        return false;
+    }
+    bytes[1..].iter().all(|&b| b.is_ascii_alphanumeric() || b == b'_')
+}
+
+/// The writer's identifier check agrees with the grammar on every string of at most 8 bytes (the empty string is
+/// rejected, a leading digit is rejected, non-ASCII is rejected).
+#[kani::proof]
+#[kani::unwind(10)]
+fn is_avro_id_matches_the_grammar() {
+    let buf: [u8; 8] = kani::any();
+    let text = any_str(&buf);
+    assert_eq!(is_avro_id(text), reference_identifier(text.as_bytes()));
+}
+
+/// Member names are `u<index>` for every index below 256 (the digits re-read as the index, no leading zero), and
+/// every member index below 256 (the engine admits at most 255 members) fits the u8 union tag.
+#[kani::proof]
+#[kani::unwind(6)]
+fn union_member_names_are_u_index() {
+    let index: usize = kani::any();
+    kani::assume(index < 256);
+    let name = union_member_name(index);
+    let bytes = name.as_bytes();
+    assert_eq!(bytes[0], b'u');
+    assert!(bytes.len() >= 2 && bytes.len() <= 4);
+    let mut value = 0usize;
+    for &digit in &bytes[1..] {
+        assert!(digit.is_ascii_digit());
+        value = value * 10 + usize::from(digit - b'0');
+    }
+    assert_eq!(value, index);
+    assert!(bytes.len() == 2 || bytes[1] != b'0');
+    assert_eq!(usize::from(index as u8), index);
+}
+
+/// The lenient `decimal` rule on every pair of optional i64 attributes: honoured exactly when a precision is present
+/// in 1..=38 and the scale (0 when absent) lies in 0..=precision, and then carried over exactly; anything else
+/// (string-typed attributes arrive as absent) falls back to the underlying type.
+#[kani::proof]
+fn decimal_annotation_matches_the_rule() {
+    let precision: Option<i64> = kani::any();
+    let scale: Option<i64> = kani::any();
+    let result = decimal_annotation(precision, scale);
+    match precision {
+        Some(p) if (1..=38).contains(&p) && (0..=p).contains(&scale.unwrap_or(0)) => {
+            assert_eq!(result, Some((p as u8, scale.unwrap_or(0) as u8)));
+        }
+        _ => assert_eq!(result, None),
+    }
+}
+
+/// The storage widths: an ENUM of `count` symbols (every count up to u32::MAX, the engine's bound) stores every index
+/// below `count` losslessly in `enum_width(count)` bytes; a DECIMAL of every precision 1..=38 stores every unscaled
+/// value of that many digits in `decimal_width(precision)` bytes (two's complement).
+#[kani::proof]
+fn storage_widths_hold_every_value() {
+    let count: usize = kani::any();
+    kani::assume(count <= u32::MAX as usize);
+    let index: usize = kani::any();
+    kani::assume(index < count);
+    let round_trip = match enum_width(count) {
+        1 => usize::from(index as u8),
+        2 => usize::from(index as u16),
+        _ => index as u32 as usize,
+    };
+    assert_eq!(round_trip, index);
+    let precision: u8 = kani::any();
+    kani::assume((1..=38).contains(&precision));
+    let width = decimal_width(precision);
+    assert!(matches!(width, 2 | 4 | 8 | 16));
+    let max = POW10[usize::from(precision)] - 1;
+    let bound = if width == 16 { i128::MAX } else { (1i128 << (8 * width as u32 - 1)) - 1 };
+    assert!(max <= bound);
 }

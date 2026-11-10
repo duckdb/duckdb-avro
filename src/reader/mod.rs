@@ -17,6 +17,8 @@ pub(crate) use node::{
     duration_to_interval, parse_uuid, read_decimal, time_micros_checked, time_millis_to_micros,
     timestamp_millis_to_micros, uuid_from_bytes,
 };
+#[cfg(kani)]
+pub(crate) use schema::{decimal_annotation, decimal_width, enum_width, union_member_name};
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
