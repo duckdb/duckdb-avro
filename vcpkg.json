@@ -1,0 +1,23 @@
+{
+	"dependencies": [
+		"bzip2",
+		"jansson",
+		"liblzma",
+		"snappy",
+		"zlib",
+		"zstd"
+	],
+	"vcpkg-configuration": {
+		"registries": [
+			{
+				"kind": "git",
+				"repository": "https://github.com/duckdb/vcpkg-duckdb-ports",
+				"baseline": "f13de79b66345fe31d3f9c119517613023d194a8",
+				"packages": [
+					"vcpkg-cmake"
+				]
+			}
+		]
+	},
+	"builtin-baseline": "ce613c41372b23b1f51333815feb3edd87ef8a8b"
+}

@@ -1,88 +1,24 @@
 [workspace]
-members = ["crates/avro-core", "crates/duckdb-capi-sys", "crates/duckdb-ext-api"]
+members = ["crates/core"]
+default-members = ["crates/core"]
 resolver = "3"
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/h4nsmuller/duckdb-avro-rs"
-rust-version = "1.99"
-publish = false
 
 [workspace.dependencies]
-avro-core = { path = "crates/avro-core" }
-duckdb-capi-sys = { path = "crates/duckdb-capi-sys" }
-duckdb-ext-api = { path = "crates/duckdb-ext-api" }
-
-[workspace.lints.rust]
-unsafe_op_in_unsafe_fn = "deny"
-unreachable_pub = "deny"
-# `#[cfg(kani)]` marks the proof harnesses `cargo kani` compiles (make kani); a normal build never sees them
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)"] }
-
-[workspace.lints.clippy]
-all = { level = "warn", priority = -2 }
-correctness = { level = "deny", priority = -1 }
-too_many_arguments = "allow"
-type_complexity = "allow"
-new_ret_no_self = "allow"
-new_without_default = "allow"
-should_implement_trait = "allow"
-wrong_self_convention = "allow"
-module_inception = "allow"
-inherent_to_string = "allow"
-large_enum_variant = "allow"
-enum_variant_names = "allow"
-vec_box = "allow"
-box_collection = "allow"
-len_without_is_empty = "allow"
-result_unit_err = "allow"
-upper_case_acronyms = "allow"
-excessive_precision = "allow"
-neg_cmp_op_on_partial_ord = "allow"
-chunks_exact_to_as_chunks = "allow"
-
-[package]
-name = "duckdb-avro"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
-rust-version.workspace = true
-publish.workspace = true
-description = "avro: a reader and writer for Apache Avro object container files as a DuckDB extension on the C API v2 (read_avro, COPY TO FORMAT avro)"
-
-[lints]
-workspace = true
-
-[features]
-# the Kani proof harnesses (`make kani`, `#[cfg(kani)]`) that need more memory or minutes than a CI runner has; no code
-# behind it in a normal build
-kani-heavy = []
-
-[lib]
-name = "avro"
-path = "src/lib.rs"
-crate-type = ["rlib", "cdylib"]
-
-[dependencies]
-# the C API v2 function table and types; the only engine surface the extension uses
-duckdb-ext-api.workspace = true
-# the Avro schema model, container reader/writer, codecs and binary (de)coder
-avro-core.workspace = true
+duckdb-neo = { git = "https://github.com/duckdb/duckdb-rs", branch = "main" }
+avro_core = { path = "crates/core" }
+serde_json = "1"
+flate2 = "1"
+snap = "1"
+crc32fast = "1"
+bzip2 = "0.6"
+ruzstd = "0.9"
+lzma-rust2 = { version = "0.25", default-features = false, features = ["std", "encoder", "optimization"] }
 
 [profile.release]
-debug = 1
-
-# DuckDB-Wasm (`make wasm_eh`): the .wasm ships over the network, so size matters and the DWARF of `debug = 1` is of no
-# use (emcc drops it at link anyway); fat LTO with one codegen unit lets the linker drop everything the entrypoint does
-# not reach. opt-level 3 matches the -O3 the C++ pipeline links with (`emcc -O3 -sSIDE_MODULE=2`); "s" / "z" give a
-# further 8 % / 15 % smaller module. Panics stay unwinding so that the entrypoint's catch_unwind turns them into DuckDB
-# errors instead of aborting the whole engine instance (`panic = "abort"` would save another 6 %).
-[profile.wasm]
-inherits = "release"
-debug = false
+lto = true
 strip = true
-lto = "fat"
-codegen-units = 1

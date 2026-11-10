@@ -1,0 +1,15 @@
+[package]
+name = "avro_core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+duckdb-neo.workspace = true
+serde_json.workspace = true
+flate2.workspace = true
+snap.workspace = true
+crc32fast.workspace = true
+bzip2.workspace = true
+ruzstd.workspace = true
+lzma-rust2.workspace = true

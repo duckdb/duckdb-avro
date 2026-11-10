@@ -326,7 +326,7 @@ from read_avro('does-not-exist.avro')
 No files found that match the pattern
 
 statement error
-from read_avro('Makefile')
+from read_avro('CMakeLists.txt')
 ----
 Incorrect Avro container file magic number
 

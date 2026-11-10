@@ -42,11 +42,19 @@ query I nosort basic
 select * from read_avro('{TEST_DIR}/all_types.avro')
 ----
 
-# ENUM and UNION columns: test/sql/copy/enum_type.test and union_type.test
+statement ok
+CREATE TYPE my_enum AS ENUM ('a', 'abc', 'decently long enum value');
 
 statement error
 COPY (
-	select 1::TINYINT a
-) TO '{TEST_DIR}/tinyint_type.avro';
+	select 'decently long enum value'::my_enum a
+) TO '{TEST_DIR}/enum_type.avro';
 ----
-Not implemented Error: Can't convert logical type 'TINYINT' to Avro type
+Not implemented Error: Can't convert logical type 'ENUM('a', 'abc', 'decently long enum value')' to Avro type
+
+statement error
+COPY (
+	select union_value(b := 'abc')::UNION(a INTEGER, b VARCHAR, c FLOAT) a
+) TO '{TEST_DIR}/union_type.avro';
+----
+Not implemented Error: Can't convert logical type 'UNION(a INTEGER, b VARCHAR, c FLOAT)' to Avro type

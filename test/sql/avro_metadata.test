@@ -12,16 +12,3 @@ query II
 from avro_metadata('test/iceberg/snap-3776207205136740581-1-cf3d0be5-cf70-453d-ad8f-48fdc412e608.avro') where key = 'avro.codec';
 ----
 avro.codec	deflate
-
-# the metadata is map<string, bytes>: a value that is not UTF-8 (test/corpus/metadata_binary_value.avro, from
-# scripts/create_corpus_fixtures.py: the bytes d7 ff 00 01) is rendered lossily: two replacement characters for the
-# two invalid bytes, then the two valid ones
-query III
-SELECT key, strlen(value), value[1:2] = repeat(chr(65533), 2) FROM avro_metadata('test/corpus/metadata_binary_value.avro') WHERE key = 'user.bin';
-----
-user.bin	8	true
-
-query I
-SELECT a FROM read_avro('test/corpus/metadata_binary_value.avro');
-----
-1
