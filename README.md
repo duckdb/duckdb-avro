@@ -10,7 +10,7 @@ Installation is simple through the DuckDB Community Extension repository, just t
 INSTALL avro FROM community;
 LOAD avro;
 ```
-in a DuckDB instance near you. There is currently no build for WASM because of dependencies (sigh).
+in a DuckDB instance near you.
 
 ### The `read_avro` Function
 The extension adds a single DuckDB function, `read_avro`. This function can be used like so:
@@ -92,14 +92,24 @@ This extension *simplifies* the Avro schema where possible: An Avro union of any
 The extension also "flattens" the Avro schema. Avro defines tables as root-level "record" fields, which are the same as DuckDB `STRUCT` fields. For more convenient handling, this extension turns the entries of a single top-level record into top-level columns.
 
 ### Implementation
-Internally, this extension uses the "official" [Apache Avro C API](https://avro.apache.org/docs/++version++/api/c/), albeit with some minor patching to allow reading of Avro files from memory.
+The extension is written in Rust against [duckdb-neo](https://github.com/duckdb/duckdb-rs/tree/main/crates/duckdb-neo), the Rust wrapper of DuckDB's V2 C API, and contains no C or C++ code. Avro itself (schemas, the binary encoding, object container files and the `null`, `deflate`, `snappy`, `zstandard`, `bzip2` and `lzma` codecs) is implemented in the extension, in pure Rust.
 
-The extension is written against DuckDB's stable C++ API (`duckdb_cpp.hpp`) rather than DuckDB's internal C++ API. `read_avro` is a multi-file function built on top of `read_single_avro_file`, which reads a single file; the multi-file layer provides globbing, lists of files, `filename`, `union_by_name`, hive partitioning and the like. A single file is scanned in parallel, one Avro block per thread at a time.
+`read_avro` is a multi-file function built on top of `read_single_avro_file`, which reads a single file; the multi-file layer provides globbing, lists of files, `filename`, `union_by_name`, hive partitioning and the like. A single file is scanned in parallel, one Avro block per thread at a time.
+
+### Building
+The build follows DuckDB's [Rust extension template](https://github.com/duckdb/extension-template-rs). It needs Rust, Python 3 (with `venv`) and Make:
+
+```shell
+git submodule update --init
+make configure   # sets up a Python venv with DuckDB and its SQLLogicTest runner
+make debug       # or: make release
+make test_debug  # or: make test_release
+```
+
+The loadable extension is written to `build/debug/avro.duckdb_extension`. Load it into the DuckDB version it was built for (`TARGET_DUCKDB_VERSION` in the `Makefile`) with `duckdb -unsigned -cmd "LOAD 'build/debug/avro.duckdb_extension'"`. `cargo test -p avro_core` runs the Rust tests.
 
 ### Limitations & Next Steps
 - There is currently no support for filter **pushdown**; projection pushdown is supported.
-
-- There is currently no support for the WASM or the Windows-MinGW builds of DuckDB due to issues with the Avro library dependency (sigh again). We plan to fix this eventually.
 
 - As mentioned above, DuckDB cannot express recursive type definitions that Avro has, this is unlikely to ever change.
 
