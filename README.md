@@ -213,19 +213,28 @@ and atomics.
 - `src/`: the extension. `reader/` (`read_single_avro_file`, `read_avro`; `schema.rs` is the Avro-to-DuckDB
   conversion, `node.rs` the per-column decoders), `metadata.rs` (`avro_metadata`), `copy/` (the `COPY TO` writer;
   `schema.rs` is the DuckDB-to-Avro conversion, `field_ids.rs` the `FIELD_IDS` option).
-- `test/`: the upstream suite, `test/sql/*.test` and `test/sql/copy/*.test`, with the fixture files.
+- `test/`: the upstream suite, `test/sql/*.test` and `test/sql/copy/*.test`, with the fixture files; `test/corpus/`
+  the real-world files and `test/sql/corpus/` the tests generated over them.
 - `scripts/`: `pin_api_table.py` (re-pinning), `append_extension_metadata.py` (the footer), `run_sqllogic.py` (the
-  test runner), and the generators of the independent fixtures (`create_decimal_bytes.py`, `create_timestamp_*.py`,
-  `create_malformed.py`: the hand-built malformed files, `create_corpus_fixtures.py`: the `test/corpus` reproductions of
-  the real-world corpus findings; both stdlib only).
+  test runner), `gen_corpus_tests.py` with `corpus_canon.py` (the corpus tests), and the generators of the independent
+  fixtures (`create_decimal_bytes.py`, `create_timestamp_*.py`, `create_malformed.py`: the hand-built malformed files,
+  `create_corpus_fixtures.py`: the `test/corpus` reproductions of the real-world corpus findings; all stdlib only).
 
 ## Tests
 
-`make test` runs all 34 test files (`test/sql/*.test`, `test/sql/copy/*.test` and `*.test_slow`) with
-`scripts/run_sqllogic.py`, a sqllogictest runner on the pinned Python wheel that follows DuckDB's C++ runner for the
-directives the tests use. `make unittest DUCKDB=<binary>` runs the same files through the C++ runner (above);
-`TESTS=` selects a subset. `cargo test --release` runs the unit tests of the crates (codec round trips, schema JSON,
-the decoder).
+`make test` runs all 96 test files (`test/sql/*.test`, `test/sql/copy/*.test` and `*.test_slow`, and the generated
+`test/sql/corpus/*.test`) with `scripts/run_sqllogic.py`, a sqllogictest runner on the pinned Python wheel that
+follows DuckDB's C++ runner for the directives the tests use. `make unittest DUCKDB=<binary>` runs the same files
+through the C++ runner (above); `TESTS=` selects a subset. `cargo test --release` runs the unit tests of the crates
+(codec round trips, schema JSON, the decoder).
+
+`test/corpus/<source>/` holds 1293 real-world Avro files (at most 64 KiB each, permissive licenses only; provenance
+in `test/corpus/MANIFEST.tsv`, attribution in `test/corpus/LICENSES.md`) copied from the test data of 52 public
+sources, and `scripts/gen_corpus_tests.py` generates one test file per source over them: the row count as fastavro
+reads it, the schema and content as this reader produces them (explicit rows up to 100 rows, `SUMMARIZE` above,
+cross-checked row by row against fastavro's canonical dump before they are written down), a writer round trip
+through `COPY ... (FORMAT avro)` and `EXCEPT ALL`, and the error message for the files the reader or writer refuses.
+`test/corpus/README.md` has the details and the regeneration procedure.
 
 ## CI
 

@@ -8,3 +8,9 @@ make test                                    # all of test/sql through scripts/r
 make unittest DUCKDB=<duckdb binary>         # the same files through DuckDB's own C++ sqllogictest runner (test/unittest next to the binary)
 ```
 The tests name their fixtures relative to the repository root (`test/*.avro`); hand-built malformed fixtures come from `scripts/create_malformed.py`, the minimal reproductions of the real-world corpus findings under `test/corpus/` from `scripts/create_corpus_fixtures.py` (both stdlib only), the others from the `scripts/create_*.py` generators and the C++ extension's test data.
+
+`test/corpus/<source>/` holds 1293 real-world Avro files copied from public test suites (provenance and licenses in
+`test/corpus/MANIFEST.tsv`, `LICENSES.md` and `README.md` there); `scripts/gen_corpus_tests.py` generates
+`test/sql/corpus/<source>.test` over them (row counts from fastavro, schema and content from this reader after a
+row-by-row cross-check against fastavro, a writer round trip, the error for refused files). Those files are
+generated: do not edit them, re-run the generator (`test/corpus/README.md`).

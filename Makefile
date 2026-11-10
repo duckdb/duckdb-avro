@@ -2,8 +2,8 @@
 #
 #   make                 cargo build --release + metadata footer -> build/avro.duckdb_extension (needs `make venv` once)
 #   make venv            a Python virtualenv with the pinned duckdb wheel (venv/)
-#   make test            test/sql through scripts/run_sqllogic.py on the pinned wheel (cwd = repository root, the
-#                        tests name their fixtures relative to it)
+#   make test            test/sql (including the generated test/sql/corpus) through scripts/run_sqllogic.py on the
+#                        pinned wheel (cwd = repository root, the tests name their fixtures relative to it)
 #   make unittest DUCKDB=<duckdb binary of the same build>
 #                        the same tests through DuckDB's own C++ sqllogictest runner (test/unittest next to the binary);
 #                        the build's own extensions (icu, ...) are linked next to avro so that `require icu` autoloads
@@ -58,7 +58,7 @@ build/avro.duckdb_extension: target/release/libavro.so
 	python3 -I scripts/append_extension_metadata.py --extension $@ --platform $(PLATFORM) --abi-type C_STRUCT_UNSTABLE --version "$(FOOTER_VERSION)" --extension-version $(EXT_VERSION)
 
 test: build/avro.duckdb_extension
-	AVRO_EXTENSION=$(abspath build/avro.duckdb_extension) $(PYTHON) -I scripts/run_sqllogic.py test/sql/*.test test/sql/copy/*.test test/sql/copy/*.test_slow
+	AVRO_EXTENSION=$(abspath build/avro.duckdb_extension) $(PYTHON) -I scripts/run_sqllogic.py test/sql/*.test test/sql/copy/*.test test/sql/copy/*.test_slow test/sql/corpus/*.test
 
 # the C++ runner: the binary's own version tag and platform name the repository directory the stamped copy goes into
 DUCKDB ?=
