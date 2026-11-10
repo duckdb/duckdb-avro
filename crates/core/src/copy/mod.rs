@@ -223,11 +223,10 @@ fn write_rows(
         let row_count = chunk.row_count()?;
         for index in 0..row_count {
             row.clear();
-            let mut estimate = 0;
             for reader in &readers {
-                estimate += reader.encode(index, &mut row)?;
+                reader.encode(index, &mut row)?;
             }
-            writer.append_row(&row, estimate)?;
+            writer.append_row(&row);
         }
         writer.finish_chunk(row_count)?;
     }

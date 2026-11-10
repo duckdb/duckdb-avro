@@ -669,53 +669,28 @@ fn every_row_is_kept_across_block_boundaries() -> Result<()> {
 }
 
 #[test]
-fn block_sizes_follow_the_row_size_estimates() -> Result<()> {
+fn every_chunk_is_one_block() -> Result<()> {
     let conn = connect()?;
     let dir = test_dir("block_sizes");
-    // BIGINT rows are estimated at 8 bytes and take at most 3, so the buffer always has room for them.
-    let target = copy_to(
-        &conn,
-        &dir,
-        "one_chunk.avro",
-        "SELECT range AS a FROM range(2048)",
-        "",
-    )?;
-    assert_eq!(
-        blocks(&target)
+    for (file, query, expected) in [
+        (
+            "small_rows.avro",
+            "SELECT range AS a FROM range(5000)",
+            vec![2048, 2048, 904],
+        ),
+        // Rows larger than their size estimate once put every row in a block of its own
+        (
+            "large_rows.avro",
+            "SELECT repeat('x', 126) AS s FROM range(10)",
+            vec![10],
+        ),
+    ] {
+        let target = copy_to(&conn, &dir, file, query, "")?;
+        let counts = blocks(&target)
             .iter()
             .map(|(count, _)| *count)
-            .collect::<Vec<_>>(),
-        [2048]
-    );
-    // A string of 125 bytes takes 128 with its union branch and length: the buffer grows to 128, 256, 512 bytes, ...
-    let target = copy_to(
-        &conn,
-        &dir,
-        "fits.avro",
-        "SELECT repeat('x', 125) AS s FROM range(10)",
-        "",
-    )?;
-    assert_eq!(
-        blocks(&target)
-            .iter()
-            .map(|(count, _)| *count)
-            .collect::<Vec<_>>(),
-        [10]
-    );
-    // One byte more: the buffer settles at 256 bytes, and every second row does not fit, so each starts a block.
-    let target = copy_to(
-        &conn,
-        &dir,
-        "split.avro",
-        "SELECT repeat('x', 126) AS s FROM range(10)",
-        "",
-    )?;
-    assert_eq!(
-        blocks(&target)
-            .iter()
-            .map(|(count, _)| *count)
-            .collect::<Vec<_>>(),
-        [1; 10]
-    );
+            .collect::<Vec<_>>();
+        assert_eq!(counts, expected, "{file}");
+    }
     Ok(())
 }

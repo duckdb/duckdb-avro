@@ -298,10 +298,9 @@ fn huge_int<T: VectorElement>(values: &VectorReader<'_, T>, row: usize) -> Resul
     ))
 }
 
-fn write_decimal(out: &mut Vec<u8>, value: i128, size: usize) -> usize {
+fn write_decimal(out: &mut Vec<u8>, value: i128, size: usize) {
     let bytes = value.to_be_bytes();
     out.extend_from_slice(&bytes[bytes.len() - size..]);
-    size
 }
 
 impl<'a> ColumnReader<'a> {
@@ -354,21 +353,21 @@ impl<'a> ColumnReader<'a> {
         Ok(Self { encoder, values })
     }
 
-    fn write_null(&self, out: &mut Vec<u8>) -> Result<usize> {
+    fn write_null(&self, out: &mut Vec<u8>) -> Result<()> {
         if self.encoder.nullable {
             write_long(out, 0);
         } else if !matches!(self.encoder.kind, EncoderKind::Null) {
             return Err(non_nullable_error(&self.encoder.type_name));
         }
-        Ok(1)
+        Ok(())
     }
 
     fn write<V>(
         &self,
         value: Option<V>,
         out: &mut Vec<u8>,
-        write: impl FnOnce(&mut Vec<u8>, V) -> Result<usize>,
-    ) -> Result<usize> {
+        write: impl FnOnce(&mut Vec<u8>, V) -> Result<()>,
+    ) -> Result<()> {
         let Some(value) = value else {
             return self.write_null(out);
         };
@@ -378,49 +377,49 @@ impl<'a> ColumnReader<'a> {
         write(out, value)
     }
 
-    /// Appends the encoding of `row` and returns the size estimate the block layout is based on.
-    pub fn encode(&self, row: usize, out: &mut Vec<u8>) -> Result<usize> {
+    /// Appends the encoding of `row`.
+    pub fn encode(&self, row: usize, out: &mut Vec<u8>) -> Result<()> {
         match &self.values {
             Values::Null => self.write_null(out),
             Values::Boolean(values) => self.write(values.get(row)?, out, |out, value| {
                 write_boolean(out, *value);
-                Ok(1)
+                Ok(())
             }),
             Values::Integer(values) => self.write(values.get(row)?, out, |out, value| {
                 write_int(out, *value);
-                Ok(4)
+                Ok(())
             }),
             Values::BigInt(values) => self.write(values.get(row)?, out, |out, value| {
                 write_long(out, *value);
-                Ok(8)
+                Ok(())
             }),
             Values::Float(values) => self.write(values.get(row)?, out, |out, value| {
                 write_float(out, *value);
-                Ok(4)
+                Ok(())
             }),
             Values::Double(values) => self.write(values.get(row)?, out, |out, value| {
                 write_double(out, *value);
-                Ok(8)
+                Ok(())
             }),
             Values::Varchar(values) => self.write(values.get(row)?, out, |out, value| {
                 write_bytes(out, value.as_bytes());
-                Ok(value.len())
+                Ok(())
             }),
             Values::Blob(values) => self.write(values.get(row)?, out, |out, value| {
                 write_bytes(out, value);
-                Ok(value.len())
+                Ok(())
             }),
             Values::Date(values) => self.write(values.get(row)?, out, |out, value| {
                 write_int(out, value.0);
-                Ok(4)
+                Ok(())
             }),
             Values::Time(values) => self.write(values.get(row)?, out, |out, value| {
                 write_long(out, value.0);
-                Ok(8)
+                Ok(())
             }),
             Values::Timestamp(values) => self.write(values.get(row)?, out, |out, value| {
                 write_long(out, value.0);
-                Ok(8)
+                Ok(())
             }),
             Values::TimestampMs(values) => self.write(values.get(row)?, out, |out, value| {
                 let micros = value.0.checked_mul(MICROS_PER_MSEC).ok_or_else(|| {
@@ -430,46 +429,49 @@ impl<'a> ColumnReader<'a> {
                     ))
                 })?;
                 write_long(out, micros);
-                Ok(8)
+                Ok(())
             }),
             Values::TimestampNs(values) => self.write(values.get(row)?, out, |out, value| {
                 write_long(out, value.0);
-                Ok(8)
+                Ok(())
             }),
             Values::TimestampTz(values) => self.write(values.get(row)?, out, |out, value| {
                 write_long(out, value.0);
-                Ok(8)
+                Ok(())
             }),
             Values::TimestampTzNs(values) => self.write(values.get(row)?, out, |out, value| {
                 write_long(out, value.0);
-                Ok(8)
+                Ok(())
             }),
             Values::Uuid(values) => self.write(huge_int(values, row)?, out, |out, value| {
                 out.extend_from_slice(&UuidValueRaw(value).to_bytes());
-                Ok(16)
+                Ok(())
             }),
             Values::ShortDecimal(values, size) => {
                 self.write(values.get(row)?, out, |out, value| {
-                    Ok(write_decimal(out, value.0.into(), *size))
+                    write_decimal(out, value.0.into(), *size);
+                    Ok(())
                 })
             }
             Values::WordDecimal(values, size) => self.write(values.get(row)?, out, |out, value| {
-                Ok(write_decimal(out, value.0.into(), *size))
+                write_decimal(out, value.0.into(), *size);
+                Ok(())
             }),
             Values::LongDecimal(values, size) => self.write(values.get(row)?, out, |out, value| {
-                Ok(write_decimal(out, value.0.into(), *size))
+                write_decimal(out, value.0.into(), *size);
+                Ok(())
             }),
             Values::HugeDecimal(values, size) => {
                 self.write(huge_int(values, row)?, out, |out, value| {
-                    Ok(write_decimal(out, value, *size))
+                    write_decimal(out, value, *size);
+                    Ok(())
                 })
             }
             Values::Struct { rows, fields } => self.write(rows.get(row)?, out, |out, ()| {
-                let mut size = 1;
                 for field in fields {
-                    size += field.encode(row, out)?;
+                    field.encode(row, out)?;
                 }
-                Ok(size)
+                Ok(())
             }),
             Values::List { rows, items } => {
                 self.write(list_entry(rows, row)?, out, |out, entry| {
@@ -477,12 +479,11 @@ impl<'a> ColumnReader<'a> {
                     if length > 0 {
                         write_long(out, entry.length() as i64);
                     }
-                    let mut size = 1;
                     for item in offset..offset + length {
-                        size += items.encode(item, out)?;
+                        items.encode(item, out)?;
                     }
                     write_long(out, 0);
-                    Ok(size)
+                    Ok(())
                 })
             }
             Values::Map {
@@ -495,15 +496,15 @@ impl<'a> ColumnReader<'a> {
                 if length > 0 {
                     write_long(out, entry.length() as i64);
                 }
-                let mut size = 1;
                 for item in offset..offset + length {
                     if entries.is_null(item)? {
                         return Err(non_nullable_error("STRUCT"));
                     }
-                    size += key.encode(item, out)? + value.encode(item, out)? + 1;
+                    key.encode(item, out)?;
+                    value.encode(item, out)?;
                 }
                 write_long(out, 0);
-                Ok(size)
+                Ok(())
             }),
         }
     }

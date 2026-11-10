@@ -10,10 +10,6 @@ use crate::avro::codec::Codec;
 use crate::avro::container::{SYNC_SIZE, generate_sync, write_block, write_header};
 use crate::error::invalid_input;
 
-fn next_power_of_two(value: usize) -> usize {
-    value.max(1).next_power_of_two()
-}
-
 fn write_all(file: &File, mut data: &[u8], bytes_written: &mut usize) -> Result<()> {
     while !data.is_empty() {
         let written = file.write(data)?.min(data.len());
@@ -26,16 +22,11 @@ fn write_all(file: &File, mut data: &[u8], bytes_written: &mut usize) -> Result<
     Ok(())
 }
 
-/// The file being written and its current block.
-///
-/// Blocks are split the way avro-c's memory-buffer writer splits them, which keeps file sizes stable: rows go to
-/// a buffer whose capacity grows from size estimates of the rows (in powers of two), and a block is written
-/// whenever a row does not fit in the rest of that buffer.
+/// The file being written and its current block; every chunk of rows is written as one block.
 pub struct AvroFileWriter {
     file: File,
     codec: Codec,
     sync: [u8; SYNC_SIZE],
-    datum_capacity: usize,
     block: Vec<u8>,
     block_rows: u64,
     output: Vec<u8>,
@@ -62,7 +53,6 @@ impl AvroFileWriter {
             file,
             codec,
             sync: generate_sync(),
-            datum_capacity: 0,
             block: Vec::new(),
             block_rows: 0,
             output: Vec::new(),
@@ -91,26 +81,10 @@ impl AvroFileWriter {
         self.row_count
     }
 
-    /// Adds an encoded row to the current block, of which `estimate` is the size estimate.
-    pub fn append_row(&mut self, encoded: &[u8], estimate: usize) -> Result<()> {
-        if estimate > self.datum_capacity - self.block.len() {
-            self.datum_capacity = next_power_of_two(self.datum_capacity + estimate);
-        }
-        loop {
-            if self.block.len() + encoded.len() <= self.datum_capacity {
-                break;
-            }
-            if self.block_rows > 0 {
-                self.write_block()?;
-            }
-            if self.block.len() + encoded.len() <= self.datum_capacity {
-                break;
-            }
-            self.datum_capacity = next_power_of_two(self.datum_capacity * 2);
-        }
+    /// Adds an encoded row to the current block.
+    pub fn append_row(&mut self, encoded: &[u8]) {
         self.block.extend_from_slice(encoded);
         self.block_rows += 1;
-        Ok(())
     }
 
     /// Writes the current block at the end of a chunk of `rows` rows.
