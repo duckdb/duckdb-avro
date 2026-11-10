@@ -4,14 +4,13 @@
 //! block headers once (no decompression), so the block count is known up front and every [`BlockInfo`] can be
 //! decompressed independently, on any thread, with [`FileReader::decompress`].
 
-use std::collections::HashMap;
 use std::io::Write;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::codec::Codec;
 use crate::decode::Decoder;
 use crate::encode::{write_bytes_to, write_long_to};
-use crate::error::{Error, Result};
+use crate::error::{Error, Result, invalid_input, message, not_implemented};
 use crate::schema::Schema;
 
 /// The four magic bytes every container file starts with.
@@ -70,15 +69,14 @@ impl Header {
                 let name = std::str::from_utf8(bytes)
                     .map_err(|_| Error::invalid_input("File header contains an unknown codec (not valid UTF-8)"))?;
                 Codec::from_name(name)
-                    .map_err(|_| Error::not_implemented(format!("File header contains an unknown codec '{name}'")))?
+                    .map_err(|_| not_implemented!("File header contains an unknown codec '{name}'"))?
             }
         };
         let schema_bytes = lookup(&metadata, SCHEMA_KEY)
             .ok_or_else(|| Error::invalid_input("File header doesn't contain a schema"))?;
         let schema_text = std::str::from_utf8(schema_bytes)
             .map_err(|_| Error::invalid_input("Cannot parse file header: the schema is not valid UTF-8"))?;
-        let schema =
-            Schema::parse(schema_text).map_err(|e| Error::new(e.kind(), format!("Cannot parse file header: {e}")))?;
+        let schema = Schema::parse(schema_text).map_err(|e| Error::with_context("Cannot parse file header", &e))?;
         Ok(Header { metadata, schema, codec, sync_marker, len: dec.position() })
     }
 
@@ -94,7 +92,7 @@ impl Header {
 }
 
 fn header_error(e: &Error) -> Error {
-    Error::new(e.kind(), format!("Cannot read file header: {e}"))
+    Error::with_context("Cannot read file header", e)
 }
 
 fn lookup<'a>(metadata: &'a [(String, Vec<u8>)], key: &str) -> Option<&'a [u8]> {
@@ -126,31 +124,41 @@ impl<'a> FileReader<'a> {
     /// Parses the header and indexes every block (checking each block's sync marker; no decompression).
     pub fn open(data: &'a [u8]) -> Result<FileReader<'a>> {
         let header = Header::parse(data)?;
-        let mut blocks = Vec::new();
-        let mut dec = Decoder::new(data);
-        dec.seek(header.len);
-        while !dec.is_empty() {
-            let index = blocks.len();
-            let start = dec.position();
-            let at = |what: &str| Error::invalid_input(format!("Avro block {index} at offset {start}: {what}"));
-            let row_count = dec.read_long().map_err(|e| at(&e.to_string()))?;
-            let row_count = u64::try_from(row_count).map_err(|_| at(&format!("negative row count {row_count}")))?;
-            let len = dec.read_long().map_err(|e| at(&e.to_string()))?;
-            let len = usize::try_from(len)
-                .ok()
-                .filter(|&len| dec.remaining() >= 16 && len <= dec.remaining() - 16)
-                .ok_or_else(|| at(&format!("block size {len} exceeds the file")))?;
-            let offset = dec.position();
-            dec.read_raw(len, "a block")?;
-            let sync = dec.read_raw(16, "the sync marker")?;
-            if sync != header.sync_marker {
-                return Err(at("sync marker mismatch"));
-            }
-            blocks.push(BlockInfo { index, row_count, offset, len });
-        }
+        let blocks = index_blocks(data, header.len, &header.sync_marker)?;
         Ok(FileReader { data, header, blocks })
     }
+}
 
+/// The block index pass of [`FileReader::open`]: walks the blocks from `start` (the end of the header), checking each
+/// one's sync marker against `sync_marker`, without decompressing anything.
+fn index_blocks(data: &[u8], start: usize, sync_marker: &[u8; 16]) -> Result<Vec<BlockInfo>> {
+    // every block is at least two count bytes and the marker: the index never grows past this
+    let mut blocks = Vec::with_capacity(data.len().saturating_sub(start) / 18);
+    let mut dec = Decoder::new(data);
+    dec.seek(start);
+    while !dec.is_empty() {
+        let index = blocks.len();
+        let start = dec.position();
+        let at = |what: &str| Error::invalid_input(message!("Avro block {index} at offset {start}: {what}"));
+        let row_count = dec.read_long().map_err(|e| at(e.message()))?;
+        let row_count = u64::try_from(row_count).map_err(|_| at(&message!("negative row count {row_count}")))?;
+        let len = dec.read_long().map_err(|e| at(e.message()))?;
+        let len = usize::try_from(len)
+            .ok()
+            .filter(|&len| dec.remaining() >= 16 && len <= dec.remaining() - 16)
+            .ok_or_else(|| at(&message!("block size {len} exceeds the file")))?;
+        let offset = dec.position();
+        dec.read_raw(len, "a block")?;
+        let sync = dec.read_raw(16, "the sync marker")?;
+        if sync != sync_marker {
+            return Err(at("sync marker mismatch"));
+        }
+        blocks.push(BlockInfo { index, row_count, offset, len });
+    }
+    Ok(blocks)
+}
+
+impl<'a> FileReader<'a> {
     pub fn header(&self) -> &Header {
         &self.header
     }
@@ -188,7 +196,7 @@ impl<'a> FileReader<'a> {
         self.header
             .codec
             .decompress(self.block_data(block))
-            .map_err(|e| Error::new(e.kind(), format!("Avro block {} at offset {}: {e}", block.index, block.offset)))
+            .map_err(|e| Error::with_context(&message!("Avro block {} at offset {}", block.index, block.offset), &e))
     }
 }
 
@@ -236,16 +244,25 @@ impl<W: Write> FileWriter<W> {
 
     /// Like [`FileWriter::new`] with the schema JSON text supplied by the caller.
     pub fn with_schema_json(out: W, schema_json: &str, codec: Codec, metadata: &[(String, Vec<u8>)]) -> Result<Self> {
-        let mut seen = HashMap::new();
-        for (key, _) in metadata {
+        Self::with_sync_marker(out, schema_json, codec, metadata, random_sync_marker())
+    }
+
+    /// Like [`FileWriter::with_schema_json`] with the sync marker supplied by the caller (a deterministic file).
+    pub fn with_sync_marker(
+        out: W,
+        schema_json: &str,
+        codec: Codec,
+        metadata: &[(String, Vec<u8>)],
+        sync_marker: [u8; 16],
+    ) -> Result<Self> {
+        for (i, (key, _)) in metadata.iter().enumerate() {
             if key.starts_with("avro.") {
-                return Err(Error::invalid_input(format!("Avro metadata key '{key}' is reserved")));
+                return Err(invalid_input!("Avro metadata key '{key}' is reserved"));
             }
-            if seen.insert(key.as_str(), ()).is_some() {
-                return Err(Error::invalid_input(format!("duplicate Avro metadata key '{key}'")));
+            if metadata[..i].iter().any(|(earlier, _)| earlier == key) {
+                return Err(invalid_input!("duplicate Avro metadata key '{key}'"));
             }
         }
-        let sync_marker = random_sync_marker();
         let mut header = Vec::with_capacity(64 + schema_json.len());
         header.extend_from_slice(&MAGIC);
         write_long_to(&mut header, 2 + metadata.len() as i64);

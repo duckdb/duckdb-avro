@@ -259,11 +259,11 @@ impl<'a> Decoder<'a> {
         self.skip_depth(schema, id, 0)
     }
 
-    fn skip_depth(&mut self, schema: &Schema, id: SchemaId, depth: usize) -> Result<()> {
-        if depth > MAX_DEPTH {
-            return Err(Error::invalid_input("Avro value nesting too deep"));
-        }
-        match &schema[id].kind {
+    /// Skips one value of a leaf kind (everything but records, unions, arrays, maps and references); `None` for a
+    /// compound kind. A leaf needs no validation to be skipped: any byte passes for a `boolean`, any varint for an
+    /// `int` or `enum`, any bytes for a `string`.
+    fn skip_leaf(&mut self, kind: &SchemaKind) -> Option<Result<()>> {
+        Some(match kind {
             SchemaKind::Null => Ok(()),
             SchemaKind::Boolean => self.read_raw(1, "a boolean").map(|_| ()),
             SchemaKind::Int | SchemaKind::Long => self.read_varint().map(|_| ()),
@@ -272,6 +272,19 @@ impl<'a> Decoder<'a> {
             SchemaKind::Bytes | SchemaKind::String => self.read_bytes().map(|_| ()),
             SchemaKind::Fixed { size, .. } => self.read_raw(*size, "a fixed").map(|_| ()),
             SchemaKind::Enum { .. } => self.read_varint().map(|_| ()),
+            _ => return None,
+        })
+    }
+
+    fn skip_depth(&mut self, schema: &Schema, id: SchemaId, depth: usize) -> Result<()> {
+        if depth > MAX_DEPTH {
+            return Err(Error::invalid_input("Avro value nesting too deep"));
+        }
+        let kind = &schema[id].kind;
+        if let Some(skipped) = self.skip_leaf(kind) {
+            return skipped;
+        }
+        match kind {
             SchemaKind::Record { fields, .. } => {
                 for field in fields {
                     self.skip_depth(schema, field.ty, depth + 1)?;
@@ -285,6 +298,8 @@ impl<'a> Decoder<'a> {
             SchemaKind::Array { items, .. } => self.skip_blocks(schema, *items, false, depth),
             SchemaKind::Map { values, .. } => self.skip_blocks(schema, *values, true, depth),
             SchemaKind::Ref { target, .. } => self.skip_depth(schema, *target, depth + 1),
+            // the leaf kinds: `skip_leaf` took them
+            _ => Ok(()),
         }
     }
 
@@ -365,13 +380,7 @@ mod tests {
 #[cfg(kani)]
 mod verification {
     use super::*;
-
-    /// A slice of symbolic bytes and symbolic length `0..=N`.
-    fn any_slice<const N: usize>(buf: &[u8; N]) -> &[u8] {
-        let len: usize = kani::any();
-        kani::assume(len <= N);
-        &buf[..len]
-    }
+    use crate::kani_support::{any_slice, well_formed_utf8};
 
     /// The value of the first varint in `data` computed independently with 128-bit arithmetic: `Some((value, bytes))`
     /// when a varint of at most 10 bytes ends in `data`, `None` when the data runs out or 10 bytes carry continuation
@@ -562,36 +571,6 @@ mod verification {
         }
     }
 
-    /// Well-formed UTF-8 by the byte-sequence table of the Unicode standard (Table 3-7), independently of `core::str`.
-    fn well_formed_utf8(bytes: &[u8]) -> bool {
-        let mut i = 0;
-        while i < bytes.len() {
-            let (len, lo, hi) = match bytes[i] {
-                0x00..=0x7f => (1, 0x80, 0xbf),
-                0xc2..=0xdf => (2, 0x80, 0xbf),
-                0xe0 => (3, 0xa0, 0xbf),
-                0xe1..=0xec | 0xee..=0xef => (3, 0x80, 0xbf),
-                0xed => (3, 0x80, 0x9f),
-                0xf0 => (4, 0x90, 0xbf),
-                0xf1..=0xf3 => (4, 0x80, 0xbf),
-                0xf4 => (4, 0x80, 0x8f),
-                _ => return false,
-            };
-            if i + len > bytes.len() || (len > 1 && !(lo..=hi).contains(&bytes[i + 1])) {
-                return false;
-            }
-            let mut k = 2;
-            while k < len {
-                if !(0x80..=0xbf).contains(&bytes[i + k]) {
-                    return false;
-                }
-                k += 1;
-            }
-            i += len;
-        }
-        true
-    }
-
     /// `read_string` on any slice of at most 8 bytes (a payload of up to 7: every 1- to 4-byte sequence, truncated
     /// or followed by another): never panics, succeeds exactly when the length-prefixed payload is there and is
     /// well-formed UTF-8 (an invalid payload is an error, not a panic), and then yields the payload. Bound: 8 bytes
@@ -648,6 +627,95 @@ mod verification {
                 assert!(symbol.is_err());
                 assert!(branch.is_err());
             }
+        }
+    }
+
+    /// `Decoder::skip_leaf` of `kind` (what `skip` does for a leaf node) against `read` (the typed reader of that
+    /// kind, `Ok(())` when it accepts the value) on every slice of at most 12 bytes: a value the reader accepts is
+    /// skipped to the same position, `skip` fails only where the reader fails, and `skip` accepts exactly what `raw`
+    /// (the unvalidated form of the read) accepts.
+    fn check_skip(
+        data: &[u8],
+        kind: SchemaKind,
+        read: impl FnOnce(&mut Decoder<'_>) -> Result<()>,
+        raw: impl FnOnce(&mut Decoder<'_>) -> bool,
+    ) {
+        let mut skipper = Decoder::new(data);
+        let skipped = skipper.skip_leaf(&kind).unwrap();
+        let mut reader = Decoder::new(data);
+        let read = read(&mut reader);
+        assert!(skipper.position() <= data.len());
+        if read.is_ok() {
+            assert!(skipped.is_ok());
+            assert_eq!(skipper.position(), reader.position());
+        }
+        if skipped.is_err() {
+            assert!(read.is_err());
+        }
+        assert_eq!(skipped.is_ok(), raw(&mut Decoder::new(data)));
+        std::mem::forget(kind);
+    }
+
+    /// `skip` of `null`, `boolean`, `float` and `double` against their readers on every slice of at most 12 bytes
+    /// (`boolean` skips any byte: the reader's 0/1 check is the only difference).
+    #[kani::proof]
+    #[kani::unwind(3)]
+    fn skip_matches_the_fixed_width_readers() {
+        let buf: [u8; 12] = kani::any();
+        let data = any_slice(&buf);
+        let selector: u8 = kani::any();
+        match selector {
+            0 => check_skip(data, SchemaKind::Null, |d| d.read_null(), |_| true),
+            1 => check_skip(data, SchemaKind::Boolean, |d| d.read_boolean().map(|_| ()), |d| d.read_raw(1, "").is_ok()),
+            2 => check_skip(data, SchemaKind::Float, |d| d.read_float().map(|_| ()), |d| d.read_raw(4, "").is_ok()),
+            _ => check_skip(data, SchemaKind::Double, |d| d.read_double().map(|_| ()), |d| d.read_raw(8, "").is_ok()),
+        }
+    }
+
+    /// `skip` of `int`, `long` and `enum` (of every symbol count) against their readers on every slice of at most 12
+    /// bytes: all three skip one varint, so `skip` is lenient exactly where the reader range-checks.
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn skip_matches_the_varint_readers() {
+        let buf: [u8; 12] = kani::any();
+        let data = any_slice(&buf);
+        let selector: u8 = kani::any();
+        let count: usize = kani::any();
+        let raw = |d: &mut Decoder<'_>| d.read_varint().is_ok();
+        match selector {
+            0 => check_skip(data, SchemaKind::Int, |d| d.read_int().map(|_| ()), raw),
+            1 => check_skip(data, SchemaKind::Long, |d| d.read_long().map(|_| ()), raw),
+            _ => check_skip(
+                data,
+                SchemaKind::Enum { name: crate::schema::Name::simple(""), symbols: Vec::new(), default: None },
+                |d| d.read_enum(count).map(|_| ()),
+                raw,
+            ),
+        }
+    }
+
+    /// `skip` of `bytes`, `string` and `fixed` (of every size <= 12) against their readers on every slice of at most
+    /// 12 bytes (`string` through `read_string_bytes`: `skip` does not validate UTF-8, the harness above proves the
+    /// validation).
+    #[kani::proof]
+    #[kani::unwind(13)]
+    fn skip_matches_the_length_prefixed_readers() {
+        let buf: [u8; 12] = kani::any();
+        let data = any_slice(&buf);
+        let selector: u8 = kani::any();
+        let size: usize = kani::any();
+        kani::assume(size <= 12);
+        match selector {
+            0 => check_skip(data, SchemaKind::Bytes, |d| d.read_bytes().map(|_| ()), |d| d.read_bytes().is_ok()),
+            1 => {
+                check_skip(data, SchemaKind::String, |d| d.read_string_bytes().map(|_| ()), |d| d.read_bytes().is_ok())
+            }
+            _ => check_skip(
+                data,
+                SchemaKind::Fixed { name: crate::schema::Name::simple(""), size },
+                |d| d.read_fixed(size).map(|_| ()),
+                |d| d.read_raw(size, "").is_ok(),
+            ),
         }
     }
 }

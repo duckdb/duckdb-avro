@@ -8,6 +8,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;
+use std::hash::{BuildHasherDefault, DefaultHasher};
 use std::ops::Index;
 
 use crate::error::{Error, Result};
@@ -48,7 +49,8 @@ impl Name {
     /// Splits a possibly dotted name per the spec: a dotted name carries its own namespace, a plain name takes
     /// `default_namespace`.
     pub fn parse(text: &str, default_namespace: Option<&str>) -> Self {
-        match text.rfind('.') {
+        // a byte scan: `.` is ASCII, so the byte index is the char boundary `rfind` would give
+        match text.bytes().rposition(|b| b == b'.') {
             Some(dot) => Name::new(&text[dot + 1..], Some(&text[..dot])),
             None => Name::new(text, default_namespace),
         }
@@ -57,7 +59,13 @@ impl Name {
     /// `namespace.name`, or just `name` without a namespace.
     pub fn fullname(&self) -> String {
         match &self.namespace {
-            Some(ns) => format!("{ns}.{}", self.name),
+            Some(ns) => {
+                let mut full = String::with_capacity(ns.len() + 1 + self.name.len());
+                full.push_str(ns);
+                full.push('.');
+                full.push_str(&self.name);
+                full
+            }
             None => self.name.clone(),
         }
     }
@@ -236,13 +244,18 @@ impl SchemaNode {
     }
 }
 
+/// The named-type map of a [`Schema`]: a deterministic hasher over a map of at most a few hundred entries filled once,
+/// at parse time (`RandomState` seeds itself from the OS random source, whose retry loop the proof harnesses cannot
+/// model; a schema is no hash-flooding target).
+type NameMap = HashMap<String, SchemaId, BuildHasherDefault<DefaultHasher>>;
+
 /// A parsed schema: an arena of nodes with a root.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Schema {
     nodes: Vec<SchemaNode>,
     root: SchemaId,
     /// Full name of every named type -> its defining node.
-    named: HashMap<String, SchemaId>,
+    named: NameMap,
     /// [`Schema::min_encoded_size`] of every node.
     min_sizes: Vec<usize>,
 }
@@ -273,7 +286,7 @@ impl Schema {
         let mut builder = SchemaBuilder::new();
         let root = builder.add(SchemaNode::new(kind));
         let min_sizes = min_encoded_sizes(&builder.nodes);
-        Schema { nodes: builder.nodes, root, named: HashMap::new(), min_sizes }
+        Schema { nodes: builder.nodes, root, named: NameMap::default(), min_sizes }
     }
 
     pub fn root(&self) -> SchemaId {
@@ -393,7 +406,7 @@ impl SchemaBuilder {
             Ok(())
         };
         check(root)?;
-        let mut named = HashMap::new();
+        let mut named = NameMap::default();
         for (index, node) in self.nodes.iter().enumerate() {
             match &node.kind {
                 SchemaKind::Record { name, fields, .. } => {
@@ -1179,5 +1192,50 @@ mod verification {
             assert_eq!(sizes[0] == 0, zero_width);
             std::mem::forget(nodes);
         });
+    }
+
+    /// `Name::parse` on every string of at most 12 bytes with each default namespace (none, empty, `ns`): the name
+    /// is what follows the last `.`, the namespace what precedes it (the default namespace only without a dot; an
+    /// empty namespace is none), and `fullname` reproduces the text exactly unless its only dot leads (`.a` parses to
+    /// the name `a` without a namespace and prints as `a`). About four minutes of CBMC: behind the `kani-heavy`
+    /// feature, which `make kani` enables and the CI job does not.
+    #[cfg(feature = "kani-heavy")]
+    #[kani::proof]
+    #[kani::unwind(18)]
+    fn name_parse_splits_at_the_last_dot_and_fullname_inverts_it() {
+        let buf: [u8; 12] = kani::any();
+        let text = crate::kani_support::any_str(&buf);
+        let which: u8 = kani::any();
+        let default = match which {
+            0 => None,
+            1 => Some(""),
+            _ => Some("ns"),
+        };
+        let bytes = text.as_bytes();
+        let mut last_dot = None;
+        let mut i = 0;
+        while i < bytes.len() {
+            if bytes[i] == b'.' {
+                last_dot = Some(i);
+            }
+            i += 1;
+        }
+        let name = Name::parse(text, default);
+        match last_dot {
+            None => {
+                assert_eq!(name.name, text);
+                assert_eq!(name.namespace.as_deref(), default.filter(|ns| !ns.is_empty()));
+            }
+            Some(dot) => {
+                assert_eq!(name.name.as_bytes(), &bytes[dot + 1..]);
+                assert_eq!(name.namespace.as_deref().map(str::as_bytes), (dot > 0).then_some(&bytes[..dot]));
+            }
+        }
+        let full = name.fullname();
+        let leading_only_dot = last_dot == Some(0);
+        match (last_dot, default) {
+            (None, Some(ns)) if !ns.is_empty() => assert_eq!(full.as_bytes(), [ns.as_bytes(), b".", bytes].concat()),
+            _ => assert_eq!(full.as_bytes(), if leading_only_dot { &bytes[1..] } else { bytes }),
+        }
     }
 }

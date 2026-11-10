@@ -3,7 +3,7 @@
 use std::io::{Read, Write};
 
 use crate::crc32::crc32;
-use crate::error::{Error, Result};
+use crate::error::{Error, Result, not_implemented};
 
 /// Largest decompressed block the codecs produce (2 GiB); a block claiming more is rejected as corrupt.
 pub const MAX_DECOMPRESSED_BLOCK: usize = i32::MAX as usize;
@@ -32,10 +32,7 @@ impl Codec {
     /// Looks a codec up by name, case-insensitively; the error names the unknown codec.
     pub fn from_name(name: &str) -> Result<Codec> {
         let lower = name.to_ascii_lowercase();
-        Codec::ALL
-            .into_iter()
-            .find(|c| c.name() == lower)
-            .ok_or_else(|| Error::not_implemented(format!("Unknown codec '{name}'")))
+        Codec::ALL.into_iter().find(|c| c.name() == lower).ok_or_else(|| not_implemented!("Unknown codec '{name}'"))
     }
 
     /// The spec name (`null`, `deflate`, `snappy`, `zstandard`, `bzip2`, `xz`; `lzma` for the avro-c codec).
@@ -182,6 +179,49 @@ mod tests {
         for codec in Codec::ALL {
             let _ = codec.decompress(&[0xff, 0x00, 0x12, 0x34, 0x56]);
             let _ = codec.decompress(&[]);
+        }
+    }
+}
+
+/// Kani proof harnesses (`cargo kani -p avro-core`, `make kani`) of the codec name lookup.
+#[cfg(kani)]
+mod verification {
+    use super::*;
+    use crate::kani_support::any_ascii_str;
+
+    /// The spec: `name` ASCII-lowercased byte by byte equals one of the seven names (no trimming, nothing else).
+    fn reference_lookup(name: &[u8]) -> Option<Codec> {
+        let mut lower = [0u8; 10];
+        let mut i = 0;
+        while i < name.len() {
+            lower[i] = if name[i].is_ascii_uppercase() { name[i] + 32 } else { name[i] };
+            i += 1;
+        }
+        let lower = &lower[..name.len()];
+        match lower {
+            b"null" => Some(Codec::Null),
+            b"deflate" => Some(Codec::Deflate),
+            b"snappy" => Some(Codec::Snappy),
+            b"zstandard" => Some(Codec::Zstandard),
+            b"bzip2" => Some(Codec::Bzip2),
+            b"xz" => Some(Codec::Xz),
+            b"lzma" => Some(Codec::Lzma),
+            _ => None,
+        }
+    }
+
+    /// `Codec::from_name` on every ASCII string of at most 10 bytes (a non-ASCII byte lowercases to itself and so
+    /// matches no name): never panics, accepts exactly the seven names in any ASCII case (no trimming: a surrounding
+    /// space is an unknown codec) and nothing else; every codec's `name()` is looked up to itself.
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn from_name_accepts_exactly_the_codec_names() {
+        let buf: [u8; 10] = kani::any();
+        let text = any_ascii_str(&buf);
+        assert_eq!(Codec::from_name(text).ok(), reference_lookup(text.as_bytes()));
+        for codec in Codec::ALL {
+            assert_eq!(Codec::from_name(codec.name()).ok(), Some(codec));
+            assert!(codec.name().bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit()));
         }
     }
 }

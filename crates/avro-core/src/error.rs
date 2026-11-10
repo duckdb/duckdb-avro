@@ -36,6 +36,18 @@ impl Error {
         Error::new(ErrorKind::NotImplemented, message)
     }
 
+    /// `Error::new(e.kind(), format!("{context}: {e}"))`: the same kind, the message prefixed. Under `cfg(kani)` (the
+    /// proof harnesses, `make kani`) the message is `context` alone, like the macros below.
+    #[cfg(not(kani))]
+    pub fn with_context(context: &str, e: &Error) -> Self {
+        Error::new(e.kind, format!("{context}: {}", e.message))
+    }
+
+    #[cfg(kani)]
+    pub fn with_context(context: &str, e: &Error) -> Self {
+        Error::new(e.kind, context)
+    }
+
     /// The error class.
     pub fn kind(&self) -> ErrorKind {
         self.kind
@@ -81,3 +93,35 @@ macro_rules! invalid_input {
     }};
 }
 pub(crate) use invalid_input;
+
+/// `Error::not_implemented(format!(..))`, with the same `cfg(kani)` rule as [`invalid_input!`].
+#[cfg(not(kani))]
+macro_rules! not_implemented {
+    ($($arg:tt)*) => {
+        $crate::error::Error::not_implemented(format!($($arg)*))
+    };
+}
+#[cfg(kani)]
+macro_rules! not_implemented {
+    ($fmt:literal $(, $arg:expr)* $(,)?) => {{
+        $(let _ = &$arg;)*
+        $crate::error::Error::not_implemented($fmt)
+    }};
+}
+pub(crate) use not_implemented;
+
+/// `format!(..)` for an error message, with the same `cfg(kani)` rule as [`invalid_input!`]: the bare format string.
+#[cfg(not(kani))]
+macro_rules! message {
+    ($($arg:tt)*) => {
+        format!($($arg)*)
+    };
+}
+#[cfg(kani)]
+macro_rules! message {
+    ($fmt:literal $(, $arg:expr)* $(,)?) => {{
+        $(let _ = &$arg;)*
+        String::from($fmt)
+    }};
+}
+pub(crate) use message;
