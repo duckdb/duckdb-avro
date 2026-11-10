@@ -387,23 +387,6 @@ fn null_into_required_field() -> Result<()> {
 }
 
 #[test]
-fn timestamp_ms_overflow() -> Result<()> {
-    let conn = connect()?;
-    let dir = test_dir("overflow");
-    assert_error(
-        &copy_error(
-            &conn,
-            &dir,
-            "SELECT 'infinity'::TIMESTAMP_MS a",
-            "FORMAT AVRO",
-        ),
-        DuckDBError::InputOutOfRange,
-        "Overflow in multiplication of INT64 (9223372036854775807 * 1000)!",
-    );
-    Ok(())
-}
-
-#[test]
 fn decimal_width_is_checked_by_duckdb() -> Result<()> {
     let conn = connect()?;
     let dir = test_dir("decimal");

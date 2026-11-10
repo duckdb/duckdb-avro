@@ -422,12 +422,17 @@ impl<'a> ColumnReader<'a> {
                 Ok(())
             }),
             Values::TimestampMs(values) => self.write(values.get(row)?, out, |out, value| {
-                let micros = value.0.checked_mul(MICROS_PER_MSEC).ok_or_else(|| {
-                    out_of_range(format!(
-                        "Overflow in multiplication of INT64 ({} * {MICROS_PER_MSEC})!",
-                        value.0
-                    ))
-                })?;
+                // Infinite timestamps stay infinite; every finite one fits in microseconds
+                let micros = if value.0 == i64::MAX || value.0 == -i64::MAX {
+                    value.0
+                } else {
+                    value.0.checked_mul(MICROS_PER_MSEC).ok_or_else(|| {
+                        out_of_range(format!(
+                            "Overflow in multiplication of INT64 ({} * {MICROS_PER_MSEC})!",
+                            value.0
+                        ))
+                    })?
+                };
                 write_long(out, micros);
                 Ok(())
             }),
