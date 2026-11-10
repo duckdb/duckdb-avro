@@ -3,8 +3,10 @@
 use duckdb_neo::{Result, extension::Extension};
 
 pub mod avro;
+pub mod copy;
 pub mod decode;
 pub mod error;
+pub mod field_ids;
 pub mod file;
 pub mod metadata;
 pub mod reader;
