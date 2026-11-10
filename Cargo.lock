@@ -9,6 +9,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
+name = "avro"
+version = "0.1.0"
+dependencies = [
+ "avro_core",
+ "duckdb-neo",
+]
+
+[[package]]
 name = "avro_core"
 version = "0.1.0"
 dependencies = [
@@ -20,6 +28,14 @@ dependencies = [
  "ruzstd",
  "serde_json",
  "snap",
+]
+
+[[package]]
+name = "avro_wasm"
+version = "0.1.0"
+dependencies = [
+ "avro_core",
+ "duckdb-neo",
 ]
 
 [[package]]
@@ -231,8 +247,11 @@ source = "git+https://github.com/duckdb/duckdb-rs?branch=main#f88a16b9586c2734c8
 dependencies = [
  "flate2",
  "pkg-config",
+ "prettyplease",
+ "quote",
  "serde",
  "serde_json",
+ "syn 2.0.119",
  "tar",
  "ureq",
 ]
@@ -294,6 +313,16 @@ name = "pkg-config"
 version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
+
+[[package]]
+name = "prettyplease"
+version = "0.2.37"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "479ca8adacdd7ce8f1fb39ce9ecccbfe93a3f1344b3d0d97f20bc0196208f62b"
+dependencies = [
+ "proc-macro2",
+ "syn 2.0.119",
+]
 
 [[package]]
 name = "proc-macro2"

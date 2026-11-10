@@ -1,6 +1,6 @@
 [workspace]
-members = ["crates/core"]
-default-members = ["crates/core"]
+members = ["crates/core", "crates/native", "crates/wasm"]
+default-members = ["crates/native"]
 resolver = "3"
 
 [workspace.package]
