@@ -1,4 +1,4 @@
-//! The DuckDB Avro reader and metadata functions.
+//! The DuckDB Avro extension: `read_avro`, `avro_metadata` and `COPY ... TO (FORMAT AVRO)`.
 
 use duckdb_neo::{Result, extension::Extension};
 
@@ -20,6 +20,7 @@ macro_rules! register_functions {
         $crate::reader::single_file_function().register(link)?;
         $crate::reader::multi_file_function().register(link)?;
         $crate::metadata::table_function().register(link)?;
+        $crate::copy::copy_function().register(link)?;
         duckdb_neo::Result::Ok(())
     }};
 }

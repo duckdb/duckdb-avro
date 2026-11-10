@@ -1,0 +1,527 @@
+//! Encodes the rows of DuckDB vectors as Avro binary data, following the schema of the file.
+
+use duckdb_neo::{
+    Result,
+    data_chunk::{ChildrenMut, DataChunkRef},
+    logical_type::{LogicalType, LogicalTypeID},
+    types::{
+        BlobValue, DateValue, DecimalSignature, HugeDecimal, HugeInt, List, ListIndex, LongDecimal,
+        Map, ShortDecimal, Struct, TimeValue, TimestampMsValue, TimestampNsValue,
+        TimestampTzNsValue, TimestampTzValue, TimestampValue, UncheckedString, UuidValueRaw,
+        WordDecimal,
+    },
+    vector::{Unknown, Vector, VectorElement, VectorReader},
+};
+
+use super::schema::{EMPTY_STRUCT_MARKER, decimal_fixed_size, struct_children, type_param};
+use crate::avro::binary::{
+    write_boolean, write_bytes, write_double, write_float, write_int, write_long,
+};
+use crate::avro::schema::{Node, NodeId, Schema};
+use crate::error::{internal, invalid_input, out_of_range};
+
+const MICROS_PER_MSEC: i64 = 1000;
+
+#[derive(Debug)]
+enum EncoderKind {
+    Null,
+    Boolean,
+    Integer,
+    BigInt,
+    Float,
+    Double,
+    Varchar,
+    Blob,
+    Date,
+    Time,
+    Timestamp,
+    TimestampMs,
+    TimestampNs,
+    TimestampTz,
+    TimestampTzNs,
+    Uuid,
+    Decimal {
+        width: u8,
+        size: usize,
+    },
+    Struct(Vec<(usize, ColumnEncoder)>),
+    List(Box<ColumnEncoder>),
+    Map {
+        key: Box<ColumnEncoder>,
+        value: Box<ColumnEncoder>,
+    },
+}
+
+/// How the values of one column (or nested field) are encoded: its Avro type is nullable when it is the union
+/// `["null", T]`.
+#[derive(Debug)]
+pub struct ColumnEncoder {
+    type_name: String,
+    nullable: bool,
+    kind: EncoderKind,
+}
+
+fn schema_mismatch(logical_type: &LogicalType) -> duckdb_neo::Error {
+    internal(format!(
+        "The Avro schema does not match the column type {}",
+        logical_type.to_text().unwrap_or_default()
+    ))
+}
+
+fn non_null_branch(schema: &Schema, node: NodeId) -> (bool, NodeId) {
+    let node = schema.resolve(node);
+    if let Node::Union { branches } = schema.node(node)
+        && let [null, value] = branches.as_slice()
+        && matches!(schema.node(schema.resolve(*null)), Node::Null)
+    {
+        return (true, schema.resolve(*value));
+    }
+    (false, node)
+}
+
+/// The encoders of the columns of the root record of `schema`.
+pub fn column_encoders(schema: &Schema, types: &[LogicalType]) -> Result<Vec<ColumnEncoder>> {
+    let Node::Record { fields, .. } = schema.node(schema.resolve(schema.root())) else {
+        return Err(internal("The Avro schema of the file is not a record"));
+    };
+    if fields.len() != types.len() {
+        return Err(internal("The Avro schema does not match the columns"));
+    }
+    types
+        .iter()
+        .zip(fields)
+        .map(|(logical_type, field)| ColumnEncoder::new(logical_type, schema, field.schema))
+        .collect()
+}
+
+impl ColumnEncoder {
+    fn new(logical_type: &LogicalType, schema: &Schema, node: NodeId) -> Result<Self> {
+        let (nullable, node) = non_null_branch(schema, node);
+        let kind = match logical_type.id()? {
+            LogicalTypeID::SqlNull => EncoderKind::Null,
+            LogicalTypeID::Boolean => EncoderKind::Boolean,
+            LogicalTypeID::Integer => EncoderKind::Integer,
+            LogicalTypeID::BigInt => EncoderKind::BigInt,
+            LogicalTypeID::Float => EncoderKind::Float,
+            LogicalTypeID::Double => EncoderKind::Double,
+            LogicalTypeID::Varchar => EncoderKind::Varchar,
+            LogicalTypeID::Blob => EncoderKind::Blob,
+            LogicalTypeID::Date => EncoderKind::Date,
+            LogicalTypeID::Time => EncoderKind::Time,
+            LogicalTypeID::Timestamp => EncoderKind::Timestamp,
+            LogicalTypeID::TimestampMs => EncoderKind::TimestampMs,
+            LogicalTypeID::TimestampNs => EncoderKind::TimestampNs,
+            LogicalTypeID::TimestampTz => EncoderKind::TimestampTz,
+            LogicalTypeID::TimestampTzNs => EncoderKind::TimestampTzNs,
+            LogicalTypeID::Uuid => EncoderKind::Uuid,
+            LogicalTypeID::Decimal => {
+                let Node::Fixed {
+                    size: fixed_size, ..
+                } = schema.node(node)
+                else {
+                    return Err(schema_mismatch(logical_type));
+                };
+                let width = DecimalSignature::from_logical_type(logical_type)?.width;
+                let size = decimal_fixed_size(width)?;
+                if *fixed_size != size as i64 {
+                    return Err(schema_mismatch(logical_type));
+                }
+                EncoderKind::Decimal { width, size }
+            }
+            LogicalTypeID::Struct => {
+                let Node::Record { fields, .. } = schema.node(node) else {
+                    return Err(schema_mismatch(logical_type));
+                };
+                let children = struct_children(logical_type)?
+                    .into_iter()
+                    .enumerate()
+                    .filter(|(_, (name, _))| name != EMPTY_STRUCT_MARKER)
+                    .collect::<Vec<_>>();
+                if children.len() != fields.len() {
+                    return Err(schema_mismatch(logical_type));
+                }
+                let encoders = children
+                    .into_iter()
+                    .zip(fields)
+                    .map(|((index, (_, child_type)), field)| {
+                        Ok((
+                            index,
+                            ColumnEncoder::new(&child_type, schema, field.schema)?,
+                        ))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                EncoderKind::Struct(encoders)
+            }
+            LogicalTypeID::List => {
+                let Node::Array { items, .. } = schema.node(node) else {
+                    return Err(schema_mismatch(logical_type));
+                };
+                EncoderKind::List(Box::new(ColumnEncoder::new(
+                    &type_param(logical_type, 0)?,
+                    schema,
+                    *items,
+                )?))
+            }
+            LogicalTypeID::Map => {
+                let Node::Array { items, .. } = schema.node(node) else {
+                    return Err(schema_mismatch(logical_type));
+                };
+                let Node::Record { fields, .. } = schema.node(schema.resolve(*items)) else {
+                    return Err(schema_mismatch(logical_type));
+                };
+                let [key, value] = fields.as_slice() else {
+                    return Err(schema_mismatch(logical_type));
+                };
+                EncoderKind::Map {
+                    key: Box::new(ColumnEncoder::new(
+                        &type_param(logical_type, 0)?,
+                        schema,
+                        key.schema,
+                    )?),
+                    value: Box::new(ColumnEncoder::new(
+                        &type_param(logical_type, 1)?,
+                        schema,
+                        value.schema,
+                    )?),
+                }
+            }
+            _ => return Err(schema_mismatch(logical_type)),
+        };
+        Ok(Self {
+            type_name: logical_type.name()?.to_owned(),
+            nullable,
+            kind,
+        })
+    }
+}
+
+/// Flattens every vector of the chunk, children included, so rows map to their physical slots one to one.
+pub fn flatten_chunk(chunk: &mut DataChunkRef<'_>) -> Result<()> {
+    for index in 0..chunk.col_count() {
+        let mut vector = chunk.get_vector_at_mut::<Unknown>(index)?;
+        vector.flatten()?;
+        flatten_children(vector.children_mut())?;
+    }
+    Ok(())
+}
+
+fn flatten_children(children: Option<ChildrenMut<'_>>) -> Result<()> {
+    let Some(mut children) = children else {
+        return Ok(());
+    };
+    for index in 0..children.col_count() {
+        let mut child = children.get_untyped_vector_at_mut(index)?;
+        child.flatten()?;
+        flatten_children(child.children_mut())?;
+    }
+    Ok(())
+}
+
+enum Values<'a> {
+    Null,
+    Boolean(VectorReader<'a, bool>),
+    Integer(VectorReader<'a, i32>),
+    BigInt(VectorReader<'a, i64>),
+    Float(VectorReader<'a, f32>),
+    Double(VectorReader<'a, f64>),
+    Varchar(VectorReader<'a, UncheckedString>),
+    Blob(VectorReader<'a, BlobValue>),
+    Date(VectorReader<'a, DateValue>),
+    Time(VectorReader<'a, TimeValue>),
+    Timestamp(VectorReader<'a, TimestampValue>),
+    TimestampMs(VectorReader<'a, TimestampMsValue>),
+    TimestampNs(VectorReader<'a, TimestampNsValue>),
+    TimestampTz(VectorReader<'a, TimestampTzValue>),
+    TimestampTzNs(VectorReader<'a, TimestampTzNsValue>),
+    Uuid(VectorReader<'a, UuidValueRaw>),
+    ShortDecimal(VectorReader<'a, ShortDecimal>, usize),
+    WordDecimal(VectorReader<'a, WordDecimal>, usize),
+    LongDecimal(VectorReader<'a, LongDecimal>, usize),
+    HugeDecimal(VectorReader<'a, HugeDecimal>, usize),
+    Struct {
+        rows: VectorReader<'a, Struct>,
+        fields: Vec<ColumnReader<'a>>,
+    },
+    List {
+        rows: VectorReader<'a, List<Unknown>>,
+        items: Box<ColumnReader<'a>>,
+    },
+    Map {
+        rows: VectorReader<'a, Map<Unknown, Unknown>>,
+        entries: VectorReader<'a, Struct>,
+        key: Box<ColumnReader<'a>>,
+        value: Box<ColumnReader<'a>>,
+    },
+}
+
+/// The rows of one (flat) vector, read to be encoded with its column's encoder.
+pub struct ColumnReader<'a> {
+    encoder: &'a ColumnEncoder,
+    values: Values<'a>,
+}
+
+fn reader<'a, T: VectorElement>(vector: &'a Vector<'a, Unknown>) -> Result<VectorReader<'a, T>> {
+    vector.cast_ref::<T>()?.reader()
+}
+
+fn child<'a>(vector: &'a Vector<'a, Unknown>, index: usize) -> Result<&'a Vector<'a, Unknown>> {
+    vector
+        .children()
+        .ok_or_else(|| internal("Nested vector has no children"))?
+        .get_untyped_vector_at(index)
+}
+
+fn list_entry<'a, T>(rows: &VectorReader<'a, T>, row: usize) -> Result<Option<ListIndex>>
+where
+    T: VectorElement<Internal<'a> = ListIndex>,
+{
+    if rows.is_null(row)? {
+        return Ok(None);
+    }
+    let physical = rows.selection().index(row);
+    // SAFETY: the row is in bounds and not NULL, so its physical slot holds the ListIndex DuckDB stores for every
+    // LIST and MAP row.
+    Ok(Some(unsafe { *rows.as_ptr().add(physical) }))
+}
+
+fn huge_int<T: VectorElement>(values: &VectorReader<'_, T>, row: usize) -> Result<Option<i128>> {
+    if values.is_null(row)? {
+        return Ok(None);
+    }
+    let physical = values.selection().index(row);
+    // DuckDB aligns 16 byte integers to 8 bytes only, so they are read as HugeInt, not i128.
+    // SAFETY: the row is in bounds and not NULL, and UUID and wide DECIMAL vectors store a 16 byte integer with the
+    // layout of HugeInt in every slot.
+    let value = unsafe { *values.as_ptr().cast::<HugeInt>().add(physical) };
+    Ok(Some(
+        (i128::from(value.upper) << 64) | i128::from(value.lower),
+    ))
+}
+
+fn write_decimal(out: &mut Vec<u8>, value: i128, size: usize) -> usize {
+    let bytes = value.to_be_bytes();
+    out.extend_from_slice(&bytes[bytes.len() - size..]);
+    size
+}
+
+impl<'a> ColumnReader<'a> {
+    /// Prepares reading `vector` with `encoder`.
+    pub fn new(encoder: &'a ColumnEncoder, vector: &'a Vector<'a, Unknown>) -> Result<Self> {
+        let values = match &encoder.kind {
+            EncoderKind::Null => Values::Null,
+            EncoderKind::Boolean => Values::Boolean(reader(vector)?),
+            EncoderKind::Integer => Values::Integer(reader(vector)?),
+            EncoderKind::BigInt => Values::BigInt(reader(vector)?),
+            EncoderKind::Float => Values::Float(reader(vector)?),
+            EncoderKind::Double => Values::Double(reader(vector)?),
+            EncoderKind::Varchar => Values::Varchar(reader(vector)?),
+            EncoderKind::Blob => Values::Blob(reader(vector)?),
+            EncoderKind::Date => Values::Date(reader(vector)?),
+            EncoderKind::Time => Values::Time(reader(vector)?),
+            EncoderKind::Timestamp => Values::Timestamp(reader(vector)?),
+            EncoderKind::TimestampMs => Values::TimestampMs(reader(vector)?),
+            EncoderKind::TimestampNs => Values::TimestampNs(reader(vector)?),
+            EncoderKind::TimestampTz => Values::TimestampTz(reader(vector)?),
+            EncoderKind::TimestampTzNs => Values::TimestampTzNs(reader(vector)?),
+            EncoderKind::Uuid => Values::Uuid(reader(vector)?),
+            EncoderKind::Decimal { width, size } => match width {
+                ..=4 => Values::ShortDecimal(reader(vector)?, *size),
+                5..=9 => Values::WordDecimal(reader(vector)?, *size),
+                10..=18 => Values::LongDecimal(reader(vector)?, *size),
+                _ => Values::HugeDecimal(reader(vector)?, *size),
+            },
+            EncoderKind::Struct(fields) => Values::Struct {
+                rows: reader(vector)?,
+                fields: fields
+                    .iter()
+                    .map(|(index, field)| ColumnReader::new(field, child(vector, *index)?))
+                    .collect::<Result<_>>()?,
+            },
+            EncoderKind::List(items) => Values::List {
+                rows: reader(vector)?,
+                items: Box::new(ColumnReader::new(items, child(vector, 0)?)?),
+            },
+            EncoderKind::Map { key, value } => {
+                let entries = child(vector, 0)?;
+                Values::Map {
+                    rows: reader(vector)?,
+                    entries: reader(entries)?,
+                    key: Box::new(ColumnReader::new(key, child(entries, 0)?)?),
+                    value: Box::new(ColumnReader::new(value, child(entries, 1)?)?),
+                }
+            }
+        };
+        Ok(Self { encoder, values })
+    }
+
+    fn write_null(&self, out: &mut Vec<u8>) -> Result<usize> {
+        if self.encoder.nullable {
+            write_long(out, 0);
+        } else if !matches!(self.encoder.kind, EncoderKind::Null) {
+            return Err(non_nullable_error(&self.encoder.type_name));
+        }
+        Ok(1)
+    }
+
+    fn write<V>(
+        &self,
+        value: Option<V>,
+        out: &mut Vec<u8>,
+        write: impl FnOnce(&mut Vec<u8>, V) -> Result<usize>,
+    ) -> Result<usize> {
+        let Some(value) = value else {
+            return self.write_null(out);
+        };
+        if self.encoder.nullable {
+            write_long(out, 1);
+        }
+        write(out, value)
+    }
+
+    /// Appends the encoding of `row` and returns the size estimate the block layout is based on.
+    pub fn encode(&self, row: usize, out: &mut Vec<u8>) -> Result<usize> {
+        match &self.values {
+            Values::Null => self.write_null(out),
+            Values::Boolean(values) => self.write(values.get(row)?, out, |out, value| {
+                write_boolean(out, *value);
+                Ok(1)
+            }),
+            Values::Integer(values) => self.write(values.get(row)?, out, |out, value| {
+                write_int(out, *value);
+                Ok(4)
+            }),
+            Values::BigInt(values) => self.write(values.get(row)?, out, |out, value| {
+                write_long(out, *value);
+                Ok(8)
+            }),
+            Values::Float(values) => self.write(values.get(row)?, out, |out, value| {
+                write_float(out, *value);
+                Ok(4)
+            }),
+            Values::Double(values) => self.write(values.get(row)?, out, |out, value| {
+                write_double(out, *value);
+                Ok(8)
+            }),
+            Values::Varchar(values) => self.write(values.get(row)?, out, |out, value| {
+                write_bytes(out, value.as_bytes());
+                Ok(value.len())
+            }),
+            Values::Blob(values) => self.write(values.get(row)?, out, |out, value| {
+                write_bytes(out, value);
+                Ok(value.len())
+            }),
+            Values::Date(values) => self.write(values.get(row)?, out, |out, value| {
+                write_int(out, value.0);
+                Ok(4)
+            }),
+            Values::Time(values) => self.write(values.get(row)?, out, |out, value| {
+                write_long(out, value.0);
+                Ok(8)
+            }),
+            Values::Timestamp(values) => self.write(values.get(row)?, out, |out, value| {
+                write_long(out, value.0);
+                Ok(8)
+            }),
+            Values::TimestampMs(values) => self.write(values.get(row)?, out, |out, value| {
+                let micros = value.0.checked_mul(MICROS_PER_MSEC).ok_or_else(|| {
+                    out_of_range(format!(
+                        "Overflow in multiplication of INT64 ({} * {MICROS_PER_MSEC})!",
+                        value.0
+                    ))
+                })?;
+                write_long(out, micros);
+                Ok(8)
+            }),
+            Values::TimestampNs(values) => self.write(values.get(row)?, out, |out, value| {
+                write_long(out, value.0);
+                Ok(8)
+            }),
+            Values::TimestampTz(values) => self.write(values.get(row)?, out, |out, value| {
+                write_long(out, value.0);
+                Ok(8)
+            }),
+            Values::TimestampTzNs(values) => self.write(values.get(row)?, out, |out, value| {
+                write_long(out, value.0);
+                Ok(8)
+            }),
+            Values::Uuid(values) => self.write(huge_int(values, row)?, out, |out, value| {
+                out.extend_from_slice(&UuidValueRaw(value).to_bytes());
+                Ok(16)
+            }),
+            Values::ShortDecimal(values, size) => {
+                self.write(values.get(row)?, out, |out, value| {
+                    Ok(write_decimal(out, value.0.into(), *size))
+                })
+            }
+            Values::WordDecimal(values, size) => self.write(values.get(row)?, out, |out, value| {
+                Ok(write_decimal(out, value.0.into(), *size))
+            }),
+            Values::LongDecimal(values, size) => self.write(values.get(row)?, out, |out, value| {
+                Ok(write_decimal(out, value.0.into(), *size))
+            }),
+            Values::HugeDecimal(values, size) => {
+                self.write(huge_int(values, row)?, out, |out, value| {
+                    Ok(write_decimal(out, value, *size))
+                })
+            }
+            Values::Struct { rows, fields } => self.write(rows.get(row)?, out, |out, ()| {
+                let mut size = 1;
+                for field in fields {
+                    size += field.encode(row, out)?;
+                }
+                Ok(size)
+            }),
+            Values::List { rows, items } => {
+                self.write(list_entry(rows, row)?, out, |out, entry| {
+                    let (offset, length) = entry_range(entry)?;
+                    if length > 0 {
+                        write_long(out, entry.length() as i64);
+                    }
+                    let mut size = 1;
+                    for item in offset..offset + length {
+                        size += items.encode(item, out)?;
+                    }
+                    write_long(out, 0);
+                    Ok(size)
+                })
+            }
+            Values::Map {
+                rows,
+                entries,
+                key,
+                value,
+            } => self.write(list_entry(rows, row)?, out, |out, entry| {
+                let (offset, length) = entry_range(entry)?;
+                if length > 0 {
+                    write_long(out, entry.length() as i64);
+                }
+                let mut size = 1;
+                for item in offset..offset + length {
+                    if entries.is_null(item)? {
+                        return Err(non_nullable_error("STRUCT"));
+                    }
+                    size += key.encode(item, out)? + value.encode(item, out)? + 1;
+                }
+                write_long(out, 0);
+                Ok(size)
+            }),
+        }
+    }
+}
+
+fn entry_range(entry: ListIndex) -> Result<(usize, usize)> {
+    let offset =
+        usize::try_from(entry.offset()).map_err(|_| internal("LIST offset out of range"))?;
+    let length =
+        usize::try_from(entry.length()).map_err(|_| internal("LIST length out of range"))?;
+    offset
+        .checked_add(length)
+        .ok_or_else(|| internal("LIST entry out of range"))?;
+    Ok((offset, length))
+}
+
+fn non_nullable_error(type_name: &str) -> duckdb_neo::Error {
+    invalid_input(format!(
+        "Cannot insert NULL to non-nullable field of type {type_name}"
+    ))
+}
