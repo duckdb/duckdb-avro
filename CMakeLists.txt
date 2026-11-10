@@ -14,7 +14,7 @@ if (EMSCRIPTEN)
   # _LINKED_LIBS influences only Wasm compilation
   # it's unclear why this is needed, but somehow global symbols aren't properly exported otherwise
   # this solves by basically re-linking (at the moment the Wasm binary is actually produced)
-  set (DUCKDB_EXTENSION_AVRO_LINKED_LIBS "../../vcpkg_installed/wasm32-emscripten/lib/lib*.a")
+  set (DUCKDB_EXTENSION_AVRO_LINKED_LIBS "../../vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib/lib*.a")
 endif()
 
 # Disable avro-c examples, tests, docs
