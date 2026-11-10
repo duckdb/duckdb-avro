@@ -12,6 +12,11 @@ description = "Pure-Rust Apache Avro core: JSON schema model, binary decoder/enc
 name = "avro_core"
 path = "src/lib.rs"
 
+[features]
+# the Kani proof harnesses (`make kani`, `#[cfg(kani)]`) that need more memory than a CI runner has; no code behind it
+# in a normal build
+kani-heavy = []
+
 [dependencies]
 # raw DEFLATE (the "deflate" codec: zlib with a -15 window, no zlib header)
 miniz_oxide = "0.9"

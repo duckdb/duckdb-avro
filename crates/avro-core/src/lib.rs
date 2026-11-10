@@ -1,4 +1,7 @@
 #![forbid(unsafe_code)]
+// the Kani build (`make kani`) formats no error messages (`error::invalid_input!`), so a parameter that only feeds a
+// message goes unused there
+#![cfg_attr(kani, allow(unused_variables))]
 //! Pure-Rust Apache Avro core: the schema model, the binary decoder/encoder and the object container reader/writer.
 //!
 //! Reading a file:

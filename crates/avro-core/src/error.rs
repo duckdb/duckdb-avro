@@ -63,3 +63,21 @@ impl From<std::io::Error> for Error {
 
 /// `Result` with this crate's [`Error`].
 pub type Result<T> = std::result::Result<T, Error>;
+
+/// `Error::invalid_input(format!(..))` for the decoder's error paths. Under `cfg(kani)` (the proof harnesses, `make
+/// kani`) the message is the bare format string: `core::fmt` is far beyond what CBMC explores in reasonable time, and
+/// no harness checks message text; the error kind and the control flow are what they prove.
+#[cfg(not(kani))]
+macro_rules! invalid_input {
+    ($($arg:tt)*) => {
+        $crate::error::Error::invalid_input(format!($($arg)*))
+    };
+}
+#[cfg(kani)]
+macro_rules! invalid_input {
+    ($fmt:literal $(, $arg:expr)* $(,)?) => {{
+        $(let _ = &$arg;)*
+        $crate::error::Error::invalid_input($fmt)
+    }};
+}
+pub(crate) use invalid_input;

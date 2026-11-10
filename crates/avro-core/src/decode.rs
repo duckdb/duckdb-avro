@@ -3,7 +3,7 @@
 //! The schema-driven consumer calls the typed `read_*` methods in schema order; nothing is materialized. Every read
 //! is bounds-checked against the slice, so a truncated or corrupt block yields an error instead of a panic.
 
-use crate::error::{Error, Result};
+use crate::error::{Error, Result, invalid_input};
 use crate::schema::{Schema, SchemaId, SchemaKind};
 
 /// Recursion depth after which [`Decoder::skip`] gives up (a recursive schema whose values occupy no bytes).
@@ -73,7 +73,7 @@ impl<'a> Decoder<'a> {
     }
 
     fn eof(&self, what: &str) -> Error {
-        Error::invalid_input(format!("Avro block truncated while reading {what} at offset {}", self.pos))
+        invalid_input!("Avro block truncated while reading {what} at offset {}", self.pos)
     }
 
     /// Takes `n` raw bytes.
@@ -113,7 +113,7 @@ impl<'a> Decoder<'a> {
             }
             shift += 7;
             if shift > 63 {
-                return Err(Error::invalid_input(format!("Avro varint longer than 10 bytes at offset {}", self.pos)));
+                return Err(invalid_input!("Avro varint longer than 10 bytes at offset {}", self.pos));
             }
         }
     }
@@ -132,7 +132,7 @@ impl<'a> Decoder<'a> {
                 self.pos += 1;
                 Ok(true)
             }
-            b => Err(Error::invalid_input(format!("Avro boolean byte {b} at offset {}", self.pos))),
+            b => Err(invalid_input!("Avro boolean byte {b} at offset {}", self.pos)),
         }
     }
 
@@ -145,7 +145,7 @@ impl<'a> Decoder<'a> {
     #[inline]
     pub fn read_int(&mut self) -> Result<i32> {
         let v = self.read_long()?;
-        i32::try_from(v).map_err(|_| Error::invalid_input(format!("Avro int {v} out of range at offset {}", self.pos)))
+        i32::try_from(v).map_err(|_| invalid_input!("Avro int {v} out of range at offset {}", self.pos))
     }
 
     pub fn read_float(&mut self) -> Result<f32> {
@@ -164,11 +164,11 @@ impl<'a> Decoder<'a> {
         let len = self.read_long()?;
         match usize::try_from(len) {
             Ok(len) if len <= self.remaining() => Ok(len),
-            _ => Err(Error::invalid_input(format!(
+            _ => Err(invalid_input!(
                 "Avro {what} length {len} exceeds the {} remaining bytes at offset {}",
                 self.remaining(),
                 self.pos
-            ))),
+            )),
         }
     }
 
@@ -206,7 +206,7 @@ impl<'a> Decoder<'a> {
         usize::try_from(v)
             .ok()
             .filter(|&i| i < symbol_count)
-            .ok_or_else(|| Error::invalid_input(format!("Enum value out of range: {v} (of {symbol_count} symbols)")))
+            .ok_or_else(|| invalid_input!("Enum value out of range: {v} (of {symbol_count} symbols)"))
     }
 
     /// A union's branch index, checked against `branch_count`.
@@ -216,7 +216,7 @@ impl<'a> Decoder<'a> {
         usize::try_from(v)
             .ok()
             .filter(|&i| i < branch_count)
-            .ok_or_else(|| Error::invalid_input(format!("Invalid union tag {v} (of {branch_count} branches)")))
+            .ok_or_else(|| invalid_input!("Invalid union tag {v} (of {branch_count} branches)"))
     }
 
     /// The header of the next array or map block. A count of `0` ends the collection; a negative count in the
@@ -239,17 +239,17 @@ impl<'a> Decoder<'a> {
         };
         if min_item_size == 0 {
             if block.count > MAX_ZERO_SIZE_BLOCK_ITEMS {
-                return Err(Error::invalid_input(format!(
+                return Err(invalid_input!(
                     "Avro block count {} exceeds the limit of {MAX_ZERO_SIZE_BLOCK_ITEMS} zero-size items per block",
                     block.count
-                )));
+                ));
             }
         } else if block.count > self.remaining() / min_item_size {
-            return Err(Error::invalid_input(format!(
+            return Err(invalid_input!(
                 "Avro block count {} exceeds the remaining {} bytes",
                 block.count,
                 self.remaining()
-            )));
+            ));
         }
         Ok(block)
     }
@@ -356,5 +356,298 @@ mod tests {
         assert_eq!(d.read_string().unwrap_err().message(), INVALID_UNICODE);
         let mut d = Decoder::new(&[0x03]);
         assert!(d.read_boolean().is_err());
+    }
+}
+
+/// Kani proof harnesses (`cargo kani -p avro-core`, `make kani`): the decoder's varint and primitive readers over
+/// every byte slice of a bounded length. Each harness fixes the slice length bound in its name or body; CBMC explores
+/// all byte values and all lengths up to it.
+#[cfg(kani)]
+mod verification {
+    use super::*;
+
+    /// A slice of symbolic bytes and symbolic length `0..=N`.
+    fn any_slice<const N: usize>(buf: &[u8; N]) -> &[u8] {
+        let len: usize = kani::any();
+        kani::assume(len <= N);
+        &buf[..len]
+    }
+
+    /// The value of the first varint in `data` computed independently with 128-bit arithmetic: `Some((value, bytes))`
+    /// when a varint of at most 10 bytes ends in `data`, `None` when the data runs out or 10 bytes carry continuation
+    /// bits. All bits are kept (7 per byte, 70 for 10 bytes); the decoder truncates to 64.
+    fn reference_varint(data: &[u8]) -> Option<(u128, usize)> {
+        let mut value: u128 = 0;
+        let mut i = 0;
+        while i < 10 {
+            let b = *data.get(i)?;
+            value |= u128::from(b & 0x7f) << (7 * i);
+            i += 1;
+            if b < 0x80 {
+                return Some((value, i));
+            }
+        }
+        None
+    }
+
+    /// `zigzag_decode(zigzag_encode(x)) == x` for every i64.
+    #[kani::proof]
+    fn zigzag_round_trip_i64() {
+        let x: i64 = kani::any();
+        assert_eq!(zigzag_decode(crate::encode::zigzag_encode(x)), x);
+    }
+
+    /// `zigzag_encode(zigzag_decode(v)) == v` for every u64 (every 64-bit varint payload is some long's encoding).
+    #[kani::proof]
+    fn zigzag_round_trip_u64() {
+        let v: u64 = kani::any();
+        assert_eq!(crate::encode::zigzag_encode(zigzag_decode(v)), v);
+    }
+
+    /// `read_varint` on any slice of at most 11 bytes: never panics, consumes at most 10 bytes, never moves past the
+    /// end; it succeeds exactly when the reference parse does and then returns the reference value truncated to 64
+    /// bits (the tenth byte contributes only its lowest bit: the Java / fastavro compatibility rule); 10 continuation
+    /// bytes in a row are an error.
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn read_varint_matches_reference() {
+        let buf: [u8; 11] = kani::any();
+        let data = any_slice(&buf);
+        let mut dec = Decoder::new(data);
+        let result = dec.read_varint();
+        assert!(dec.position() <= data.len());
+        match reference_varint(data) {
+            Some((value, consumed)) => {
+                assert_eq!(result.ok(), Some(value as u64));
+                assert_eq!(dec.position(), consumed);
+                assert!(consumed <= 10);
+            }
+            None => {
+                assert!(result.is_err());
+            }
+        }
+    }
+
+    /// `read_long` is `zigzag_decode` of the varint; `read_int` accepts exactly the longs that fit an i32 and consumes
+    /// the same bytes either way (an out-of-range int is an error, not a panic or a wrap).
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn read_long_and_int_match_reference() {
+        let buf: [u8; 11] = kani::any();
+        let data = any_slice(&buf);
+        let mut long_dec = Decoder::new(data);
+        let long = long_dec.read_long();
+        let mut int_dec = Decoder::new(data);
+        let int = int_dec.read_int();
+        assert!(long_dec.position() <= data.len());
+        assert_eq!(int_dec.position(), long_dec.position());
+        match reference_varint(data) {
+            Some((value, _)) => {
+                let expected = zigzag_decode(value as u64);
+                assert_eq!(long.ok(), Some(expected));
+                assert_eq!(int.ok(), i32::try_from(expected).ok());
+            }
+            None => {
+                assert!(long.is_err());
+                assert!(int.is_err());
+            }
+        }
+    }
+
+    /// `read_block_count(min_item_size)` on any slice of at most 12 bytes and any `min_item_size`: never panics, never
+    /// moves past the end, and a returned count is one the remaining bytes can feed: `count * min_item_size <=
+    /// remaining` for `min_item_size >= 1`, `count <= MAX_ZERO_SIZE_BLOCK_ITEMS` for 0. The negative form's byte size
+    /// never exceeds the bytes left after it.
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn read_block_count_is_bounded_by_remaining() {
+        let buf: [u8; 12] = kani::any();
+        let data = any_slice(&buf);
+        let min_item_size: usize = kani::any();
+        let mut dec = Decoder::new(data);
+        let result = dec.read_block_count(min_item_size);
+        assert!(dec.position() <= data.len());
+        if let Ok(block) = result {
+            let remaining = dec.remaining();
+            if min_item_size == 0 {
+                assert!(block.count <= MAX_ZERO_SIZE_BLOCK_ITEMS);
+            } else {
+                assert!(block.count.checked_mul(min_item_size).is_some_and(|bytes| bytes <= remaining));
+            }
+            if let Some(byte_size) = block.byte_size {
+                assert!(byte_size <= remaining);
+            }
+        }
+    }
+
+    /// `read_boolean`: a 0 or 1 byte, anything else (including no byte) is an error; one byte consumed on success.
+    #[kani::proof]
+    fn read_boolean_never_panics() {
+        let buf: [u8; 2] = kani::any();
+        let data = any_slice(&buf);
+        let mut dec = Decoder::new(data);
+        let result = dec.read_boolean();
+        assert!(dec.position() <= data.len());
+        match data.first() {
+            Some(&0) => {
+                assert_eq!(result.ok(), Some(false));
+            }
+            Some(&1) => {
+                assert_eq!(result.ok(), Some(true));
+            }
+            _ => {
+                assert!(result.is_err() && dec.position() == 0);
+            }
+        }
+    }
+
+    /// `read_float` / `read_double`: exactly 4 / 8 little-endian bytes (bit pattern preserved, NaNs included), an
+    /// error on fewer; `read_fixed(n)` for any `n` consumes exactly `n` bytes or fails without moving.
+    #[kani::proof]
+    #[kani::unwind(17)]
+    fn read_float_double_fixed_never_panic() {
+        let buf: [u8; 16] = kani::any();
+        let data = any_slice(&buf);
+        let mut dec = Decoder::new(data);
+        let float = dec.read_float();
+        assert_eq!(float.is_ok(), data.len() >= 4);
+        if let Ok(f) = float {
+            assert_eq!(f.to_bits(), u32::from_le_bytes([data[0], data[1], data[2], data[3]]));
+            assert_eq!(dec.position(), 4);
+        } else {
+            assert_eq!(dec.position(), 0);
+        }
+        let mut dec = Decoder::new(data);
+        let double = dec.read_double();
+        assert_eq!(double.is_ok(), data.len() >= 8);
+        if let Ok(d) = double {
+            assert_eq!(d.to_bits(), u64::from_le_bytes(data[..8].try_into().unwrap()));
+            assert_eq!(dec.position(), 8);
+        } else {
+            assert_eq!(dec.position(), 0);
+        }
+        let n: usize = kani::any();
+        let mut dec = Decoder::new(data);
+        let fixed = dec.read_fixed(n);
+        assert_eq!(fixed.is_ok(), n <= data.len());
+        assert_eq!(dec.position(), if n <= data.len() { n } else { 0 });
+        if let Ok(fixed) = fixed {
+            assert_eq!(fixed, &data[..n]);
+        }
+    }
+
+    /// `read_bytes` on any slice of at most 16 bytes: never panics; succeeds exactly when the length prefix is a
+    /// non-negative long that the remaining bytes cover, and then returns those bytes with the position at their end.
+    #[kani::proof]
+    #[kani::unwind(17)]
+    fn read_bytes_never_panics() {
+        let buf: [u8; 16] = kani::any();
+        let data = any_slice(&buf);
+        let mut dec = Decoder::new(data);
+        let result = dec.read_bytes();
+        assert!(dec.position() <= data.len());
+        match reference_varint(data) {
+            Some((value, consumed)) => {
+                let len = zigzag_decode(value as u64);
+                let fits = usize::try_from(len).is_ok_and(|len| len <= data.len() - consumed);
+                assert_eq!(result.is_ok(), fits);
+                if let Ok(bytes) = result {
+                    assert_eq!(bytes, &data[consumed..consumed + len as usize]);
+                    assert_eq!(dec.position(), consumed + len as usize);
+                }
+            }
+            None => {
+                assert!(result.is_err());
+            }
+        }
+    }
+
+    /// Well-formed UTF-8 by the byte-sequence table of the Unicode standard (Table 3-7), independently of `core::str`.
+    fn well_formed_utf8(bytes: &[u8]) -> bool {
+        let mut i = 0;
+        while i < bytes.len() {
+            let (len, lo, hi) = match bytes[i] {
+                0x00..=0x7f => (1, 0x80, 0xbf),
+                0xc2..=0xdf => (2, 0x80, 0xbf),
+                0xe0 => (3, 0xa0, 0xbf),
+                0xe1..=0xec | 0xee..=0xef => (3, 0x80, 0xbf),
+                0xed => (3, 0x80, 0x9f),
+                0xf0 => (4, 0x90, 0xbf),
+                0xf1..=0xf3 => (4, 0x80, 0xbf),
+                0xf4 => (4, 0x80, 0x8f),
+                _ => return false,
+            };
+            if i + len > bytes.len() || (len > 1 && !(lo..=hi).contains(&bytes[i + 1])) {
+                return false;
+            }
+            let mut k = 2;
+            while k < len {
+                if !(0x80..=0xbf).contains(&bytes[i + k]) {
+                    return false;
+                }
+                k += 1;
+            }
+            i += len;
+        }
+        true
+    }
+
+    /// `read_string` on any slice of at most 8 bytes (a payload of up to 7: every 1- to 4-byte sequence, truncated
+    /// or followed by another): never panics, succeeds exactly when the length-prefixed payload is there and is
+    /// well-formed UTF-8 (an invalid payload is an error, not a panic), and then yields the payload. Bound: 8 bytes
+    /// (`core::str::from_utf8` on more symbolic bytes exhausts CBMC).
+    #[kani::proof]
+    #[kani::unwind(9)]
+    fn read_string_rejects_invalid_utf8_without_panicking() {
+        let buf: [u8; 8] = kani::any();
+        let data = any_slice(&buf);
+        let mut dec = Decoder::new(data);
+        let result = dec.read_string();
+        assert!(dec.position() <= data.len());
+        let mut raw_dec = Decoder::new(data);
+        match raw_dec.read_bytes() {
+            Ok(payload) => {
+                assert_eq!(result.is_ok(), well_formed_utf8(payload));
+                if let Ok(s) = result {
+                    assert_eq!(s.as_bytes(), payload);
+                    assert_eq!(dec.position(), raw_dec.position());
+                }
+            }
+            Err(_) => {
+                assert!(result.is_err());
+            }
+        }
+    }
+
+    /// `read_enum(symbol_count)` and `read_union_index(branch_count)` on any slice of at most 11 bytes and any count:
+    /// never panic; succeed exactly when the decoded long is in `0..count` (an enum must also fit an int).
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn read_enum_and_union_index_are_range_checked() {
+        let buf: [u8; 11] = kani::any();
+        let data = any_slice(&buf);
+        let symbol_count: usize = kani::any();
+        let branch_count: usize = kani::any();
+        let mut enum_dec = Decoder::new(data);
+        let symbol = enum_dec.read_enum(symbol_count);
+        let mut union_dec = Decoder::new(data);
+        let branch = union_dec.read_union_index(branch_count);
+        assert!(enum_dec.position() <= data.len());
+        assert!(union_dec.position() <= data.len());
+        match reference_varint(data) {
+            Some((value, consumed)) => {
+                let long = zigzag_decode(value as u64);
+                let in_symbols = i32::try_from(long).is_ok() && long >= 0 && (long as u128) < symbol_count as u128;
+                let in_branches = long >= 0 && (long as u128) < branch_count as u128;
+                assert_eq!(symbol.ok(), in_symbols.then_some(long as usize));
+                assert_eq!(branch.ok(), in_branches.then_some(long as usize));
+                assert_eq!(enum_dec.position(), consumed);
+                assert_eq!(union_dec.position(), consumed);
+            }
+            None => {
+                assert!(symbol.is_err());
+                assert!(branch.is_err());
+            }
+        }
     }
 }

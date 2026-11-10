@@ -18,6 +18,8 @@ duckdb-ext-api = { path = "crates/duckdb-ext-api" }
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 unreachable_pub = "deny"
+# `#[cfg(kani)]` marks the proof harnesses `cargo kani` compiles (make kani); a normal build never sees them
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)"] }
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -2 }

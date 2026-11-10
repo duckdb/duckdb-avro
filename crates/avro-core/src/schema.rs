@@ -1065,4 +1065,119 @@ mod tests {
             r#"{"type":"record","name":"root","fields":[{"name":"a","type":{"type":"record","name":"node","fields":[{"name":"v","type":{"type":"int"},"field-id":1}]}},{"name":"b","type":"node"}]}"#
         );
     }
+
+    /// The compound part of the `min_encoded_size` rule (the leaf part is proven by the Kani harness `leaf_sizes`):
+    /// a record is the sum of its fields (0 for the empty record and for zero-width fields only), a union 1 plus its
+    /// smallest branch, an array or map 1, a reference its target, and a type on a recursion cycle 0 where it refers
+    /// back to itself.
+    #[test]
+    fn min_encoded_sizes_of_compound_types() {
+        let mut b = SchemaBuilder::new();
+        let null = b.add_kind(SchemaKind::Null);
+        let boolean = b.add_kind(SchemaKind::Boolean);
+        let double = b.add_kind(SchemaKind::Double);
+        let fixed0 = b.add_kind(SchemaKind::Fixed { name: Name::simple("f0"), size: 0 });
+        let fixed3 = b.add_kind(SchemaKind::Fixed { name: Name::simple("f3"), size: 3 });
+        let empty = b.add_kind(SchemaKind::Record { name: Name::simple("empty"), fields: vec![], is_error: false });
+        let zero_width = b.add_kind(SchemaKind::Record {
+            name: Name::simple("zero_width"),
+            fields: vec![Field::new("n", null), Field::new("f", fixed0), Field::new("e", empty)],
+            is_error: false,
+        });
+        let pair = b.add_kind(SchemaKind::Record {
+            name: Name::simple("pair"),
+            fields: vec![Field::new("b", boolean), Field::new("d", double), Field::new("z", zero_width)],
+            is_error: false,
+        });
+        let union_with_null = b.add_kind(SchemaKind::Union { branches: vec![null, double] });
+        let union_of_sized = b.add_kind(SchemaKind::Union { branches: vec![fixed3, pair] });
+        let array = b.add_kind(SchemaKind::Array { items: pair, element_id: None });
+        let map = b.add_kind(SchemaKind::Map { values: null, key_id: None, value_id: None });
+        let again = b.add_ref(Name::simple("pair"));
+        let root = b.add_kind(SchemaKind::Record {
+            name: Name::simple("root"),
+            fields: vec![Field::new("u", union_with_null), Field::new("l", array), Field::new("p", again)],
+            is_error: false,
+        });
+        let schema = b.finish(root).unwrap();
+        assert_eq!(schema.min_encoded_size(empty), 0);
+        assert_eq!(schema.min_encoded_size(zero_width), 0);
+        assert_eq!(schema.min_encoded_size(pair), 9);
+        assert_eq!(schema.min_encoded_size(union_with_null), 1);
+        assert_eq!(schema.min_encoded_size(union_of_sized), 4);
+        assert_eq!(schema.min_encoded_size(array), 1);
+        assert_eq!(schema.min_encoded_size(map), 1);
+        assert_eq!(schema.min_encoded_size(again), 9);
+        assert_eq!(schema.min_encoded_size(root), 1 + 1 + 9);
+
+        // a linked list: the node refers back to itself through a union; the self reference counts as 0, so the node
+        // is its int (1) plus the union's index (1), and it must not loop
+        let list = Schema::parse(
+            r#"{"type":"record","name":"node","fields":[{"name":"v","type":"int"},{"name":"next","type":["null","node"]}]}"#,
+        )
+        .unwrap();
+        assert_eq!(list.min_encoded_size(list.root()), 2);
+        let SchemaKind::Record { fields, .. } = &list[list.root()].kind else { panic!() };
+        assert_eq!(list.min_encoded_size(fields[1].ty), 1);
+    }
+}
+
+/// Kani proof harness (`cargo kani -p avro-core`, `make kani`): [`Schema::min_encoded_size`] of every leaf kind.
+///
+/// The rule: the size is 0 exactly for `null`, a `fixed` of size 0, a record whose fields are all zero-width and a
+/// reference to such a type; a union is `1 + min(branches)`, an array or map is 1 (the end marker), the other
+/// primitives their fixed width or their 1-byte minimum varint or length prefix. The harness proves the leaf part of
+/// it; the compound part (records, unions, arrays, maps, references, recursion) is beyond bounded model checking of
+/// [`min_encoded_sizes`] as written: CBMC inlines a recursive function once per call site per unwinding, and `size`
+/// recurses from inside its field and branch loops, so an arena three levels deep needs thousands of copies. The
+/// compound rule is covered by the unit tests instead.
+///
+/// The harness takes the size from [`min_encoded_sizes`] over a one-node stack array, the table
+/// [`Schema::min_encoded_size`] indexes ([`SchemaBuilder::finish`] only adds the name validation, a `HashMap` whose
+/// hashing is out of CBMC's reach). The kind is never a symbolic value (reading the `fields` of a node whose variant
+/// is symbolic makes CBMC dereference a pointer that may be anything): [`for_any_leaf`] branches on a symbolic
+/// selector and runs the check once per kind with the kind concrete, the size of a `fixed` being the symbolic datum.
+/// The node is forgotten rather than dropped (its drop glue, recursive through `Json`, is no part of the property).
+#[cfg(kani)]
+mod verification {
+    use super::*;
+
+    /// Runs `check(kind, size)` for a leaf kind chosen by a symbolic selector, `size` being the minimum encoded size
+    /// the rule above gives the kind; a `fixed` has a symbolic size `0..=32`. Each arm is a separate, concrete copy of
+    /// the check.
+    fn for_any_leaf(check: impl Fn(SchemaKind, usize)) {
+        let selector: u8 = kani::any();
+        match selector {
+            0 => check(SchemaKind::Null, 0),
+            1 => check(SchemaKind::Boolean, 1),
+            2 => check(SchemaKind::Int, 1),
+            3 => check(SchemaKind::Long, 1),
+            4 => check(SchemaKind::Float, 4),
+            5 => check(SchemaKind::Double, 8),
+            6 => check(SchemaKind::Bytes, 1),
+            7 => check(SchemaKind::String, 1),
+            8 => check(SchemaKind::Enum { name: Name::simple(""), symbols: Vec::new(), default: None }, 1),
+            9 => {
+                let size: usize = kani::any();
+                kani::assume(size <= 32);
+                check(SchemaKind::Fixed { name: Name::simple(""), size }, size);
+            }
+            _ => {}
+        }
+    }
+
+    /// Every primitive, enum and fixed leaf has the minimum encoded byte count the rule gives it, and it is 0 exactly
+    /// for `null` and `fixed(0)`. Bound: one node (unwind 2: a leaf recurses no further).
+    #[kani::proof]
+    #[kani::unwind(2)]
+    fn leaf_sizes() {
+        for_any_leaf(|kind, expected| {
+            let zero_width = matches!(kind, SchemaKind::Null | SchemaKind::Fixed { size: 0, .. });
+            let nodes = [SchemaNode::new(kind)];
+            let sizes = min_encoded_sizes(&nodes);
+            assert_eq!(sizes[0], expected);
+            assert_eq!(sizes[0] == 0, zero_width);
+            std::mem::forget(nodes);
+        });
+    }
 }

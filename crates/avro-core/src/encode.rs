@@ -181,3 +181,138 @@ mod tests {
         assert!(d.is_empty());
     }
 }
+
+/// Kani proof harnesses (`cargo kani -p avro-core`, `make kani`): every primitive the [`Encoder`] writes is read back
+/// unchanged by the [`crate::Decoder`], for all values of the fixed-width types and for all contents of the
+/// variable-length ones up to the length bound each harness names. A `string` is the `bytes` round trip
+/// ([`Encoder::write_string`] is `write_bytes_to` of the UTF-8) plus the decoder's UTF-8 check, proven in `decode`.
+///
+/// The encoders are created with a capacity no harness exceeds: a `Vec` growing at a symbolic length makes CBMC reason
+/// about reallocation and copying at every possible size, which is not what these harnesses are about.
+#[cfg(kani)]
+mod verification {
+    use super::*;
+    use crate::decode::{BlockCount, Decoder, MAX_ZERO_SIZE_BLOCK_ITEMS};
+
+    /// A slice of symbolic bytes and symbolic length `0..=N`.
+    fn any_slice<const N: usize>(buf: &[u8; N]) -> &[u8] {
+        let len: usize = kani::any();
+        kani::assume(len <= N);
+        &buf[..len]
+    }
+
+    /// A long encodes to at most 10 bytes and an int to at most 5, and both decode to the value written.
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn long_and_int_round_trip_within_length_bounds() {
+        let long: i64 = kani::any();
+        let int: i32 = kani::any();
+        assert!((1..=10).contains(&varint_bytes(zigzag_encode(long)).1));
+        assert!((1..=5).contains(&varint_bytes(zigzag_encode(i64::from(int))).1));
+        let mut enc = Encoder::with_capacity(64);
+        enc.write_long(long);
+        let long_len = enc.len();
+        enc.write_int(int);
+        assert!(long_len <= 10);
+        assert!(enc.len() - long_len <= 5);
+        let mut dec = Decoder::new(enc.as_bytes());
+        assert_eq!(dec.read_long().unwrap(), long);
+        assert_eq!(dec.read_int().unwrap(), int);
+        assert!(dec.is_empty());
+    }
+
+    /// Boolean, float and double round trip bit-exactly (NaN payloads and the sign of zero included), in 1 + 4 + 8
+    /// bytes.
+    #[kani::proof]
+    fn boolean_float_double_round_trip() {
+        let b: bool = kani::any();
+        let f = f32::from_bits(kani::any());
+        let d = f64::from_bits(kani::any());
+        let mut enc = Encoder::with_capacity(64);
+        enc.write_boolean(b);
+        enc.write_float(f);
+        enc.write_double(d);
+        assert_eq!(enc.len(), 13);
+        let mut dec = Decoder::new(enc.as_bytes());
+        assert_eq!(dec.read_boolean().unwrap(), b);
+        assert_eq!(dec.read_float().unwrap().to_bits(), f.to_bits());
+        assert_eq!(dec.read_double().unwrap().to_bits(), d.to_bits());
+        assert!(dec.is_empty());
+    }
+
+    /// `bytes` of any content and length `0..=8` and a `fixed` of any content and size `0..=8` round trip.
+    #[kani::proof]
+    #[kani::unwind(10)]
+    fn bytes_and_fixed_round_trip() {
+        let bytes_buf: [u8; 8] = kani::any();
+        let bytes = any_slice(&bytes_buf);
+        let fixed_buf: [u8; 8] = kani::any();
+        let fixed = any_slice(&fixed_buf);
+        let mut enc = Encoder::with_capacity(64);
+        enc.write_bytes(bytes);
+        assert_eq!(enc.len(), 1 + bytes.len());
+        enc.write_fixed(fixed);
+        let mut dec = Decoder::new(enc.as_bytes());
+        assert_eq!(dec.read_bytes().unwrap(), bytes);
+        assert_eq!(dec.read_fixed(fixed.len()).unwrap(), fixed);
+        assert!(dec.is_empty());
+    }
+
+    /// An enum symbol index and a union branch index round trip for every index below the count (the index itself
+    /// bounded by `i64::MAX`, as a non-negative long).
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn enum_and_union_index_round_trip() {
+        let symbol_count: usize = kani::any();
+        let symbol: usize = kani::any();
+        kani::assume(symbol < symbol_count && symbol <= i32::MAX as usize);
+        let branch_count: usize = kani::any();
+        let branch: usize = kani::any();
+        kani::assume(branch < branch_count && branch <= i64::MAX as usize);
+        let mut enc = Encoder::with_capacity(64);
+        enc.write_enum(symbol);
+        enc.write_union_index(branch);
+        let mut dec = Decoder::new(enc.as_bytes());
+        assert_eq!(dec.read_enum(symbol_count).unwrap(), symbol);
+        assert_eq!(dec.read_union_index(branch_count).unwrap(), branch);
+        assert!(dec.is_empty());
+    }
+
+    /// The positive block count (any count `1..=MAX_ZERO_SIZE_BLOCK_ITEMS`, read with `min_item_size` 0) followed by
+    /// the end marker round trips.
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn positive_block_count_round_trips() {
+        let count: usize = kani::any();
+        kani::assume(count >= 1 && count <= MAX_ZERO_SIZE_BLOCK_ITEMS);
+        let mut enc = Encoder::with_capacity(64);
+        enc.write_block_count(count);
+        enc.write_block_end();
+        let mut dec = Decoder::new(enc.as_bytes());
+        assert_eq!(dec.read_block_count(0).unwrap(), BlockCount { count, byte_size: None });
+        assert_eq!(dec.read_block_count(0).unwrap(), BlockCount { count: 0, byte_size: None });
+        assert!(dec.is_empty());
+    }
+
+    /// The negative block count with a byte size (any count `1..=8` and any size `count..=8`, read with
+    /// `min_item_size` 1 over a payload of that size) followed by the end marker round trips. Needs about 17 GB of
+    /// CBMC memory whatever the payload bound (the end marker's `push` after content of symbolic length), beyond a CI
+    /// runner: behind the `kani-heavy` feature, which `make kani` enables and the CI job does not.
+    #[cfg(feature = "kani-heavy")]
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn sized_block_count_round_trips() {
+        let count: usize = kani::any();
+        let byte_size: usize = kani::any();
+        kani::assume(count >= 1 && count <= byte_size && byte_size <= 8);
+        let mut enc = Encoder::with_capacity(64);
+        enc.write_block_count_with_size(count, byte_size);
+        enc.write_raw(&[0u8; 8][..byte_size]);
+        enc.write_block_end();
+        let mut dec = Decoder::new(enc.as_bytes());
+        assert_eq!(dec.read_block_count(1).unwrap(), BlockCount { count, byte_size: Some(byte_size) });
+        dec.read_raw(byte_size, "the block").unwrap();
+        assert_eq!(dec.read_block_count(1).unwrap(), BlockCount { count: 0, byte_size: None });
+        assert!(dec.is_empty());
+    }
+}
