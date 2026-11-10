@@ -171,6 +171,36 @@ def regex_matches(actual, expected):
     return matched if want else not matched
 
 
+def render_rows(rel):
+    """The values of a relation as DuckDB's runner renders them (one list of strings per row), and the column types."""
+    types = rel.types
+    rows = rel.project('CAST(COLUMNS(*) AS VARCHAR)').fetchall()
+    out = []
+    for row in rows:
+        cells = []
+        for value, type_ in zip(row, types):
+            if value is None:
+                cells.append('NULL')
+            elif type_.id == 'boolean':
+                cells.append('true' if value == 'true' else 'false')
+            elif value == '':
+                cells.append('(empty)')
+            else:
+                cells.append(value.replace('\0', '\\0'))
+        out.append(cells)
+    return out, types
+
+
+def hash_rendered(values):
+    """The `N values hashing to <md5>` line of DuckDB's runner over rendered values (in result order)."""
+    md5 = hashlib.md5()
+    for v in values:
+        # DuckDB hashes its own rendering, where a boolean is `1` / `0`
+        md5.update((v if v not in ('true', 'false') else ('1' if v == 'true' else '0')).encode())
+        md5.update(b'\n')
+    return f'{len(values)} values hashing to {md5.hexdigest()}'
+
+
 class FileRunner:
     def __init__(self, path, init_sql, config, verbose):
         self.path = path
@@ -550,23 +580,7 @@ class FileRunner:
             self.fail(cmd, f'query failed, but the error did not match the expected {expected_error!r}:\n{sql}\n  {error}')
 
     def render(self, rel):
-        """The values as DuckDB's runner renders them, one list per row."""
-        types = rel.types
-        rows = rel.project('CAST(COLUMNS(*) AS VARCHAR)').fetchall()
-        out = []
-        for row in rows:
-            cells = []
-            for value, type_ in zip(row, types):
-                if value is None:
-                    cells.append('NULL')
-                elif type_.id == 'boolean':
-                    cells.append('true' if value == 'true' else 'false')
-                elif value == '':
-                    cells.append('(empty)')
-                else:
-                    cells.append(value.replace('\0', '\\0'))
-            out.append(cells)
-        return out, types
+        return render_rows(rel)
 
     def compare_values(self, actual, expected, type_):
         if actual == expected or actual == self.replace_keywords(expected):
@@ -639,12 +653,7 @@ class FileRunner:
                 expected.pop()
         hash_digest = None
         if label is not None or (len(expected) == 1 and ' values hashing to ' in expected[0]):
-            md5 = hashlib.md5()
-            for v in values:
-                # DuckDB hashes its own rendering, where a boolean is `1` / `0`
-                md5.update((v if v not in ('true', 'false') else ('1' if v == 'true' else '0')).encode())
-                md5.update(b'\n')
-            hash_digest = f'{total} values hashing to {md5.hexdigest()}'
+            hash_digest = hash_rendered(values)
             if label is not None:
                 if label in self.labels and self.labels[label] != hash_digest:
                     self.fail(cmd, f'result differs from the earlier result labelled {label}:\n{sql}')
