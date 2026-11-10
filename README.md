@@ -228,6 +228,38 @@ follows DuckDB's C++ runner for the directives the tests use. `make unittest DUC
 through the C++ runner (above); `TESTS=` selects a subset. `cargo test --release` runs the unit tests of the crates
 (codec round trips, schema JSON, the decoder).
 
+`make kani` runs the [Kani](https://model-checking.github.io/kani/) proof harnesses (`cargo kani -p avro-core
+--features kani-heavy`, `cargo kani -p duckdb-avro`; install with `cargo install --locked kani-verifier && cargo kani
+setup`). Kani is a bounded model checker: each harness fixes a bound and CBMC then checks every input within it for
+panics, arithmetic overflow, out-of-bounds accesses and the stated assertions, so the properties are proven rather than
+sampled. Proven for `avro-core`: zigzag encode/decode round trips for all i64 and u64; `read_varint`/`read_long`/
+`read_int` against an independent 128-bit reference on every byte slice of length <= 11 (the position stays within the
+slice, the tenth byte contributes one bit, more is an error, `read_int` rejects exactly the out-of-i32 values);
+`read_block_count` on every slice <= 12 bytes and every `min_item_size` (a count never exceeds what the remaining bytes
+can feed); the primitive readers on every slice up to their bound (`boolean` 2 bytes, `float`/`double`/`fixed(n)`/
+`bytes` 16, `enum`/union index 11, `string` 8 against an independent UTF-8 oracle: an invalid payload is an error, never
+a panic); `Encoder` -> `Decoder` round trips of every `long` (<= 10 bytes) and `int` (<= 5), of `boolean`/`float`/
+`double` bit-exactly (NaN payloads included), of `bytes` and `fixed` contents <= 8 bytes, of every enum and union
+index, and of block counts in the positive form (any count up to the zero-size limit) and the sized negative form
+(count and payload <= 8; this one harness needs 17 GB and sits behind the `kani-heavy` feature); the CRC-32 table and
+`crc32` of 0-2 bytes against the bitwise definition; and `Schema::min_encoded_size` of every leaf kind (`fixed` of any
+size <= 32: 0 exactly for `null` and `fixed(0)`). The compound part of that rule (records, unions, arrays, maps,
+references, recursion) is a unit test: `min_encoded_sizes` recurses from inside its field and branch loops, and CBMC
+inlines a recursive function once per call site per unwinding, so even a three-level arena is out of reach. A
+`string` round trip is the `bytes` one by construction (`write_string` writes the UTF-8 as `bytes`). Proven for the
+extension: the reader's decimal bytes for every width and every input length <= 16 (sign extension, low bytes kept),
+the writer's `fixed` size for every precision 1..=38 against an independent two's complement computation and the
+writer -> reader decimal round trip for every value in range of every precision, `timestamp-millis` scaling for
+every i64 (never panics, errors exactly beyond `i64::MIN / 1000 ..= i64::MAX / 1000`, the exact product otherwise),
+the `time-millis`/`time-micros` ranges exactly for all i32/i64 with the exact scaling, `duration` for all 12-byte
+patterns (never panics, errors exactly beyond i32, months, days and microseconds exact), the UUID storage form round
+trip in both directions for all 16-byte and hugeint values (and that stored integers order like
+the bytes), and the UUID text parser on every byte string <= 40 bytes against the `8-4-4-4-12` hex grammar. The
+harnesses live in `#[cfg(kani)]` modules next to the code (`crates/avro-core/src/{decode,encode,crc32,schema}.rs`) and
+in `src/verification.rs`; normal builds never compile them. Under `cfg(kani)` the error messages on the proven paths
+are the bare format strings (`invalid_input!`, `fmt_error!`): `core::fmt` is far beyond CBMC's reach and no property
+is about message text.
+
 `test/corpus/<source>/` holds 1293 real-world Avro files (at most 64 KiB each, permissive licenses only; provenance
 in `test/corpus/MANIFEST.tsv`, attribution in `test/corpus/LICENSES.md`) copied from the test data of 52 public
 sources, and `scripts/gen_corpus_tests.py` generates one test file per source over them: the row count as fastavro
@@ -238,9 +270,11 @@ through `COPY ... (FORMAT avro)` and `EXCEPT ALL`, and the error message for the
 
 ## CI
 
-`.github/workflows/ci.yml` has two jobs: `lint` (`cargo fmt --check`, `cargo clippy` with warnings denied, `cargo
-test`) and `test` (install the pinned wheel, `make`, load the extension and check `duckdb_extensions()`, `make test`).
-Nothing of DuckDB is built; a run takes a few minutes.
+`.github/workflows/ci.yml` has three jobs: `lint` (`cargo fmt --check`, `cargo clippy` with warnings denied, `cargo
+test`), `test` (install the pinned wheel, `make`, load the extension and check `duckdb_extensions()`, `make test`) and
+`kani` (the proof harnesses of `make kani` through `model-checking/kani-github-action`, without the `kani-heavy`
+harness: 16 GiB of runner memory). Nothing of DuckDB is built; `lint` and `test` take a few minutes, `kani` about
+twenty (CBMC, one harness at a time).
 
 ## Performance
 

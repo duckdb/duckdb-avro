@@ -8,6 +8,12 @@
 #                        the same tests through DuckDB's own C++ sqllogictest runner (test/unittest next to the binary);
 #                        the build's own extensions (icu, ...) are linked next to avro so that `require icu` autoloads
 #   make clippy          cargo clippy + cargo fmt --check
+#   make kani            the Kani proof harnesses (bounded model checking with CBMC) of avro-core and the extension:
+#                        `cargo kani -p avro-core --features kani-heavy`, `cargo kani -p duckdb-avro`; needs
+#                        `cargo install --locked kani-verifier && cargo kani setup`. The harnesses are the
+#                        `#[cfg(kani)] mod verification` blocks next to the code (crates/avro-core/src/{decode,encode,
+#                        crc32,schema}.rs) and src/verification.rs; a normal build never compiles them. About 15 min
+#                        sequential and up to 17 GB (the kani-heavy harness; the CI job runs the rest), no engine needed.
 #   make wasm_eh         the DuckDB-Wasm (wasm_eh) build -> build/wasm_eh/avro.duckdb_extension.wasm; needs emscripten on
 #                        PATH (`source <emsdk>/emsdk_env.sh`, extension-ci-tools pins 6.0.9) and the rust target
 #                        wasm32-unknown-emscripten (`rustup target add wasm32-unknown-emscripten`). `make wasm` is an alias.
@@ -84,6 +90,12 @@ clippy:
 	cargo clippy --release --all-targets --workspace
 	cargo fmt --check
 
+# one package at a time, harnesses in sequence (each CBMC run takes up to 17 GB); the CI job runs the same without
+# kani-heavy, the feature of the one harness a 16 GiB runner cannot hold
+kani:
+	cargo kani -p avro-core --features kani-heavy
+	cargo kani -p duckdb-avro
+
 # DuckDB-Wasm: the cargo `wasm` profile (Cargo.toml) on the emscripten target; rustc links through emcc, so emscripten
 # has to be on PATH. The same FOOTER_VERSION mechanism as the native build names the engine build the module is for.
 WASM_MODULE := target/wasm32-unknown-emscripten/wasm/avro.wasm
@@ -105,4 +117,4 @@ clean:
 	cargo clean
 	$(RM) -r build
 
-.PHONY: all venv test unittest clippy wasm wasm_eh clean
+.PHONY: all venv test unittest clippy kani wasm wasm_eh clean
