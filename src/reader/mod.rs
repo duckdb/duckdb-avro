@@ -11,6 +11,13 @@ mod file;
 mod node;
 mod schema;
 
+/// The pure value conversions the proof harnesses of `crate::verification` check.
+#[cfg(kani)]
+pub(crate) use node::{
+    duration_to_interval, parse_uuid, read_decimal, time_micros_checked, time_millis_to_micros,
+    timestamp_millis_to_micros, uuid_from_bytes,
+};
+
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use avro_core::{BlockInfo, Decoder, FileReader, Header, Schema, SchemaKind};

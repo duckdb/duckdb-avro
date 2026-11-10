@@ -391,13 +391,13 @@ impl Prepared<'_> {
     }
 }
 
-fn hugeint_to_i128(h: duckdb_v2_hugeint_t) -> i128 {
+pub(crate) fn hugeint_to_i128(h: duckdb_v2_hugeint_t) -> i128 {
     ((h.upper as i128) << 64) | i128::from(h.lower)
 }
 
 /// The 16 bytes of a UUID from the engine's storage form: the high bit of the upper half is flipped (so that the
 /// integer orders like the UUID), both halves big-endian.
-fn uuid_bytes(h: duckdb_v2_hugeint_t) -> [u8; 16] {
+pub(crate) fn uuid_bytes(h: duckdb_v2_hugeint_t) -> [u8; 16] {
     let upper = (h.upper as u64) ^ (1u64 << 63);
     let mut bytes = [0u8; 16];
     bytes[..8].copy_from_slice(&upper.to_be_bytes());
@@ -406,7 +406,7 @@ fn uuid_bytes(h: duckdb_v2_hugeint_t) -> [u8; 16] {
 }
 
 /// A DECIMAL as the big-endian two's complement bytes its precision requires.
-fn write_decimal(enc: &mut Encoder, unscaled: i128, width: u8) {
+pub(crate) fn write_decimal(enc: &mut Encoder, unscaled: i128, width: u8) {
     let full = unscaled.to_be_bytes();
     let bytes_needed = min_bytes_required_for_decimal(width);
     enc.write_fixed(&full[full.len() - bytes_needed..]);

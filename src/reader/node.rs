@@ -405,27 +405,9 @@ impl Node {
             Node::Boolean(p) => p.push(u8::from(dec.read_boolean().or_err()?)),
             Node::Int(p) => p.push(dec.read_int().or_err()?),
             Node::Long(p) => p.push(dec.read_long().or_err()?),
-            Node::TimeMillis(p) => {
-                let millis = i64::from(dec.read_int().or_err()?);
-                if !(0..=MAX_TIME_MILLIS).contains(&millis) {
-                    return Err(Error::out_of_range(format!("time-millis value {millis} is out of range")));
-                }
-                p.push(millis * MICROS_PER_MSEC);
-            }
-            Node::TimeMicros(p) => {
-                let micros = dec.read_long().or_err()?;
-                if !(0..=MAX_TIME_MICROS).contains(&micros) {
-                    return Err(Error::out_of_range(format!("time-micros value {micros} is out of range")));
-                }
-                p.push(micros);
-            }
-            Node::TimestampMillis(p) => {
-                let millis = dec.read_long().or_err()?;
-                let micros = millis.checked_mul(MICROS_PER_MSEC).ok_or_else(|| {
-                    Error::out_of_range(format!("Overflow in multiplication of INT64 ({millis} * {MICROS_PER_MSEC})!"))
-                })?;
-                p.push(micros);
-            }
+            Node::TimeMillis(p) => p.push(time_millis_to_micros(dec.read_int().or_err()?)?),
+            Node::TimeMicros(p) => p.push(time_micros_checked(dec.read_long().or_err()?)?),
+            Node::TimestampMillis(p) => p.push(timestamp_millis_to_micros(dec.read_long().or_err()?)?),
             Node::Float(p) => p.push(dec.read_float().or_err()?),
             Node::Double(p) => p.push(dec.read_double().or_err()?),
             Node::Bytes(s) => s.push(dec.read_bytes().or_err()?),
@@ -439,25 +421,11 @@ impl Node {
             }
             Node::UuidText(p) => {
                 let text = dec.read_string().or_err()?;
-                let bytes = parse_uuid(text)
+                let bytes = parse_uuid(text.as_bytes())
                     .ok_or_else(|| Error::invalid_input(format!("Avro uuid string '{text}' is not a UUID")))?;
                 p.push(uuid_from_bytes(bytes));
             }
-            Node::Duration(p) => {
-                let raw = dec.read_fixed(12).or_err()?;
-                let part = |i: usize| u32::from_le_bytes([raw[i], raw[i + 1], raw[i + 2], raw[i + 3]]);
-                let (months, days, millis) = (part(0), part(4), part(8));
-                let fits = |what: &str, value: u32| {
-                    i32::try_from(value).map_err(|_| {
-                        Error::out_of_range(format!("duration {what} value {value} is out of range for an INTERVAL"))
-                    })
-                };
-                p.push(duckdb_v2_interval_t {
-                    months: fits("months", months)?,
-                    days: fits("days", days)?,
-                    micros: i64::from(millis) * MICROS_PER_MSEC,
-                });
-            }
+            Node::Duration(p) => p.push(duration_to_interval(dec.read_fixed(12).or_err()?)?),
             Node::Decimal { fixed, values } => {
                 let raw = match fixed {
                     Some(size) => dec.read_fixed(*size).or_err()?,
@@ -637,9 +605,50 @@ impl Node {
     }
 }
 
+/// A `time-millis` value (an `int`) as the microseconds of a TIME; outside `0..=24:00:00` is an out-of-range error.
+pub(crate) fn time_millis_to_micros(millis: i32) -> Result<i64> {
+    let millis = i64::from(millis);
+    if !(0..=MAX_TIME_MILLIS).contains(&millis) {
+        return Err(fmt_error!(out_of_range, "time-millis value {millis} is out of range"));
+    }
+    Ok(millis * MICROS_PER_MSEC)
+}
+
+/// A `time-micros` value (a `long`) as the microseconds of a TIME; outside `0..=24:00:00` is an out-of-range error.
+pub(crate) fn time_micros_checked(micros: i64) -> Result<i64> {
+    if !(0..=MAX_TIME_MICROS).contains(&micros) {
+        return Err(fmt_error!(out_of_range, "time-micros value {micros} is out of range"));
+    }
+    Ok(micros)
+}
+
+/// A `timestamp-millis` value as the microseconds of a TIMESTAMP; a product beyond i64 is an out-of-range error (the
+/// engine's own overflow message).
+pub(crate) fn timestamp_millis_to_micros(millis: i64) -> Result<i64> {
+    millis
+        .checked_mul(MICROS_PER_MSEC)
+        .ok_or_else(|| fmt_error!(out_of_range, "Overflow in multiplication of INT64 ({millis} * {MICROS_PER_MSEC})!"))
+}
+
+/// The 12 bytes of a `duration` (three little-endian u32: months, days, milliseconds) as an INTERVAL; months or days
+/// beyond i32 are an out-of-range error. `raw` holds at least 12 bytes.
+pub(crate) fn duration_to_interval(raw: &[u8]) -> Result<duckdb_v2_interval_t> {
+    let part = |i: usize| u32::from_le_bytes([raw[i], raw[i + 1], raw[i + 2], raw[i + 3]]);
+    let (months, days, millis) = (part(0), part(4), part(8));
+    let fits = |what: &str, value: u32| {
+        i32::try_from(value)
+            .map_err(|_| fmt_error!(out_of_range, "duration {what} value {value} is out of range for an INTERVAL"))
+    };
+    Ok(duckdb_v2_interval_t {
+        months: fits("months", months)?,
+        days: fits("days", days)?,
+        micros: i64::from(millis) * MICROS_PER_MSEC,
+    })
+}
+
 /// The engine's storage form of a UUID's 16 bytes: a big-endian integer with the sign bit of the upper half flipped,
 /// so that the integers order like the UUIDs.
-fn uuid_from_bytes(bytes: [u8; 16]) -> i128 {
+pub(crate) fn uuid_from_bytes(bytes: [u8; 16]) -> i128 {
     let upper = u64::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]])
         ^ (1u64 << 63);
     let lower =
@@ -649,8 +658,7 @@ fn uuid_from_bytes(bytes: [u8; 16]) -> i128 {
 
 /// The 16 bytes of a UUID in RFC 4122 text form (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, hex digits of either case);
 /// `None` for anything else.
-fn parse_uuid(text: &str) -> Option<[u8; 16]> {
-    let text = text.as_bytes();
+pub(crate) fn parse_uuid(text: &[u8]) -> Option<[u8; 16]> {
     if text.len() != 36 {
         return None;
     }
@@ -672,7 +680,7 @@ fn parse_uuid(text: &str) -> Option<[u8; 16]> {
 
 /// A big-endian two's complement integer of any length as an `i128` (sign-extended; bytes beyond 16 shift out, as the
 /// C++ reader's shifts do).
-fn read_decimal(raw: &[u8]) -> i128 {
+pub(crate) fn read_decimal(raw: &[u8]) -> i128 {
     let negative = raw.first().is_some_and(|b| b & 0x80 != 0);
     let mut value: i128 = if negative { -1 } else { 0 };
     for &byte in raw {
@@ -700,8 +708,8 @@ mod tests {
     #[test]
     fn uuid_text() {
         let expected = [0x12, 0x3e, 0x45, 0x67, 0xe8, 0x9b, 0x12, 0xd3, 0xa4, 0x56, 0x42, 0x66, 0x14, 0x17, 0x40, 0x00];
-        assert_eq!(parse_uuid("123e4567-e89b-12d3-a456-426614174000"), Some(expected));
-        assert_eq!(parse_uuid("123E4567-E89B-12D3-A456-426614174000"), Some(expected));
+        assert_eq!(parse_uuid(b"123e4567-e89b-12d3-a456-426614174000"), Some(expected));
+        assert_eq!(parse_uuid(b"123E4567-E89B-12D3-A456-426614174000"), Some(expected));
         for bad in [
             "",
             "123e4567-e89b-12d3-a456-42661417400",
@@ -711,7 +719,7 @@ mod tests {
             "123e4567-e89b-12d3-a456-42661417400g",
             "123e4567-e89b-12d3-a456-4266141740é",
         ] {
-            assert_eq!(parse_uuid(bad), None, "{bad}");
+            assert_eq!(parse_uuid(bad.as_bytes()), None, "{bad}");
         }
         // 00000000-0000-0000-0000-000000000001 is stored with the high bit of the upper half flipped
         let mut one = [0u8; 16];
