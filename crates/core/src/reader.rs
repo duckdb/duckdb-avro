@@ -1,9 +1,11 @@
 //! `read_single_avro_file`, which reads one Avro object container file, and `read_avro`, the multi-file function on
 //! top of it that adds globbing, lists of files, `filename`, `union_by_name`, hive partitioning and the like.
 //!
-//! A file is read into memory and its blocks are indexed at bind time; the scan then hands out one block per batch, so
+//! A file is read into memory and its blocks are indexed at bind time; the scan then hands out a run of consecutive
+//! blocks holding at least a chunk of rows per batch, so
 //! a single file is read by several threads in parallel.
 
+use std::ops::Range;
 use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
@@ -34,6 +36,7 @@ use crate::file::{FileArgument, read_file};
 use crate::types::{AvroColumn, AvroType, transform_avro_type, transform_schema};
 
 const SINGLE_FILE_FUNCTION: &str = "read_single_avro_file";
+const BATCH_ROWS: u64 = 2048;
 
 /// An Avro object container file, read into memory.
 #[derive(Debug)]
@@ -44,6 +47,8 @@ pub struct AvroFile {
     // A record root has its fields pulled up into the columns.
     root_is_struct: bool,
     columns: Vec<AvroColumn>,
+    // Writers may put very few rows in a block, so small blocks are scanned together.
+    batches: Vec<Range<usize>>,
 }
 
 impl AvroFile {
@@ -65,7 +70,22 @@ impl AvroFile {
         } else {
             vec![root]
         };
+        let mut batches = Vec::new();
+        let mut start = 0;
+        let mut rows = 0;
+        for (index, block) in info.blocks.iter().enumerate() {
+            rows += block.object_count;
+            if rows >= BATCH_ROWS {
+                batches.push(start..index + 1);
+                start = index + 1;
+                rows = 0;
+            }
+        }
+        if start < info.blocks.len() {
+            batches.push(start..info.blocks.len());
+        }
         Ok(AvroFile {
+            batches,
             buffer,
             info,
             avro_type: Arc::new(avro_type),
@@ -74,8 +94,8 @@ impl AvroFile {
         })
     }
 
-    fn block_count(&self) -> usize {
-        self.info.blocks.len()
+    fn batch_count(&self) -> usize {
+        self.batches.len()
     }
 }
 
@@ -186,12 +206,12 @@ enum BlockData {
     Scratch { size: usize },
 }
 
-/// The scan of one thread: it reads the blocks it claims, one at a time.
+/// The scan of one thread: it reads the batches of blocks it claims, one at a time.
 #[derive(Debug)]
 pub struct ScanState {
     rows: RowReader,
-    block: Option<BlockInfo>,
-    data: Option<BlockData>,
+    blocks: Range<usize>,
+    block: Option<(BlockInfo, BlockData)>,
     scratch: Vec<u8>,
     position: usize,
     rows_read: u64,
@@ -213,47 +233,50 @@ impl ScanState {
     }
 
     fn scan(&mut self, file: &AvroFile, mut output: DataChunkRef<'_>) -> Result<()> {
-        let Some(block) = self.block else {
-            return Ok(());
-        };
-        let data = match self.data {
-            Some(data) => data,
-            None => {
-                let data = self.select_block(file, &block)?;
-                self.data = Some(data);
-                self.position = 0;
-                self.rows_read = 0;
-                data
-            }
-        };
-        let bytes = match data {
-            BlockData::File { offset, size } => &file.buffer[offset..offset + size],
-            BlockData::Scratch { size } => &self.scratch[..size],
-        };
-        let mut decoder = Decoder::new(&bytes[self.position..]);
         self.rows.clear();
         let capacity = output.capacity()?;
         let mut count = 0;
         while count < capacity {
+            let (block, data) = match self.block {
+                Some(selected) => selected,
+                None => {
+                    let Some(index) = self.blocks.next() else {
+                        break;
+                    };
+                    let block = file.info.blocks[index];
+                    let data = self.select_block(file, &block)?;
+                    self.block = Some((block, data));
+                    self.position = 0;
+                    self.rows_read = 0;
+                    (block, data)
+                }
+            };
+            let bytes = match data {
+                BlockData::File { offset, size } => &file.buffer[offset..offset + size],
+                BlockData::Scratch { size } => &self.scratch[..size],
+            };
+            let mut decoder = Decoder::new(&bytes[self.position..]);
+            while count < capacity && self.rows_read < block.object_count {
+                if let Err(error) = self.rows.read_row(&mut decoder) {
+                    // Running out of data at a value boundary is what avro-c reports as the block ending early
+                    if decoder.is_empty() && error.message.ends_with("bytes from memory buffer") {
+                        return Err(invalid_input(
+                            "Avro file block ended before its declared object count",
+                        ));
+                    }
+                    return Err(error);
+                }
+                self.rows_read += 1;
+                count += 1;
+            }
+            self.position += decoder.position();
             if self.rows_read == block.object_count {
                 if !decoder.is_empty() {
                     return Err(invalid_input("Avro file block contains trailing data"));
                 }
-                break;
+                self.block = None;
             }
-            if let Err(error) = self.rows.read_row(&mut decoder) {
-                // Running out of data at a value boundary is what avro-c reports as the block ending early
-                if decoder.is_empty() && error.message.ends_with("bytes from memory buffer") {
-                    return Err(invalid_input(
-                        "Avro file block ended before its declared object count",
-                    ));
-                }
-                return Err(error);
-            }
-            self.rows_read += 1;
-            count += 1;
         }
-        self.position += decoder.position();
 
         for (index, column) in self.rows.columns().iter().enumerate() {
             let mut vector = output.get_vector_at_mut::<Unknown>(index)?;
@@ -304,7 +327,7 @@ impl TableFunctionCallbacks for AvroScan {
     ) -> Result<(Option<AtomicUsize>, Option<usize>)> {
         Ok((
             Some(AtomicUsize::new(0)),
-            Some(bind_data.block_count().max(1)),
+            Some(bind_data.batch_count().max(1)),
         ))
     }
 
@@ -320,8 +343,8 @@ impl TableFunctionCallbacks for AvroScan {
             .collect::<Result<Vec<_>>>()?;
         Ok(Some(ScanState {
             rows: RowReader::new(bind_data, &column_ids)?,
+            blocks: 0..0,
             block: None,
-            data: None,
             scratch: Vec::new(),
             position: 0,
             rows_read: 0,
@@ -352,13 +375,16 @@ impl TableClaimBatchCallbacks for AvroScan {
         local_state: Option<&mut ScanState>,
         _context: &Context,
     ) -> Result<bool> {
-        let (Some(next_block), Some(state)) = (global_state, local_state) else {
+        let (Some(next_batch), Some(state)) = (global_state, local_state) else {
             return Ok(false);
         };
-        let index = next_block.fetch_add(1, Ordering::Relaxed);
-        state.block = bind_data.info.blocks.get(index).copied();
-        state.data = None;
-        Ok(state.block.is_some())
+        let index = next_batch.fetch_add(1, Ordering::Relaxed);
+        let Some(blocks) = bind_data.batches.get(index) else {
+            return Ok(false);
+        };
+        state.blocks = blocks.clone();
+        state.block = None;
+        Ok(true)
     }
 }
 
