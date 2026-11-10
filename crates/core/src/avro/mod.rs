@@ -2,6 +2,8 @@
 //! schema parsing rules and error messages, same schema JSON rendering, same file layout.
 
 pub mod binary;
+pub mod codec;
+pub mod container;
 pub mod error;
 pub mod schema;
 
