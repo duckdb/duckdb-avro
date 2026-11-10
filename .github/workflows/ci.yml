@@ -55,11 +55,12 @@ jobs:
       - name: Test
         run: make test
 
-  # the Kani proof harnesses (make kani): bounded model checking of avro-core's zigzag / varint / decoder / encoder /
-  # CRC / min_encoded_size and of the extension's decimal, time, timestamp, duration and UUID conversions. Independent
-  # of the other jobs; no DuckDB build involved. The action installs the pinned Kani release and its CBMC. Harnesses
-  # run in sequence (one CBMC at a time, up to 8 GB each on the 16 GiB runner); the one harness that needs 17 GB sits
-  # behind avro-core's kani-heavy feature, which only `make kani` enables.
+  # the Kani proof harnesses (make kani; README "Formal verification with Kani"): bounded model checking of avro-core's
+  # binary layer, codec names, JSON numbers and block framing, of duckdb-ext-api's vector layout helpers and of the
+  # extension's value conversions and schema rules. Independent of the other jobs; no DuckDB build involved. The
+  # action installs the pinned Kani release and its CBMC. Harnesses run in sequence (one CBMC at a time, up to 8 GB
+  # each on the 16 GiB runner); the harnesses that need more memory or many minutes sit behind the kani-heavy features,
+  # which only `make kani` enables. `-Z stubbing` lets the JSON harnesses stand in for core's float parsing.
   kani:
     runs-on: ubuntu-latest
     steps:
@@ -67,4 +68,4 @@ jobs:
       - uses: model-checking/kani-github-action@v1.1
         with:
           kani-version: "0.68.0"
-          args: -p avro-core -p duckdb-avro
+          args: -Z stubbing -p avro-core -p duckdb-ext-api -p duckdb-avro
