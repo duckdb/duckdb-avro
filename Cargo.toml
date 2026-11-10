@@ -67,3 +67,15 @@ avro-core.workspace = true
 
 [profile.release]
 debug = 1
+
+# DuckDB-Wasm (`make wasm_eh`): the .wasm ships over the network, so size matters and the DWARF of `debug = 1` is of no
+# use (emcc drops it at link anyway); fat LTO with one codegen unit lets the linker drop everything the entrypoint does
+# not reach. opt-level 3 matches the -O3 the C++ pipeline links with (`emcc -O3 -sSIDE_MODULE=2`); "s" / "z" give a
+# further 8 % / 15 % smaller module. Panics stay unwinding so that the entrypoint's catch_unwind turns them into DuckDB
+# errors instead of aborting the whole engine instance (`panic = "abort"` would save another 6 %).
+[profile.wasm]
+inherits = "release"
+debug = false
+strip = true
+lto = "fat"
+codegen-units = 1

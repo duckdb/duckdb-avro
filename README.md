@@ -191,6 +191,17 @@ can be targeted with `FOOTER_VERSION=<version tag or source id> make`.
 Moving the pin to another DuckDB build is described in [`docs/UPDATING.md`](docs/UPDATING.md): edit `DUCKDB_PIN`,
 reorder the function table with `scripts/pin_api_table.py` against that build's header, rebuild the virtualenv.
 
+### DuckDB-Wasm
+
+`make wasm_eh` (alias `make wasm`) builds the extension for DuckDB-Wasm as an emscripten side module,
+`build/wasm_eh/avro.duckdb_extension.wasm`, stamped for platform `wasm_eh`. It needs emscripten on `PATH`
+(`source <emsdk>/emsdk_env.sh`; extension-ci-tools pins 6.0.9) and the `wasm32-unknown-emscripten` rust target
+(`rustup target add wasm32-unknown-emscripten`). The module is built with the `wasm` cargo profile (fat LTO, one codegen
+unit, stripped) and the side-module flags in `.cargo/config.toml`; it imports only libc and the dynamic-linker symbols
+every DuckDB-Wasm main module exports. Only `wasm_eh`: Rust's prebuilt std for emscripten uses wasm exception handling
+for unwinding, which the `wasm_mvp` engine does not accept, and `wasm_threads` would need a std built with shared memory
+and atomics.
+
 ## Layout
 
 - `crates/avro-core`: the Avro implementation without any DuckDB dependency: JSON schema parser and writer (the

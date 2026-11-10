@@ -8,7 +8,16 @@
 #                        the same tests through DuckDB's own C++ sqllogictest runner (test/unittest next to the binary);
 #                        the build's own extensions (icu, ...) are linked next to avro so that `require icu` autoloads
 #   make clippy          cargo clippy + cargo fmt --check
+#   make wasm_eh         the DuckDB-Wasm (wasm_eh) build -> build/wasm_eh/avro.duckdb_extension.wasm; needs emscripten on
+#                        PATH (`source <emsdk>/emsdk_env.sh`, extension-ci-tools pins 6.0.9) and the rust target
+#                        wasm32-unknown-emscripten (`rustup target add wasm32-unknown-emscripten`). `make wasm` is an alias.
 #   make clean
+#
+# DuckDB-Wasm: a loadable extension is an emscripten side module (what DuckDB's build_loadable_extension does with
+# `emcc -O3 -sSIDE_MODULE=2` and what .cargo/config.toml passes for the wasm32-unknown-emscripten target), stamped with
+# the same footer as a native build but platform wasm_eh. Only wasm_eh: Rust's prebuilt std for emscripten carries
+# wasm exception-handling opcodes (its unwinding), which the wasm_mvp engine does not accept, and wasm_threads needs a
+# std built with shared memory and atomics (-Zbuild-std).
 #
 # Footer tag: a C_STRUCT_UNSTABLE extension is tied to one engine build by the version tag in its footer
 # (ExtensionHelper::GetVersionDirectoryName: the library version unless it contains "-dev", then the source id). The
@@ -75,8 +84,25 @@ clippy:
 	cargo clippy --release --all-targets --workspace
 	cargo fmt --check
 
+# DuckDB-Wasm: the cargo `wasm` profile (Cargo.toml) on the emscripten target; rustc links through emcc, so emscripten
+# has to be on PATH. The same FOOTER_VERSION mechanism as the native build names the engine build the module is for.
+WASM_MODULE := target/wasm32-unknown-emscripten/wasm/avro.wasm
+wasm: wasm_eh
+wasm_eh: build/wasm_eh/avro.duckdb_extension.wasm
+
+$(WASM_MODULE): $(RUST_SOURCES) .cargo/config.toml
+	@command -v emcc >/dev/null || (echo "emcc not on PATH: source <emsdk>/emsdk_env.sh (emscripten 6.0.9, the version extension-ci-tools uses)" && exit 1)
+	@rustup target list --installed 2>/dev/null | grep -q '^wasm32-unknown-emscripten$$' || (echo "rust target missing: rustup target add wasm32-unknown-emscripten" && exit 1)
+	cargo build --profile wasm --target wasm32-unknown-emscripten --lib -p duckdb-avro
+
+build/wasm_eh/avro.duckdb_extension.wasm: $(WASM_MODULE)
+	@test -n "$(FOOTER_VERSION)" || (echo "no duckdb Python package in $(PYTHON): run make venv (or set PYTHON= / FOOTER_VERSION=)" && exit 1)
+	mkdir -p build/wasm_eh
+	cp $< $@
+	python3 -I scripts/append_extension_metadata.py --extension $@ --platform wasm_eh --abi-type C_STRUCT_UNSTABLE --version "$(FOOTER_VERSION)" --extension-version $(EXT_VERSION)
+
 clean:
 	cargo clean
 	$(RM) -r build
 
-.PHONY: all venv test unittest clippy clean
+.PHONY: all venv test unittest clippy wasm wasm_eh clean
