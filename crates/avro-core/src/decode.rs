@@ -718,4 +718,40 @@ mod verification {
             ),
         }
     }
+
+    /// `read_raw(n)` (and `read_fixed`, which is it) from every position of a slice of at most 16 bytes, for every
+    /// `n` (all of usize): an error exactly when `n` exceeds the remaining bytes, and then the position does not
+    /// move; otherwise the `n` bytes at the position, after which the position has advanced by exactly `n`. `seek`
+    /// clamps to the end, `remaining` is the length minus the position, `rest` the bytes from the position on.
+    #[kani::proof]
+    #[kani::unwind(18)]
+    fn read_raw_consumes_exactly_n_bytes_or_nothing() {
+        let buf: [u8; 16] = kani::any();
+        let data = any_slice(&buf);
+        let mut dec = Decoder::new(data);
+        let start: usize = kani::any();
+        dec.seek(start);
+        let pos = dec.position();
+        assert_eq!(pos, start.min(data.len()));
+        assert_eq!(dec.remaining(), data.len() - pos);
+        assert_eq!(dec.is_empty(), pos == data.len());
+        assert_eq!(dec.rest(), &data[pos..]);
+        let n: usize = kani::any();
+        let mut fixed_dec = dec.clone();
+        let fixed = fixed_dec.read_fixed(n);
+        match dec.read_raw(n, "bytes") {
+            Ok(out) => {
+                assert!(n <= data.len() - pos);
+                assert_eq!(out, &data[pos..pos + n]);
+                assert_eq!(dec.position(), pos + n);
+                assert_eq!(fixed.ok(), Some(out));
+            }
+            Err(_) => {
+                assert!(n > data.len() - pos);
+                assert_eq!(dec.position(), pos);
+                assert!(fixed.is_err());
+            }
+        }
+        assert_eq!(fixed_dec.position(), dec.position());
+    }
 }

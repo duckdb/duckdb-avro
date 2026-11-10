@@ -223,6 +223,15 @@ pub fn random_sync_marker() -> [u8; 16] {
     out
 }
 
+/// The two longs that open a block: `row_count` and the byte size of its (compressed) payload. A row count above
+/// `i64::MAX` is an error (the long cannot carry it).
+fn block_prefix(row_count: u64, payload_len: usize) -> Result<Vec<u8>> {
+    let mut prefix = Vec::with_capacity(20);
+    write_long_to(&mut prefix, i64::try_from(row_count).map_err(|_| Error::invalid_input("row count overflow"))?);
+    write_long_to(&mut prefix, payload_len as i64);
+    Ok(prefix)
+}
+
 /// Writes an object container file block by block: the header on construction, then one block per
 /// [`FileWriter::write_block`] call. The caller decides where blocks end.
 #[derive(Debug)]
@@ -315,9 +324,7 @@ impl<W: Write> FileWriter<W> {
             return Ok(());
         }
         let payload = self.codec.compress(encoded_rows)?;
-        let mut prefix = Vec::with_capacity(20);
-        write_long_to(&mut prefix, i64::try_from(row_count).map_err(|_| Error::invalid_input("row count overflow"))?);
-        write_long_to(&mut prefix, payload.len() as i64);
+        let prefix = block_prefix(row_count, payload.len())?;
         self.emit(&prefix)?;
         self.emit(&payload)?;
         let sync = self.sync_marker;
@@ -384,5 +391,38 @@ mod tests {
         let pos = unknown.windows(4).position(|w| w == b"null").unwrap();
         unknown[pos..pos + 4].copy_from_slice(b"nope");
         assert!(FileReader::open(&unknown).unwrap_err().message().contains("unknown codec 'nope'"));
+    }
+}
+
+/// Kani proof harnesses (`cargo kani -p avro-core`, `make kani`) of the block framing arithmetic. The header and the
+/// block emission themselves build owned buffers of symbolic length and stay with the tests.
+#[cfg(kani)]
+mod verification {
+    use super::*;
+    use crate::decode::Decoder;
+
+    /// The prefix of a block for every row count and every payload size a `Vec` can hold: an error exactly for a
+    /// row count above `i64::MAX` (the long cannot carry it); otherwise 2 to 20 bytes that read back as the count
+    /// and the size, nothing else. The block the writer emits is then exactly prefix, payload and the 16-byte sync
+    /// marker.
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn block_prefix_reads_back_as_count_and_size() {
+        let row_count: u64 = kani::any();
+        let payload_len: usize = kani::any();
+        kani::assume(payload_len <= isize::MAX as usize);
+        match block_prefix(row_count, payload_len) {
+            Ok(prefix) => {
+                assert!(row_count <= i64::MAX as u64);
+                assert!((2..=20).contains(&prefix.len()));
+                let mut dec = Decoder::new(&prefix);
+                assert_eq!(dec.read_long().unwrap(), row_count as i64);
+                assert_eq!(dec.read_long().unwrap(), payload_len as i64);
+                assert!(dec.is_empty());
+            }
+            Err(_) => {
+                assert!(row_count > i64::MAX as u64);
+            }
+        }
     }
 }

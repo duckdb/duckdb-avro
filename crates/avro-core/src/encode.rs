@@ -315,4 +315,59 @@ mod verification {
         assert_eq!(dec.read_block_count(1).unwrap(), BlockCount { count: 0, byte_size: None });
         assert!(dec.is_empty());
     }
+
+    /// A `long` is the spec's zigzag varint for every i64: the zigzag value is `2v` for `v >= 0` and `2|v| - 1`
+    /// below it (the sign lands in bit 0), byte `i` of the encoding carries its bits `7i..7i+7` with the high bit set
+    /// exactly on the bytes before the last, and the last byte is the first after which no bits remain (no over-long
+    /// encoding); 1 to 10 bytes. Independent of the decoder, which the round-trip harnesses go through.
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn long_bytes_are_the_spec_varint() {
+        let value: i64 = kani::any();
+        let z = zigzag_encode(value);
+        let expected_z = if value >= 0 { 2 * (value as u128) } else { 2 * ((-(value as i128)) as u128) - 1 };
+        assert_eq!(u128::from(z), expected_z);
+        let mut enc = Encoder::with_capacity(16);
+        enc.write_long(value);
+        let bytes = enc.as_bytes();
+        let n = bytes.len();
+        assert!((1..=10).contains(&n));
+        let mut i = 0;
+        while i < n {
+            assert_eq!(bytes[i] & 0x7f, ((z >> (7 * i)) & 0x7f) as u8);
+            assert_eq!(bytes[i] & 0x80 != 0, i + 1 < n);
+            i += 1;
+        }
+        assert!(n == 10 || z >> (7 * n) == 0);
+        assert!(n == 1 || z >> (7 * (n - 1)) != 0);
+    }
+
+    /// The fixed-width values are the spec's bytes: `boolean` the one byte 0 or 1, `float` and `double` their IEEE
+    /// bits little-endian (byte `k` is bits `8k..8k+8`), the block end marker the byte 0, `null` nothing.
+    #[kani::proof]
+    fn fixed_width_values_are_the_spec_bytes() {
+        let b: bool = kani::any();
+        let f: u32 = kani::any();
+        let d: u64 = kani::any();
+        let mut enc = Encoder::with_capacity(16);
+        enc.write_null();
+        enc.write_boolean(b);
+        enc.write_float(f32::from_bits(f));
+        enc.write_double(f64::from_bits(d));
+        enc.write_block_end();
+        let bytes = enc.as_bytes();
+        assert_eq!(bytes.len(), 14);
+        assert_eq!(bytes[0], if b { 1 } else { 0 });
+        let mut k = 0;
+        while k < 4 {
+            assert_eq!(bytes[1 + k], (f >> (8 * k)) as u8);
+            k += 1;
+        }
+        let mut k = 0;
+        while k < 8 {
+            assert_eq!(bytes[5 + k], (d >> (8 * k)) as u8);
+            k += 1;
+        }
+        assert_eq!(bytes[13], 0);
+    }
 }
