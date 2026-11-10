@@ -13241,7 +13241,7 @@ SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__impala/sna
 
 
 # ---- gh_apache__impala/truncated_float.avro: testdata/bad_avro_snap/truncated_float.avro (apache/impala @ 3126fa631c, Apache-2.0)
-# refused by the reader; fastavro: EOFError: cannot read float from <_io.BytesIO object at 0xef33aad62430>
+# refused by the reader; fastavro: EOFError: cannot read float from <_io.BytesIO object>
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_apache__impala/truncated_float.avro')
 ----

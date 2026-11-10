@@ -437,7 +437,8 @@ def oracle_worker(in_path, out_path):
             res["error"] = f"recursive schema: {e}"
             res["count"] = None
         except Exception as e:  # noqa: BLE001
-            res["error"] = f"{type(e).__name__}: {e}"[:300]
+            # (without the address of the BytesIO some messages name: the output must not change between runs)
+            res["error"] = re.sub(r" at 0x[0-9a-f]+>", ">", f"{type(e).__name__}: {e}")[:300]
             res["avro_python"] = avro_python_count(path)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f)
