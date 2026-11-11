@@ -314,7 +314,7 @@ query ITTTTTTTTTTTTTTTTTTT
 SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/union_fields.avro')
 ----
 NULL	s1	1234567890123	\x00\xFF\x7F	ABCDEFGH	RED	2022-01-08	13:45:30.123	evening	2024-01-01 00:00:00	\x11\x223	fe7bc30b-4ce8-4c5e-b67c-2234a2d38e66	1234.56	NULL	[1, a, -5]	{a=NULL, b=2.5}	{'id': 1, 'u': one}	2024-01-01 00:00:00	local midnight	true
-42	NULL	-1	hello	1 month 2 days 00:00:03	{'a': 7, 'b': x}	ABCD	ON	23:59:59.999999	[0, 1, 2]	2024-01-01 00:00:00	0123456789	-0.0123	\x01\x02	['', 42]	{x=-0.5}	{'id': 2, 'u': 99}	{k1=1, k2=2}	2024-01-01 00:00:00	no
+42	NULL	-1	hello	1 month 2 days 00:00:03	{'a': 7, 'b': x}	ABCD	ON	23:59:59.999999	[0, 1, 2]	2024-01-01 00:00:00	0123456789	-0.0123	\x01\x02	[, 42]	{x=-0.5}	{'id': 2, 'u': 99}	{k1=1, k2=2}	2024-01-01 00:00:00	no
 NULL	s3	1.25	world	-1.01	{'x': 123456789, 'y': '\\xFF\\x00'}	1970-01-01	OFF	night	[-1, 0, 1]	\x00	0826cc06-d2e3-4599-b4ad-af5fa6905cdb	0.00	text	[-1]	{}	{'id': 3, 'u': 0}	1970-01-01 00:00:00	done	false
 0	(empty)	-2.5	(empty)	1 year 31 days 00:00:00.999	[1, 2, 3]	\x00\x11\x223	00:00:00	(empty)	2024-01-02 00:00:00	\x10 0@	\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA	123456789.1234	u	[z, 0]	{pi=3.14159}	{'id': 4, 'u': four}	{n=0}	(empty)	yes
 

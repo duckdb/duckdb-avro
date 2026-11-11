@@ -76,7 +76,9 @@ python3 -I scripts/gen_corpus_tests.py            # test/sql/corpus/*.test from 
 python3 -I scripts/gen_corpus_tests.py --import /path/to/avro-corpus/MANIFEST.tsv   # re-select the files from a corpus
 ```
 
-The generator is deterministic: re-running it on the same files and build changes nothing. It exits non-zero and
+The generator is deterministic: re-running it on the same files and build changes nothing. The expected output
+follows the rendering of the DuckDB build in `DUCKDB_PIN` (v2.0.0 prints an empty string nested in a `UNION` as
+`[, 42]`, later builds as `['', 42]`), so regenerate after a re-pin. The generator exits non-zero and
 prints `PROBLEM:` lines when a cross-check fails (a count or column mismatch against fastavro, differing dumps,
 a round trip that is not empty), which is how a reader or writer regression shows up when the corpus is
 regenerated on a new build. `--only <source>` regenerates one file.
