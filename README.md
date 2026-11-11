@@ -175,21 +175,23 @@ venv/bin/python -c "import duckdb; c = duckdb.connect(config={'allow_unsigned_ex
 
 The C API v2 is not stable before DuckDB 3.0: the function table an extension receives is the member order of the
 engine's `duckdb_extension_v2.h`, and the `C_STRUCT_UNSTABLE` footer `make` appends names the exact DuckDB build the
-extension was built for, which the engine checks at `LOAD`. `DUCKDB_PIN` names that build (a `2.0.1` nightly wheel:
-`DUCKDB_WHEEL`, `DUCKDB_VERSION`, `DUCKDB_SOURCE_ID`); `crates/duckdb-capi-sys` follows its header. Loading needs
+extension was built for, which the engine checks at `LOAD`. `DUCKDB_PIN` names that build, the release DuckDB v2.0.0
+(`DUCKDB_WHEEL`, `DUCKDB_VERSION`, `DUCKDB_SOURCE_ID`); `crates/duckdb-capi-sys` follows its header. Loading needs
 `allow_unsigned_extensions` (`duckdb -unsigned`).
 
-The footer tag is the engine's library version unless it contains `-dev`, then its source id. The Python wheel of a
-pinned build reports an alpha version (`v2.0.1-alpha54043`) while a source build of the same commit reports a dev
-version (`v2.0.0-dev89497`, source id `29b26cb106`), so one binary wants two tags: `make` stamps
-`build/avro.duckdb_extension` for the wheel, and `make unittest DUCKDB=<duckdb binary built at the pinned commit>`
-stamps a copy under `build/repository/<tag>/<platform>/` for that binary and runs DuckDB's own C++ sqllogictest
-runner (`test/unittest` next to the binary) with `LOCAL_EXTENSION_REPO` pointing there, so `require avro` autoloads
-it; the binary's own extensions (icu, ...) are linked next to it for the tests that `require` them. Another DuckDB
-can be targeted with `FOOTER_VERSION=<version tag or source id> make`.
+The footer tag is the engine's library version unless it contains `-dev`, then its source id. The release and its
+Python wheel report `v2.0.0`, which is the tag `make` stamps `build/avro.duckdb_extension` with. A source build of
+the same commit can report a dev version instead (`v2.0.0-dev88614`, source id `d54cbbe3df`) and then wants the
+source id, so `make unittest DUCKDB=<duckdb binary built at the pinned commit>` stamps a copy under
+`build/repository/<tag>/<platform>/` with that binary's own tag and runs DuckDB's own C++ sqllogictest runner
+(`test/unittest` next to the binary) with `LOCAL_EXTENSION_REPO` pointing there, so `require avro` autoloads it; the
+binary's other extensions (icu, ...) are linked next to it for the tests that `require` them, and a runner linked
+against `libduckdb.so` finds it through `DUCKDB_LIB_DIR` (default: `src/` next to the binary). Another DuckDB can
+be targeted with `FOOTER_VERSION=<version tag or source id> make`.
 
 Moving the pin to another DuckDB build is described in [`docs/UPDATING.md`](docs/UPDATING.md): edit `DUCKDB_PIN`,
-reorder the function table with `scripts/pin_api_table.py` against that build's header, rebuild the virtualenv.
+reorder the function table with `scripts/pin_api_table.py --check-signatures` against that build's header, rebuild
+the virtualenv, regenerate the corpus tests.
 
 ### DuckDB-Wasm
 
