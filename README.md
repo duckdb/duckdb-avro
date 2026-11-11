@@ -220,6 +220,9 @@ and atomics.
   fixtures (`create_decimal_bytes.py`, `create_timestamp_*.py`, `create_malformed.py`: the hand-built malformed files,
   `create_corpus_fixtures.py`: the `test/corpus` reproductions of the real-world corpus findings; all stdlib only).
 
+The extension (`src/`) and `avro-core` are compiled with `#![forbid(unsafe_code)]`: every `unsafe` block of the build
+is in the two C API crates, the one boundary to the engine.
+
 ## Tests
 
 `make test` runs all 96 test files (`test/sql/*.test`, `test/sql/copy/*.test` and `*.test_slow`, and the generated

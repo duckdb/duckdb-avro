@@ -7,6 +7,9 @@
 // the Kani build (`make kani`) formats no error messages (`fmt_error!`), so a parameter that only feeds a message goes
 // unused there
 #![cfg_attr(kani, allow(unused_variables))]
+// no `unsafe` in the extension itself: all of it is behind the C API wrapper (`duckdb-ext-api`). The proof harnesses
+// (`cfg(kani)` only) place decoder trees in raw stack storage, so the ban holds for every build but that one.
+#![cfg_attr(not(kani), forbid(unsafe_code))]
 
 use duckdb_ext_api::{Context, Extension, Result};
 
