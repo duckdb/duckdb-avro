@@ -63,19 +63,7 @@ fn error_of(conn: &Connection, sql: &str) -> duckdb_neo::Error {
 fn unsupported_types() -> Result<()> {
     let conn = connect()?;
     let dir = test_dir("types");
-    conn.execute(
-        "CREATE TYPE my_enum AS ENUM ('a', 'abc', 'decently long enum value')",
-        Parameters::None,
-    )?;
     let cases = [
-        (
-            "SELECT 'decently long enum value'::my_enum a",
-            "Not implemented Error: Can't convert logical type 'ENUM('a', 'abc', 'decently long enum value')' to Avro type",
-        ),
-        (
-            "SELECT union_value(b := 'abc')::UNION(a INTEGER, b VARCHAR, c FLOAT) a",
-            "Not implemented Error: Can't convert logical type 'UNION(a INTEGER, b VARCHAR, c FLOAT)' to Avro type",
-        ),
         (
             "SELECT 1::TINYINT a",
             "Can't convert logical type 'TINYINT' to Avro type",
@@ -88,11 +76,67 @@ fn unsupported_types() -> Result<()> {
             "SELECT {'a': INTERVAL 1 DAY} a",
             "Can't convert logical type 'INTERVAL' to Avro type",
         ),
+        (
+            "SELECT union_value(a := 1)::UNION(a INTEGER, b UNION(c VARCHAR, d FLOAT)) u",
+            "Not implemented Error: Can't convert UNION member 'b' of type UNION(c VARCHAR, d FLOAT) to an Avro union branch",
+        ),
+        (
+            "SELECT union_value(a := 1)::UNION(a INTEGER, b \"NULL\") u",
+            "Can't convert UNION member 'b' of type \"NULL\" to an Avro union branch",
+        ),
+        (
+            "SELECT union_value(a := 1)::UNION(a INTEGER, b TINYINT) u",
+            "Can't convert logical type 'TINYINT' to Avro type",
+        ),
     ];
     for (query, message) in cases {
         assert_error(
             &copy_error(&conn, &dir, query, "FORMAT AVRO"),
             DuckDBError::QueryNotImplemented,
+            message,
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn unrepresentable_unions_and_enums() -> Result<()> {
+    let conn = connect()?;
+    let dir = test_dir("union_enum");
+    conn.execute(
+        "CREATE TYPE odd AS ENUM ('a', 'decently long enum value')",
+        Parameters::None,
+    )?;
+    conn.execute(
+        "CREATE TYPE empty_symbol AS ENUM ('a', '')",
+        Parameters::None,
+    )?;
+    let cases = [
+        (
+            "SELECT union_value(a := 1)::UNION(a INTEGER, b INTEGER) u",
+            "Invalid Input Error: Can't convert UNION members 'a' and 'b' to an Avro union: both are an Avro 'int', and a union holds every unnamed type once",
+        ),
+        (
+            "SELECT union_value(a := 1)::UNION(a INTEGER, b DATE) u",
+            "Can't convert UNION members 'a' and 'b' to an Avro union: both are an Avro 'int'",
+        ),
+        (
+            "SELECT union_value(a := [1])::UNION(a INTEGER[], b MAP(VARCHAR, INTEGER)) u",
+            "Can't convert UNION members 'a' and 'b' to an Avro union: both are an Avro 'array'",
+        ),
+        (
+            "SELECT 'a'::odd o",
+            "Invalid Input Error: 'decently long enum value' is not a valid Avro enum symbol\nThe symbol has to match the regex: [A-Za-z_][A-Za-z0-9_]*",
+        ),
+        (
+            "SELECT 'a'::empty_symbol o",
+            "'' is not a valid Avro enum symbol",
+        ),
+    ];
+    for (query, message) in cases {
+        assert_error(
+            &copy_error(&conn, &dir, query, "FORMAT AVRO"),
+            DuckDBError::InputInvalid,
             message,
         );
     }
@@ -143,6 +187,11 @@ fn invalid_options() -> Result<()> {
             "METADATA 'key'",
             DuckDBError::InputInvalid,
             "'METADATA' is expected to be provided as a STRUCT of key-value string metadata",
+        ),
+        (
+            "METADATA {'key': 'value', 'avro.schema': 'x'}",
+            DuckDBError::InputInvalid,
+            "Invalid Input Error: Avro metadata key 'avro.schema' is reserved",
         ),
         (
             "FIELD_IDS",
@@ -256,29 +305,6 @@ fn invalid_names() -> Result<()> {
             message,
         );
     }
-    let duplicates = [
-        (
-            "SELECT {'value': 84} data_file",
-            "FIELD_IDS {'data_file': {'__duckdb_field_id': 2, 'value': 3}}, ROOT_NAME 'r2'",
-            "r2",
-        ),
-        ("SELECT {'x': 1} a, {'a': {'y': 2}} b", "FORMAT AVRO", "a"),
-        ("SELECT 1.5::DECIMAL(4,1) root", "FORMAT AVRO", "root"),
-        (
-            "SELECT [{'x': 1}] a, 1 record0",
-            "ROOT_NAME 'record0'",
-            "record0",
-        ),
-    ];
-    for (query, options, name) in duplicates {
-        assert_error(
-            &copy_error(&conn, &dir, query, options),
-            DuckDBError::QueryBinder,
-            &format!(
-                "Binder Error: Avro schema by the name of '{name}' already exists, names of 'record', 'enum' and 'fixed' types have to be distinct"
-            ),
-        );
-    }
     Ok(())
 }
 
@@ -341,6 +367,18 @@ fn invalid_field_ids() -> Result<()> {
             DuckDBError::QueryBinder,
             "Field id of the field is not set",
         ),
+        (
+            "SELECT {'x': 1} a",
+            "FIELD_IDS {'a': {'x': 2}}",
+            DuckDBError::QueryBinder,
+            "Field id of the field is not set",
+        ),
+        (
+            "SELECT union_value(a := 1)::UNION(a INTEGER, b VARCHAR) u",
+            "FIELD_IDS {'u': {'__duckdb_field_id': 1, 'a': 2}}",
+            DuckDBError::QueryBinder,
+            "Column \"u\" with type \"UNION\" cannot have a nested FIELD_IDS specification",
+        ),
     ];
     for (query, options, code, message) in cases {
         assert_error(&copy_error(&conn, &dir, query, options), code, message);
@@ -374,6 +412,16 @@ fn null_into_required_field() -> Result<()> {
             "SELECT NULL::STRUCT(a INTEGER) s",
             "FIELD_IDS {'s': {'__duckdb_field_id': 1, '__duckdb_nullable': false}}",
             "Cannot insert NULL to non-nullable field of type STRUCT",
+        ),
+        (
+            "SELECT NULL::UNION(a INTEGER, b VARCHAR) u",
+            "FIELD_IDS {'u': {'__duckdb_field_id': 1, '__duckdb_nullable': false}}",
+            "Cannot insert NULL to non-nullable field of type UNION",
+        ),
+        (
+            "SELECT NULL::ENUM('x', 'y') e",
+            "FIELD_IDS {'e': {'__duckdb_field_id': 1, '__duckdb_nullable': false}}",
+            "Cannot insert NULL to non-nullable field of type ENUM",
         ),
     ];
     for (query, options, message) in cases {

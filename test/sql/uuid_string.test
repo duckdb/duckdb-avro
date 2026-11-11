@@ -1,0 +1,35 @@
+# name: test/sql/uuid_string.test
+# description: the uuid logical type on a string (its form per the spec; fixed(16) came with Avro 1.12) is a UUID
+# group: [sql]
+
+require avro
+
+# test/corpus/uuid_on_string.avro (scripts/create_corpus_fixtures.py): Java, Spanner exports, StarRocks and arrow-rs
+# write {"type": "string", "logicalType": "uuid"}; both hex cases are accepted
+query II
+SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('test/corpus/uuid_on_string.avro'));
+----
+id	UUID
+
+query I
+SELECT id FROM read_avro('test/corpus/uuid_on_string.avro');
+----
+123e4567-e89b-12d3-a456-426614174000
+123e4567-e89b-12d3-a456-426614174000
+NULL
+
+# the fixed(16) form reads the same
+statement ok
+COPY (SELECT '123e4567-e89b-12d3-a456-426614174000'::UUID AS id) TO '__TEST_DIR__/uuid_fixed.avro' (FORMAT avro);
+
+query I
+SELECT a.id = b.id FROM read_avro('__TEST_DIR__/uuid_fixed.avro') a, read_avro('test/corpus/uuid_on_string.avro') b WHERE b.id IS NOT NULL;
+----
+true
+true
+
+# a string that is not a UUID is an error naming the value
+statement error
+SELECT id FROM read_avro('test/corpus/uuid_on_string_invalid.avro');
+----
+Invalid Input Error: Avro uuid string 'not-a-uuid' is not a UUID

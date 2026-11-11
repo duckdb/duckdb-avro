@@ -9,3 +9,5 @@ or
 ```bash
 make test_debug
 ```
+
+The tests name their fixtures relative to the repository root (`test/*.avro`). The hand-built malformed fixtures come from `scripts/create_malformed.py` and the minimal reproductions under `test/corpus/` from `scripts/create_corpus_fixtures.py` (both standard library only). `test/corpus/<source>/` holds 1293 real-world Avro files from public test suites, read by `test/sql/corpus/<source>.test`; provenance, licenses and how those tests were made are in `test/corpus/README.md`, `MANIFEST.tsv` and `LICENSES.md`.

@@ -1,0 +1,62 @@
+# name: test/sql/malformed.test
+# description: malformed files fail fast with a clean error (fixtures from scripts/create_malformed.py)
+# group: [sql]
+
+require avro
+
+# An array<null> block claiming 2^32 items: the items occupy no bytes, so nothing bounds the count but the limit
+# on zero-size items per block. Both the column read and the count(*) skip must stop at once.
+statement error
+SELECT * FROM read_avro('test/malformed_array_null_count.avro');
+----
+Invalid Input Error: Avro block count 4294967296 exceeds the limit of 16777216 zero-size items per block
+
+statement error
+SELECT count(*) FROM read_avro('test/malformed_array_null_count.avro');
+----
+Invalid Input Error: Avro block count 4294967296 exceeds the limit of 16777216 zero-size items per block
+
+# An array<int> block claiming 2^40 items with three bytes of payload behind it.
+statement error
+SELECT * FROM read_avro('test/malformed_array_int_count.avro');
+----
+Invalid Input Error: Avro block count 1099511627776 exceeds the remaining 3 bytes
+
+statement error
+SELECT count(*) FROM read_avro('test/malformed_array_int_count.avro');
+----
+Invalid Input Error: Avro block count 1099511627776 exceeds the remaining 3 bytes
+
+# A map<int> block claiming 2^40 entries with one entry behind it.
+statement error
+SELECT * FROM read_avro('test/malformed_map_count.avro');
+----
+Invalid Input Error: Avro block count 1099511627776 exceeds the remaining 3 bytes
+
+statement error
+SELECT count(*) FROM read_avro('test/malformed_map_count.avro');
+----
+Invalid Input Error: Avro block count 1099511627776 exceeds the remaining 3 bytes
+
+# The legitimate counterpart: a positive count of 100000 nulls carries no payload either and must still read.
+query II
+SELECT len(a), a[1:2] FROM read_avro('test/array_of_nulls.avro');
+----
+100000	[NULL, NULL]
+0	[]
+
+query I
+SELECT count(*) FROM read_avro('test/array_of_nulls.avro');
+----
+2
+
+# time-millis / time-micros outside 00:00:00..24:00:00 are an Out of Range error, not an internal one
+statement error
+SELECT * FROM read_avro('test/time_millis_out_of_range.avro');
+----
+Out of Range Error: time-millis value 2000000000 is out of range
+
+statement error
+SELECT * FROM read_avro('test/time_micros_out_of_range.avro');
+----
+Out of Range Error: time-micros value 86400000001 is out of range

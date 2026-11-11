@@ -73,8 +73,8 @@ impl FileInfo {
         };
         let schema_json = metadata_value(&metadata, SCHEMA_KEY)
             .ok_or_else(|| AvroError::new("File header doesn't contain a schema"))?;
-        let schema =
-            Schema::parse(schema_json).map_err(|e| e.prefixed("Cannot parse file header: "))?;
+        let schema = Schema::parse_lenient(schema_json)
+            .map_err(|e| e.prefixed("Cannot parse file header: "))?;
 
         let mut sync = [0u8; SYNC_SIZE];
         sync.copy_from_slice(decoder.read_fixed(SYNC_SIZE)?);
@@ -173,7 +173,7 @@ fn index_blocks(
         let size = decoder
             .read_long()
             .map_err(|e| e.prefixed("Cannot index file block size: "))?;
-        if count <= 0 || size < 0 {
+        if count < 0 || size < 0 {
             return Err(AvroError::new("Invalid Avro file block count or size"));
         }
         let size = usize::try_from(size)
@@ -368,6 +368,8 @@ mod tests {
         for (raw, codec) in [
             (&b"zstandard\0junk"[..], Codec::Zstandard),
             (b"deflate", Codec::Deflate),
+            (b"Snappy", Codec::Snappy),
+            (b"xz", Codec::Xz),
             (b"null\0", Codec::Null),
         ] {
             let mut meta = Vec::new();
@@ -451,7 +453,7 @@ mod tests {
             "Cannot index file block size: Cannot read 1 bytes from memory buffer"
         );
         assert_eq!(
-            error(&file_with_blocks(&[(0, b"")])),
+            error(&file_with_blocks(&[(-1, b"")])),
             "Invalid Avro file block count or size"
         );
         let mut data = file_with_blocks(&[]);
@@ -473,6 +475,14 @@ mod tests {
         let last = data.len() - 1;
         data[last] = b'X';
         assert_eq!(error(&data), "Incorrect sync bytes");
+    }
+
+    #[test]
+    fn zero_count_blocks_are_indexed() {
+        let data = file_with_blocks(&[(0, b""), (1, b"\x02"), (0, b"")]);
+        let info = FileInfo::parse(&data).unwrap();
+        let counts: Vec<u64> = info.blocks.iter().map(|b| b.object_count).collect();
+        assert_eq!(counts, [0, 1, 0]);
     }
 
     #[test]

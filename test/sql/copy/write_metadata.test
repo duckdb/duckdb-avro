@@ -13,3 +13,16 @@ COPY (
 	},
 	ROOT_NAME 'test'
 );
+
+# The format reserves the keys starting with 'avro.'
+statement error
+COPY (
+	select 42 a
+) TO '__TEST_DIR__/reserved_metadata.avro' (
+	METADATA {
+		'key': 'value',
+		'avro.codec': 'deflate'
+	}
+);
+----
+Invalid Input Error: Avro metadata key 'avro.codec' is reserved

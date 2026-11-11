@@ -10,25 +10,47 @@ use super::error::{AvroError, Result};
 
 pub type NodeId = usize;
 
+/// A schema node. `logical_type` is kept on every primitive but `null`, with the `precision` and `scale` a `decimal`
+/// takes: `None` unless the attribute is a JSON integer that fits an `i64`. Only bytes and fixed render them.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Node {
     Null,
-    Boolean,
+    Boolean {
+        logical_type: Option<String>,
+        precision: Option<i64>,
+        scale: Option<i64>,
+    },
     Int {
         logical_type: Option<String>,
+        precision: Option<i64>,
+        scale: Option<i64>,
     },
     Long {
         logical_type: Option<String>,
+        precision: Option<i64>,
+        scale: Option<i64>,
         adjust_to_utc: Option<bool>,
     },
-    Float,
-    Double,
+    Float {
+        logical_type: Option<String>,
+        precision: Option<i64>,
+        scale: Option<i64>,
+    },
+    Double {
+        logical_type: Option<String>,
+        precision: Option<i64>,
+        scale: Option<i64>,
+    },
     Bytes {
         logical_type: Option<String>,
-        precision: Option<i32>,
-        scale: Option<i32>,
+        precision: Option<i64>,
+        scale: Option<i64>,
     },
-    String,
+    String {
+        logical_type: Option<String>,
+        precision: Option<i64>,
+        scale: Option<i64>,
+    },
     Record {
         name: String,
         namespace: Option<String>,
@@ -44,8 +66,8 @@ pub enum Node {
         namespace: Option<String>,
         size: i64,
         logical_type: Option<String>,
-        precision: Option<i32>,
-        scale: Option<i32>,
+        precision: Option<i64>,
+        scale: Option<i64>,
     },
     Array {
         items: NodeId,
@@ -83,9 +105,22 @@ pub struct Schema {
 impl Schema {
     /// Parses a schema the way avro-c does. Accepts any JSON value at the root (e.g. `"int"`).
     pub fn parse(json: &[u8]) -> Result<Schema> {
+        Self::parse_with(json, true)
+    }
+
+    /// Parses the schema of a file being read, which other writers may not have validated: names need not be
+    /// identifiers, and an `error` (the error record of an Avro protocol) is a record.
+    pub fn parse_lenient(json: &[u8]) -> Result<Schema> {
+        Self::parse_with(json, false)
+    }
+
+    fn parse_with(json: &[u8], strict: bool) -> Result<Schema> {
         let value: Value = serde_json::from_slice(json)
             .map_err(|e| AvroError::new(format!("Error parsing JSON: {e}")))?;
-        let mut parser = Parser::default();
+        let mut parser = Parser {
+            strict,
+            ..Parser::default()
+        };
         let root = parser.parse(&value, None)?;
         Ok(Schema {
             nodes: parser.nodes,
@@ -109,7 +144,8 @@ impl Schema {
         id
     }
 
-    /// The schema rendered exactly as avro-c's `avro_schema_to_json` renders it (this is what goes in files).
+    /// The schema rendered the way avro-c's `avro_schema_to_json` renders it (this is what goes in files), with the
+    /// strings escaped so that names a lenient parse accepted still make valid JSON.
     pub fn to_json(&self) -> String {
         let mut out = String::new();
         self.write_json(self.root, None, &mut out);
@@ -119,15 +155,12 @@ impl Schema {
     fn write_json(&self, id: NodeId, parent_namespace: Option<&str>, out: &mut String) {
         match &self.nodes[id] {
             Node::Null => out.push_str("\"null\""),
-            Node::Boolean => out.push_str("{\"type\":\"boolean\"}"),
-            Node::Int { logical_type } => {
-                out.push_str("{\"type\":\"int\"");
-                write_logical_type(logical_type, out);
-                out.push('}');
-            }
+            Node::Boolean { logical_type, .. } => write_primitive("boolean", logical_type, out),
+            Node::Int { logical_type, .. } => write_primitive("int", logical_type, out),
             Node::Long {
                 logical_type,
                 adjust_to_utc,
+                ..
             } => {
                 out.push_str("{\"type\":\"long\"");
                 write_logical_type(logical_type, out);
@@ -136,8 +169,8 @@ impl Schema {
                 }
                 out.push('}');
             }
-            Node::Float => out.push_str("{\"type\":\"float\"}"),
-            Node::Double => out.push_str("{\"type\":\"double\"}"),
+            Node::Float { logical_type, .. } => write_primitive("float", logical_type, out),
+            Node::Double { logical_type, .. } => write_primitive("double", logical_type, out),
             Node::Bytes {
                 logical_type,
                 precision,
@@ -149,7 +182,7 @@ impl Schema {
                 write_number_member("scale", *scale, out);
                 out.push('}');
             }
-            Node::String => out.push_str("{\"type\":\"string\"}"),
+            Node::String { logical_type, .. } => write_primitive("string", logical_type, out),
             Node::Record {
                 name,
                 namespace,
@@ -161,7 +194,9 @@ impl Schema {
                     if i > 0 {
                         out.push(',');
                     }
-                    let _ = write!(out, "{{\"name\":\"{}\",\"type\":", field.name);
+                    out.push_str("{\"name\":");
+                    write_string(&field.name, out);
+                    out.push_str(",\"type\":");
                     self.write_json(field.schema, namespace.as_deref(), out);
                     write_number_member("field-id", field.field_id, out);
                     out.push('}');
@@ -179,7 +214,7 @@ impl Schema {
                     if i > 0 {
                         out.push(',');
                     }
-                    let _ = write!(out, "\"{symbol}\"");
+                    write_string(symbol, out);
                 }
                 out.push_str("]}");
             }
@@ -207,7 +242,8 @@ impl Schema {
                 write_number_member("element-id", *element_id, out);
                 if let Some(logical_type) = logical_type {
                     // The space after the colon is what avro-c writes.
-                    let _ = write!(out, ",\"logicalType\": \"{logical_type}\"");
+                    out.push_str(",\"logicalType\": ");
+                    write_string(logical_type, out);
                 }
                 out.push_str(",\"items\":");
                 self.write_json(*items, parent_namespace, out);
@@ -248,25 +284,49 @@ impl Schema {
                     } => (name.as_str(), namespace.as_deref()),
                     _ => ("", None),
                 };
-                out.push('"');
-                if let Some(namespace) = namespace
-                    && Some(namespace) != parent_namespace
-                {
-                    let _ = write!(out, "{namespace}.");
+                match namespace {
+                    Some(namespace) if Some(namespace) != parent_namespace => {
+                        write_string(&format!("{namespace}.{name}"), out)
+                    }
+                    _ => write_string(name, out),
                 }
-                let _ = write!(out, "{name}\"");
             }
         }
     }
 }
 
+fn write_string(value: &str, out: &mut String) {
+    out.push('"');
+    for c in value.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if u32::from(c) < 0x20 => {
+                let _ = write!(out, "\\u{:04x}", u32::from(c));
+            }
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+}
+
+fn write_primitive(type_name: &str, logical_type: &Option<String>, out: &mut String) {
+    let _ = write!(out, "{{\"type\":\"{type_name}\"");
+    write_logical_type(logical_type, out);
+    out.push('}');
+}
+
 fn write_logical_type(logical_type: &Option<String>, out: &mut String) {
     if let Some(logical_type) = logical_type {
-        let _ = write!(out, ",\"logicalType\":\"{logical_type}\"");
+        out.push_str(",\"logicalType\":");
+        write_string(logical_type, out);
     }
 }
 
-fn write_number_member(key: &str, value: Option<i32>, out: &mut String) {
+fn write_number_member<T: std::fmt::Display>(key: &str, value: Option<T>, out: &mut String) {
     if let Some(value) = value {
         let _ = write!(out, ",\"{key}\":{value}");
     }
@@ -279,9 +339,13 @@ fn write_named_start(
     parent_namespace: Option<&str>,
     out: &mut String,
 ) {
-    let _ = write!(out, "{{\"type\":\"{type_name}\",\"name\":\"{name}\",");
+    let _ = write!(out, "{{\"type\":\"{type_name}\",\"name\":");
+    write_string(name, out);
+    out.push(',');
     if namespace != parent_namespace {
-        let _ = write!(out, "\"namespace\":\"{}\",", namespace.unwrap_or(""));
+        out.push_str("\"namespace\":");
+        write_string(namespace.unwrap_or(""), out);
+        out.push(',');
     }
 }
 
@@ -289,6 +353,7 @@ fn write_named_start(
 struct Parser {
     nodes: Vec<Node>,
     named: HashMap<String, NodeId>,
+    strict: bool,
 }
 
 impl Parser {
@@ -306,43 +371,61 @@ impl Parser {
         let Some(Value::String(type_name)) = type_value else {
             return Err(AvroError::new("\"type\" field must be a string"));
         };
+        let logical_type = string_member(json, "logicalType");
+        let (precision, scale) = if logical_type.is_some() {
+            (
+                integer_member(json, "precision"),
+                integer_member(json, "scale"),
+            )
+        } else {
+            (None, None)
+        };
         let node = match type_name.as_str() {
-            "string" => Node::String,
-            "bytes" => {
-                let logical_type = string_member(json, "logicalType");
-                let (precision, scale) = if logical_type.is_some() {
-                    (
-                        number_member(json, "precision"),
-                        number_member(json, "scale"),
-                    )
-                } else {
-                    (None, None)
-                };
-                Node::Bytes {
-                    logical_type,
-                    precision,
-                    scale,
-                }
-            }
+            "string" => Node::String {
+                logical_type,
+                precision,
+                scale,
+            },
+            "bytes" => Node::Bytes {
+                logical_type,
+                precision,
+                scale,
+            },
             "int" => Node::Int {
-                logical_type: string_member(json, "logicalType"),
+                logical_type,
+                precision,
+                scale,
             },
             "long" => {
-                let logical_type = string_member(json, "logicalType");
                 let adjust_to_utc = match logical_type {
                     Some(_) => member(json, "adjust-to-utc").map(|v| v == &Value::Bool(true)),
                     None => None,
                 };
                 Node::Long {
                     logical_type,
+                    precision,
+                    scale,
                     adjust_to_utc,
                 }
             }
-            "float" => Node::Float,
-            "double" => Node::Double,
-            "boolean" => Node::Boolean,
+            "float" => Node::Float {
+                logical_type,
+                precision,
+                scale,
+            },
+            "double" => Node::Double {
+                logical_type,
+                precision,
+                scale,
+            },
+            "boolean" => Node::Boolean {
+                logical_type,
+                precision,
+                scale,
+            },
             "null" => Node::Null,
             "record" => return self.parse_record(json, namespace),
+            "error" if !self.strict => return self.parse_record(json, namespace),
             "enum" => return self.parse_enum(json, namespace),
             "array" => {
                 let items = member(json, "items")
@@ -351,7 +434,7 @@ impl Parser {
                 Node::Array {
                     items,
                     element_id: id_member(json, "element-id"),
-                    logical_type: string_member(json, "logicalType"),
+                    logical_type,
                 }
             }
             "map" => {
@@ -391,7 +474,7 @@ impl Parser {
         let Some(Value::Array(json_fields)) = member(json, "fields") else {
             return Err(AvroError::new("Record type must have \"fields\""));
         };
-        let (name, namespace) = split_full_name(json, full_name, parent_namespace)?;
+        let (name, namespace) = self.split_full_name(json, full_name, parent_namespace)?;
         let full_name = qualify_name(&name, namespace.as_deref());
         let id = self.push(Node::Record {
             name,
@@ -416,7 +499,7 @@ impl Parser {
                     "Invalid field name in avro_schema_record_field_append",
                 ));
             };
-            if !is_avro_id(field_name) {
+            if self.strict && !is_avro_id(field_name) {
                 return Err(AvroError::new("Invalid Avro identifier"));
             }
             fields.push(Field {
@@ -441,7 +524,7 @@ impl Parser {
         if json_symbols.is_empty() {
             return Err(AvroError::new("Enum type must have at least one symbol"));
         }
-        let (name, namespace) = split_full_name(json, full_name, parent_namespace)?;
+        let (name, namespace) = self.split_full_name(json, full_name, parent_namespace)?;
         let full_name = qualify_name(&name, namespace.as_deref());
         let id = self.push(Node::Enum {
             name,
@@ -470,15 +553,15 @@ impl Parser {
         let Some(Value::String(full_name)) = member(json, "name") else {
             return Err(AvroError::new("Fixed type must have a \"name\""));
         };
-        let (name, namespace) = split_full_name(json, full_name, parent_namespace)?;
+        let (name, namespace) = self.split_full_name(json, full_name, parent_namespace)?;
         let full_name = qualify_name(&name, namespace.as_deref());
         let id = self.push(Node::Fixed {
             name,
             namespace,
             size,
             logical_type: string_member(json, "logicalType"),
-            precision: number_member(json, "precision"),
-            scale: number_member(json, "scale"),
+            precision: integer_member(json, "precision"),
+            scale: integer_member(json, "scale"),
         });
         self.register(full_name, id, "fixed")?;
         Ok(id)
@@ -490,6 +573,33 @@ impl Parser {
         }
         self.named.insert(full_name, id);
         Ok(())
+    }
+
+    fn split_full_name(
+        &self,
+        json: &Value,
+        full_name: &str,
+        parent_namespace: Option<&str>,
+    ) -> Result<(String, Option<String>)> {
+        let (name, namespace) = if let Some(dot) = full_name.rfind('.') {
+            (&full_name[dot + 1..], Some(&full_name[..dot]))
+        } else if let Some(Value::String(namespace)) = member(json, "namespace") {
+            (
+                full_name,
+                Some(namespace.as_str()).filter(|ns| !ns.is_empty()),
+            )
+        } else {
+            (full_name, parent_namespace)
+        };
+        let valid = if self.strict {
+            is_avro_id(name)
+        } else {
+            !name.is_empty()
+        };
+        if !valid {
+            return Err(AvroError::new("Invalid Avro identifier"));
+        }
+        Ok((name.to_owned(), namespace.map(str::to_owned)))
     }
 }
 
@@ -506,9 +616,8 @@ fn id_member(json: &Value, key: &str) -> Option<i32> {
     (id != i32::MAX).then_some(id)
 }
 
-fn number_member(json: &Value, key: &str) -> Option<i32> {
-    let value = member(json, key)?.as_i64().unwrap_or(0) as i32;
-    (value != -1).then_some(value)
+fn integer_member(json: &Value, key: &str) -> Option<i64> {
+    member(json, key).and_then(Value::as_i64)
 }
 
 fn qualify_name(name: &str, namespace: Option<&str>) -> String {
@@ -516,27 +625,6 @@ fn qualify_name(name: &str, namespace: Option<&str>) -> String {
         Some(namespace) if !name.contains('.') => format!("{namespace}.{name}"),
         _ => name.to_owned(),
     }
-}
-
-fn split_full_name(
-    json: &Value,
-    full_name: &str,
-    parent_namespace: Option<&str>,
-) -> Result<(String, Option<String>)> {
-    let (name, namespace) = if let Some(dot) = full_name.rfind('.') {
-        (&full_name[dot + 1..], Some(&full_name[..dot]))
-    } else if let Some(Value::String(namespace)) = member(json, "namespace") {
-        (
-            full_name,
-            Some(namespace.as_str()).filter(|ns| !ns.is_empty()),
-        )
-    } else {
-        (full_name, parent_namespace)
-    };
-    if !is_avro_id(name) {
-        return Err(AvroError::new("Invalid Avro identifier"));
-    }
-    Ok((name.to_owned(), namespace.map(str::to_owned)))
 }
 
 fn is_avro_id(name: &str) -> bool {
@@ -602,16 +690,84 @@ mod tests {
             r#"{"type":"bytes","logicalType":"decimal","precision":9,"scale":2}"#
         );
         assert_eq!(
-            render(r#"{"type":"bytes","logicalType":"decimal","precision":"9"}"#),
-            r#"{"type":"bytes","logicalType":"decimal","precision":0}"#
+            render(r#"{"type":"bytes","logicalType":"decimal","precision":"9","scale":2.0}"#),
+            r#"{"type":"bytes","logicalType":"decimal"}"#
         );
         assert_eq!(
-            render(r#"{"type":"string","logicalType":"uuid"}"#),
-            r#"{"type":"string"}"#
+            render(r#"{"type":"bytes","logicalType":"decimal","precision":4294967306,"scale":-1}"#),
+            r#"{"type":"bytes","logicalType":"decimal","precision":4294967306,"scale":-1}"#
+        );
+        for name in ["string", "boolean", "float", "double"] {
+            assert_eq!(
+                render(&format!(r#"{{"type":"{name}","logicalType":"uuid"}}"#)),
+                format!(r#"{{"type":"{name}","logicalType":"uuid"}}"#)
+            );
+        }
+        assert_eq!(
+            render(r#"{"type":"null","logicalType":"uuid"}"#),
+            r#""null""#
         );
         assert_eq!(
             render(r#"{"type":"int","logicalType":5}"#),
             r#"{"type":"int"}"#
+        );
+    }
+
+    fn lenient(json: &str) -> Schema {
+        Schema::parse_lenient(json.as_bytes()).unwrap()
+    }
+
+    #[test]
+    fn lenient_parse_accepts_any_name() {
+        let json = r#"{"type":"record","name":"a-b","namespace":"x y","fields":[
+            {"name":"1st","type":{"type":"enum","name":"$e","symbols":["a b"]}},
+            {"name":"quote\"back\\slash\u0001","type":{"type":"fixed","name":"f.g h","size":1}},
+            {"name":"again","type":"f.g h"}]}"#;
+        assert_eq!(error(json), "Invalid Avro identifier");
+        let schema = lenient(json);
+        let rendered = schema.to_json();
+        assert_eq!(
+            rendered,
+            concat!(
+                r#"{"type":"record","name":"a-b","namespace":"x y","fields":["#,
+                r#"{"name":"1st","type":{"type":"enum","name":"$e","symbols":["a b"]}},"#,
+                r#"{"name":"quote\"back\\slash\u0001","type":{"type":"fixed","name":"g h","namespace":"f","size":1}},"#,
+                r#"{"name":"again","type":"f.g h"}]}"#
+            )
+        );
+        let reparsed = lenient(&rendered);
+        assert_eq!(reparsed, schema);
+        let Node::Record { fields, .. } = schema.node(schema.root()) else {
+            panic!("not a record");
+        };
+        assert_eq!(fields[1].name, "quote\"back\\slash\u{1}");
+    }
+
+    #[test]
+    fn lenient_parse_still_needs_names() {
+        let lenient_error =
+            |json: &str| Schema::parse_lenient(json.as_bytes()).unwrap_err().message;
+        assert_eq!(
+            lenient_error(r#"{"type":"record","name":"","fields":[]}"#),
+            "Invalid Avro identifier"
+        );
+        assert_eq!(
+            lenient_error(r#"{"type":"fixed","name":"a.","size":1}"#),
+            "Invalid Avro identifier"
+        );
+        assert_eq!(
+            lenient_error(r#"{"type":"record","name":"r","fields":[{"name":1,"type":"int"}]}"#),
+            "Invalid field name in avro_schema_record_field_append"
+        );
+    }
+
+    #[test]
+    fn error_records_are_records_when_lenient() {
+        let json = r#"{"type":"error","name":"E","fields":[{"name":"msg","type":"string"}]}"#;
+        assert_eq!(error(json), "Unknown Avro \"type\": error");
+        assert_eq!(
+            lenient(json).to_json(),
+            r#"{"type":"record","name":"E","fields":[{"name":"msg","type":{"type":"string"}}]}"#
         );
     }
 
@@ -867,6 +1023,8 @@ mod tests {
             schema.node(fields[1].schema),
             &Node::Long {
                 logical_type: None,
+                precision: None,
+                scale: None,
                 adjust_to_utc: None
             }
         );

@@ -1,0 +1,40 @@
+# name: test/sql/logical_types_lenient.test
+# description: unknown and invalid logical types are ignored, the underlying type is read (Avro spec, "Logical Types")
+# group: [sql]
+
+require avro
+
+# test/corpus/unknown_logical_type.avro (scripts/create_corpus_fixtures.py): Google Datastream's time-interval-micros
+# on a long, Hive's char on a string
+query II
+SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('test/corpus/unknown_logical_type.avro'));
+----
+v	BIGINT
+s	VARCHAR
+
+query II
+SELECT v, s FROM read_avro('test/corpus/unknown_logical_type.avro');
+----
+42	abc
+
+# test/corpus/decimal_invalid.avro: a decimal whose precision is a string (Hive 0.x), one of 76 digits, one whose
+# scale exceeds its precision, one without a precision and one on a fixed with precision 0: all read as the bytes
+query II
+SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('test/corpus/decimal_invalid.avro'));
+----
+d_str	BLOB
+d_big	BLOB
+d_scale	BLOB
+d_none	BLOB
+d_fixed	BLOB
+
+query IIIII
+SELECT * FROM read_avro('test/corpus/decimal_invalid.avro');
+----
+\x01,	\x01,	\x01,	\x01,	\x00\x00\x01,
+
+# a valid decimal still is a DECIMAL
+query I
+SELECT column_type FROM (DESCRIBE FROM read_avro('test/decimal_bytes.avro')) WHERE column_name = 'decimal_4_2';
+----
+DECIMAL(4,2)

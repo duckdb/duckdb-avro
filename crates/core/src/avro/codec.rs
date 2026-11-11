@@ -17,18 +17,20 @@ pub enum Codec {
     Lzma,
     Zstandard,
     Bzip2,
+    Xz,
 }
 
 impl Codec {
-    /// The codec of an `avro.codec` name; `"Unknown codec <name>"` for others. Case sensitive.
+    /// The codec of an `avro.codec` name, case insensitively; `"Unknown codec <name>"` for others.
     pub fn from_name(name: &str) -> Result<Codec> {
-        match name {
+        match name.to_ascii_lowercase().as_str() {
             "null" => Ok(Codec::Null),
             "deflate" => Ok(Codec::Deflate),
             "snappy" => Ok(Codec::Snappy),
             "lzma" => Ok(Codec::Lzma),
             "zstandard" => Ok(Codec::Zstandard),
             "bzip2" => Ok(Codec::Bzip2),
+            "xz" => Ok(Codec::Xz),
             _ => Err(AvroError::new(format!("Unknown codec {name}"))),
         }
     }
@@ -41,6 +43,7 @@ impl Codec {
             Codec::Lzma => "lzma",
             Codec::Zstandard => "zstandard",
             Codec::Bzip2 => "bzip2",
+            Codec::Xz => "xz",
         }
     }
 
@@ -58,6 +61,7 @@ impl Codec {
                 ruzstd::encoding::CompressionLevel::Fastest,
             ),
             Codec::Bzip2 => encode_bzip2(data, out)?,
+            Codec::Xz => encode_xz(data, out)?,
         }
         Ok(())
     }
@@ -72,6 +76,7 @@ impl Codec {
             Codec::Lzma => decode_lzma(data, out)?,
             Codec::Zstandard => decode_zstandard(data, out)?,
             Codec::Bzip2 => decode_bzip2(data, out)?,
+            Codec::Xz => decode_xz(data, out)?,
         }
         Ok(out)
     }
@@ -160,6 +165,23 @@ fn decode_lzma(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
     Ok(())
 }
 
+fn encode_xz(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
+    let encoder_error = |_| AvroError::new("Error in xz encoder");
+    let mut options = lzma_rust2::XzOptions::with_preset(LZMA_PRESET);
+    options.lzma_options.dict_size = LZMA_DICT_SIZE;
+    let mut encoder = lzma_rust2::XzWriter::new(out, options).map_err(encoder_error)?;
+    encoder.write_all(data).map_err(encoder_error)?;
+    encoder.finish().map_err(encoder_error)?;
+    Ok(())
+}
+
+fn decode_xz(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
+    lzma_rust2::XzReader::new(data, true)
+        .read_to_end(out)
+        .map_err(|e| AvroError::new(format!("Error uncompressing block with xz: {e}")))?;
+    Ok(())
+}
+
 fn decode_zstandard(mut data: &[u8], out: &mut Vec<u8>) -> Result<()> {
     use ruzstd::decoding::errors::{FrameDecoderError, ReadFrameHeaderError};
     use ruzstd::decoding::{BlockDecodingStrategy, FrameDecoder};
@@ -224,13 +246,14 @@ fn decode_bzip2(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
 mod tests {
     use super::*;
 
-    const ALL: [Codec; 6] = [
+    const ALL: [Codec; 7] = [
         Codec::Null,
         Codec::Deflate,
         Codec::Snappy,
         Codec::Lzma,
         Codec::Zstandard,
         Codec::Bzip2,
+        Codec::Xz,
     ];
 
     #[test]
@@ -275,13 +298,15 @@ mod tests {
         for codec in ALL {
             assert_eq!(Codec::from_name(codec.name()).unwrap(), codec);
         }
+        assert_eq!(Codec::from_name("Deflate").unwrap(), Codec::Deflate);
+        assert_eq!(Codec::from_name("XZ").unwrap(), Codec::Xz);
         assert_eq!(
-            Codec::from_name("Deflate").unwrap_err().message,
-            "Unknown codec Deflate"
+            Codec::from_name(" deflate").unwrap_err().message,
+            "Unknown codec  deflate"
         );
         assert_eq!(
-            Codec::from_name("xz").unwrap_err().message,
-            "Unknown codec xz"
+            Codec::from_name("brotli").unwrap_err().message,
+            "Unknown codec brotli"
         );
     }
 
@@ -457,6 +482,7 @@ mod tests {
             Codec::Lzma,
             Codec::Zstandard,
             Codec::Bzip2,
+            Codec::Xz,
         ] {
             let mut block = Vec::new();
             codec.encode(&data, &mut block).unwrap();

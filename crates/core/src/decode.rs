@@ -9,16 +9,18 @@ use std::collections::HashMap;
 use duckdb_neo::{
     Result,
     logical_type::LogicalTypeID,
-    types::{BlobValue, List, Map, UncheckedString, UuidValueRaw},
+    types::{BlobValue, IntervalValue, List, Map, UncheckedString, UuidValueRaw},
     vector::{ChildVector, Unknown, Vector, VectorElement, VectorWriter},
 };
 
 use crate::avro::binary::Decoder;
 use crate::avro::{AvroError, Result as AvroResult};
 use crate::error::{internal, invalid_input, not_implemented, out_of_range};
-use crate::types::{AvroKind, AvroType};
+use crate::types::{AvroKind, AvroType, Conversion};
 
 const MICROS_PER_MSEC: i64 = 1000;
+const MAX_TIME_MILLIS: i64 = 86_400_000;
+const MAX_TIME_MICROS: i64 = 86_400_000_000;
 const MAP_HASH_THRESHOLD: usize = 16;
 
 fn prefixed<T>(result: AvroResult<T>, prefix: &str) -> AvroResult<T> {
@@ -70,28 +72,101 @@ fn read_block_count(
 ) -> AvroResult<u64> {
     let count = prefixed(decoder.read_long(), messages.count)?;
     if count < 0 {
+        if count == i64::MIN {
+            return Err(AvroError::new("Avro block count overflow"));
+        }
         prefixed(decoder.read_long(), messages.size)?;
     }
     let count = count.unsigned_abs();
     *items = items.saturating_add(count);
-    let fits = match decoder.remaining().checked_div(item_size) {
-        Some(limit) => count <= limit as u64,
-        None => *items <= MAX_ZERO_WIDTH_ITEMS,
-    };
-    if !fits {
-        return Err(AvroError::new(
-            "Avro block claims more items than its data holds",
-        ));
+    match decoder.remaining().checked_div(item_size) {
+        Some(limit) if count > limit as u64 => Err(AvroError::new(format!(
+            "Avro block count {count} exceeds the remaining {} bytes",
+            decoder.remaining()
+        ))),
+        None if count > MAX_ZERO_WIDTH_ITEMS => Err(AvroError::new(format!(
+            "Avro block count {count} exceeds the limit of {MAX_ZERO_WIDTH_ITEMS} zero-size items per block"
+        ))),
+        None if *items > MAX_ZERO_WIDTH_ITEMS => Err(AvroError::new(format!(
+            "Avro array or map holds more than {MAX_ZERO_WIDTH_ITEMS} zero-size items"
+        ))),
+        _ => Ok(count),
     }
-    Ok(count)
 }
 
-fn millis_to_micros(millis: i64) -> Result<i64> {
+fn time_millis_to_micros(millis: i64) -> Result<i64> {
+    if !(0..=MAX_TIME_MILLIS).contains(&millis) {
+        return Err(out_of_range(format!(
+            "time-millis value {millis} is out of range"
+        )));
+    }
+    Ok(millis * MICROS_PER_MSEC)
+}
+
+fn checked_time_micros(micros: i64) -> Result<i64> {
+    if !(0..=MAX_TIME_MICROS).contains(&micros) {
+        return Err(out_of_range(format!(
+            "time-micros value {micros} is out of range"
+        )));
+    }
+    Ok(micros)
+}
+
+fn timestamp_millis_to_micros(millis: i64) -> Result<i64> {
+    // DuckDB's infinities are the same in every unit, and COPY writes them unscaled
+    if millis == i64::MAX || millis == -i64::MAX {
+        return Ok(millis);
+    }
     millis.checked_mul(MICROS_PER_MSEC).ok_or_else(|| {
         out_of_range(format!(
             "Overflow in multiplication of INT64 ({millis} * {MICROS_PER_MSEC})!"
         ))
     })
+}
+
+fn duration_to_interval(bytes: &[u8]) -> Result<IntervalValue> {
+    let part = |index: usize| {
+        let mut word = [0u8; 4];
+        word.copy_from_slice(&bytes[index * 4..index * 4 + 4]);
+        u32::from_le_bytes(word)
+    };
+    let signed = |what: &str, value: u32| {
+        i32::try_from(value).map_err(|_| {
+            out_of_range(format!(
+                "duration {what} value {value} is out of range for an INTERVAL"
+            ))
+        })
+    };
+    Ok(IntervalValue {
+        months: signed("months", part(0))?,
+        days: signed("days", part(1))?,
+        micros: i64::from(part(2)) * MICROS_PER_MSEC,
+    })
+}
+
+fn parse_uuid(text: &[u8]) -> Option<[u8; 16]> {
+    if text.len() != 36 {
+        return None;
+    }
+    let mut bytes = [0u8; 16];
+    let mut nibble = 0;
+    for (index, &c) in text.iter().enumerate() {
+        if matches!(index, 8 | 13 | 18 | 23) {
+            if c != b'-' {
+                return None;
+            }
+            continue;
+        }
+        let digit = char::from(c).to_digit(16)? as u8;
+        bytes[nibble / 2] |= if nibble % 2 == 0 { digit << 4 } else { digit };
+        nibble += 1;
+    }
+    Some(bytes)
+}
+
+fn uuid_value(bytes: [u8; 16]) -> [u64; 2] {
+    let value = UuidValueRaw::from_bytes(bytes).0;
+    [value as u64, (value >> 64) as u64]
 }
 
 // Keeps the lowest 128 bits of wider integers, like the C++ implementation did.
@@ -131,12 +206,13 @@ enum Data {
     Boolean(Vec<bool>),
     Int(Vec<i32>),
     Long {
-        millis: bool,
+        conversion: Conversion,
         values: Vec<i64>,
     },
     Float(Vec<f32>),
     Double(Vec<f64>),
     Uuid(Vec<[u64; 2]>),
+    Interval(Vec<IntervalValue>),
     Decimal {
         storage: DecimalStorage,
         values: Vec<i128>,
@@ -176,13 +252,66 @@ enum Data {
     },
 }
 
+#[derive(Debug, Default)]
+struct NullMask {
+    words: Vec<u64>,
+}
+
+impl NullMask {
+    fn contains(&self, row: usize) -> bool {
+        self.words
+            .get(row / 64)
+            .is_some_and(|word| word & (1 << (row % 64)) != 0)
+    }
+
+    fn set(&mut self, row: usize, is_null: bool) {
+        let word = row / 64;
+        let bit = 1 << (row % 64);
+        if is_null {
+            if word >= self.words.len() {
+                self.words.resize(word + 1, 0);
+            }
+            self.words[word] |= bit;
+        } else if let Some(word) = self.words.get_mut(word) {
+            *word &= !bit;
+        }
+    }
+
+    fn truncate(&mut self, len: usize) {
+        self.words.truncate(len.div_ceil(64));
+        if let Some(word) = self.words.get_mut(len / 64) {
+            // Reused slots must start valid, even within the last retained word.
+            *word &= (1 << (len % 64)) - 1;
+        }
+    }
+
+    fn clear(&mut self) {
+        self.words.clear();
+    }
+
+    fn iter(&self) -> impl Iterator<Item = usize> + '_ {
+        self.words.iter().enumerate().flat_map(|(index, &word)| {
+            let mut bits = word;
+            std::iter::from_fn(move || {
+                if bits == 0 {
+                    return None;
+                }
+                let row = index * 64 + bits.trailing_zeros() as usize;
+                bits &= bits - 1;
+                Some(row)
+            })
+        })
+    }
+}
+
 /// The values of one vector (and its children) for the rows decoded so far.
 #[derive(Debug)]
 pub struct Column {
     kind: AvroKind,
     type_id: LogicalTypeID,
     fixed_size: usize,
-    validity: Vec<bool>,
+    len: usize,
+    nulls: NullMask,
     data: Data,
 }
 
@@ -201,12 +330,13 @@ impl Column {
             | LogicalTypeID::TimestampNs
             | LogicalTypeID::TimestampTzNs
             | LogicalTypeID::BigInt => Data::Long {
-                millis: avro_type.is_millis,
+                conversion: avro_type.conversion,
                 values: Vec::new(),
             },
             LogicalTypeID::Float => Data::Float(Vec::new()),
             LogicalTypeID::Double => Data::Double(Vec::new()),
             LogicalTypeID::Uuid => Data::Uuid(Vec::new()),
+            LogicalTypeID::Interval => Data::Interval(Vec::new()),
             LogicalTypeID::Decimal => Data::Decimal {
                 storage: match avro_type.decimal_width {
                     0..=4 => DecimalStorage::Short,
@@ -307,7 +437,8 @@ impl Column {
             kind: avro_type.kind,
             type_id,
             fixed_size: avro_type.fixed_size,
-            validity: Vec::new(),
+            len: 0,
+            nulls: NullMask::default(),
             data,
         })
     }
@@ -316,7 +447,7 @@ impl Column {
     pub fn len(&self) -> usize {
         match &self.data {
             Data::Collapsed { child, .. } => child.len(),
-            _ => self.validity.len(),
+            _ => self.len,
         }
     }
 
@@ -326,7 +457,8 @@ impl Column {
 
     /// Drops every decoded row, keeping the allocations.
     pub fn clear(&mut self) {
-        self.validity.clear();
+        self.len = 0;
+        self.nulls.clear();
         match &mut self.data {
             Data::Null { .. } => {}
             Data::Boolean(values) => values.clear(),
@@ -335,6 +467,7 @@ impl Column {
             Data::Float(values) => values.clear(),
             Data::Double(values) => values.clear(),
             Data::Uuid(values) => values.clear(),
+            Data::Interval(values) => values.clear(),
             Data::Decimal { values, .. } => values.clear(),
             Data::Bytes { data, ranges, .. } => {
                 data.clear();
@@ -366,15 +499,25 @@ impl Column {
 
     /// Appends a NULL row; the children of a NULL STRUCT or UNION are NULL as well.
     pub fn push_null(&mut self) {
-        self.validity.push(false);
+        if let Data::Collapsed { child, .. } = &mut self.data {
+            child.push_null();
+            return;
+        }
+        self.nulls.set(self.len, true);
+        self.len += 1;
         match &mut self.data {
-            Data::Null { .. } => {}
+            Data::Null { .. } | Data::Collapsed { .. } => {}
             Data::Boolean(values) => values.push(false),
             Data::Int(values) => values.push(0),
             Data::Long { values, .. } => values.push(0),
             Data::Float(values) => values.push(0.0),
             Data::Double(values) => values.push(0.0),
             Data::Uuid(values) => values.push([0; 2]),
+            Data::Interval(values) => values.push(IntervalValue {
+                months: 0,
+                days: 0,
+                micros: 0,
+            }),
             Data::Decimal { values, .. } => values.push(0),
             Data::Bytes { data, ranges, .. } => ranges.push((data.len(), 0)),
             Data::Enum { values, .. } => values.push(0),
@@ -384,10 +527,6 @@ impl Column {
             Data::Union { tags, children, .. } => {
                 tags.push(0);
                 children.iter_mut().for_each(Column::push_null);
-            }
-            Data::Collapsed { child, .. } => {
-                self.validity.pop();
-                child.push_null();
             }
         }
     }
@@ -401,7 +540,8 @@ impl Column {
                 if let Some(branch_count) = *union_branches {
                     read_union_branch(decoder, branch_count)?;
                 }
-                self.validity.push(false);
+                self.nulls.set(self.len, true);
+                self.len += 1;
                 return Ok(());
             }
             Data::Boolean(values) => values.push(prefixed(
@@ -415,12 +555,13 @@ impl Column {
                         .map_err(|_| AvroError::new("Varint out of range for int type"))?,
                 );
             }
-            Data::Long { millis, values } => {
+            Data::Long { conversion, values } => {
                 let value = read_integer(decoder, kind)?;
-                values.push(if *millis {
-                    millis_to_micros(value)?
-                } else {
-                    value
+                values.push(match conversion {
+                    Conversion::TimeMillis => time_millis_to_micros(value)?,
+                    Conversion::TimeMicros => checked_time_micros(value)?,
+                    Conversion::TimestampMillis => timestamp_millis_to_micros(value)?,
+                    _ => value,
                 });
             }
             Data::Float(values) => {
@@ -431,12 +572,24 @@ impl Column {
                 "Cannot read double value: ",
             )?),
             Data::Uuid(values) => {
-                let bytes: [u8; 16] =
+                let bytes = if kind == AvroKind::String {
+                    let text = prefixed(decoder.read_bytes(), "Cannot read string value: ")?;
+                    parse_uuid(text).ok_or_else(|| {
+                        invalid_input(format!(
+                            "Avro uuid string '{}' is not a UUID",
+                            String::from_utf8_lossy(text)
+                        ))
+                    })?
+                } else {
                     prefixed(decoder.read_fixed(16), "Cannot read fixed value: ")?
                         .try_into()
-                        .map_err(|_| internal("UUID is not 16 bytes"))?;
-                let value = UuidValueRaw::from_bytes(bytes).0;
-                values.push([value as u64, (value >> 64) as u64]);
+                        .map_err(|_| internal("UUID is not 16 bytes"))?
+                };
+                values.push(uuid_value(bytes));
+            }
+            Data::Interval(values) => {
+                let bytes = prefixed(decoder.read_fixed(12), "Cannot read fixed value: ")?;
+                values.push(duration_to_interval(bytes)?);
             }
             Data::Decimal { values, .. } => {
                 let bytes = if kind == AvroKind::Fixed {
@@ -480,10 +633,10 @@ impl Column {
                 }
             }
             Data::List {
+                map,
                 entries,
                 child,
                 item_size,
-                ..
             } => {
                 let offset = child.len();
                 let mut items = 0;
@@ -493,7 +646,11 @@ impl Column {
                         break;
                     }
                     for _ in 0..count {
-                        child.read(decoder)?;
+                        if *map {
+                            child.read_map_item(decoder)?;
+                        } else {
+                            child.read(decoder)?;
+                        }
                     }
                 }
                 entries.push([offset as u64, (child.len() - offset) as u64]);
@@ -517,7 +674,8 @@ impl Column {
                 let Some(member) = members[branch] else {
                     tags.push(0);
                     children.iter_mut().for_each(Column::push_null);
-                    self.validity.push(false);
+                    self.nulls.set(self.len, true);
+                    self.len += 1;
                     return Ok(());
                 };
                 tags.push(member as u8);
@@ -542,8 +700,25 @@ impl Column {
                 return Ok(());
             }
         }
-        self.validity.push(true);
+        self.len += 1;
         Ok(())
+    }
+
+    fn read_map_item(&mut self, decoder: &mut Decoder<'_>) -> Result<()> {
+        // An item of a NULL branch has no place in a MAP, so it is dropped
+        match &mut self.data {
+            Data::Collapsed {
+                branch,
+                branch_count,
+                child,
+            } => {
+                if read_union_branch(decoder, *branch_count)? == *branch {
+                    child.read(decoder)?;
+                }
+                Ok(())
+            }
+            _ => self.read(decoder),
+        }
     }
 
     fn move_row(&mut self, from: usize, to: usize) {
@@ -551,7 +726,7 @@ impl Column {
             child.move_row(from, to);
             return;
         }
-        self.validity[to] = self.validity[from];
+        self.nulls.set(to, self.nulls.contains(from));
         match &mut self.data {
             Data::Null { .. } | Data::Collapsed { .. } => {}
             Data::Boolean(values) => values[to] = values[from],
@@ -560,6 +735,7 @@ impl Column {
             Data::Float(values) => values[to] = values[from],
             Data::Double(values) => values[to] = values[from],
             Data::Uuid(values) => values[to] = values[from],
+            Data::Interval(values) => values[to] = values[from],
             Data::Decimal { values, .. } => values[to] = values[from],
             Data::Bytes { ranges, .. } => ranges[to] = ranges[from],
             Data::Enum { values, .. } => values[to] = values[from],
@@ -580,7 +756,8 @@ impl Column {
             child.truncate(len);
             return;
         }
-        self.validity.truncate(len);
+        self.len = len;
+        self.nulls.truncate(len);
         match &mut self.data {
             Data::Null { .. } | Data::Collapsed { .. } => {}
             Data::Boolean(values) => values.truncate(len),
@@ -589,6 +766,7 @@ impl Column {
             Data::Float(values) => values.truncate(len),
             Data::Double(values) => values.truncate(len),
             Data::Uuid(values) => values.truncate(len),
+            Data::Interval(values) => values.truncate(len),
             Data::Decimal { values, .. } => values.truncate(len),
             Data::Bytes { ranges, .. } => ranges.truncate(len),
             Data::Enum { values, .. } => values.truncate(len),
@@ -615,7 +793,7 @@ impl Column {
         if let Data::Bytes { data, ranges, .. } = &mut self.data {
             ranges.push((data.len(), key.len()));
             data.extend_from_slice(key);
-            self.validity.push(true);
+            self.len += 1;
         }
     }
 }
@@ -744,18 +922,22 @@ fn check_len(expected: usize, actual: usize) -> Result<()> {
     Ok(())
 }
 
+#[derive(Clone, Copy)]
+struct Validity<'a> {
+    len: usize,
+    nulls: &'a NullMask,
+}
+
 fn write_validity<E: VectorElement>(
     writer: &mut VectorWriter<'_, E>,
-    validity: &[bool],
+    validity: Validity<'_>,
 ) -> Result<()> {
-    check_len(writer.len(), validity.len())?;
+    check_len(writer.len(), validity.len)?;
     // SAFETY: every row the validity marks valid is written by the caller before the vector is read.
     unsafe {
         writer.fill_validity(true)?;
-        for (row, valid) in validity.iter().enumerate() {
-            if !valid {
-                writer.set_row_validity(row, false)?;
-            }
+        for row in validity.nulls.iter() {
+            writer.set_row_validity(row, false)?;
         }
     }
     Ok(())
@@ -764,7 +946,7 @@ fn write_validity<E: VectorElement>(
 fn write_values<E: VectorElement, T: Copy>(
     writer: &mut VectorWriter<'_, E>,
     values: &[T],
-    validity: &[bool],
+    validity: Validity<'_>,
 ) -> Result<()> {
     check_len(writer.len(), values.len())?;
     let data = writer.as_mut_ptr().cast::<T>();
@@ -786,7 +968,10 @@ macro_rules! fill_vector {
         /// Writes the rows of `column` into `vector`, which already has as many rows.
         pub fn $name(vector: $vector<'_, Unknown>, column: &Column) -> Result<()> {
             let mut vector = vector;
-            let validity = column.validity.as_slice();
+            let validity = Validity {
+                len: column.len,
+                nulls: &column.nulls,
+            };
             match &column.data {
                 Data::Collapsed { child, .. } => return $name(vector, child),
                 _ if vector.logical_type().id()? != column.type_id => {
@@ -798,7 +983,7 @@ macro_rules! fill_vector {
                 }
                 Data::Null { .. } => {
                     let mut writer = vector.writer()?;
-                    check_len(writer.len(), validity.len())?;
+                    check_len(writer.len(), validity.len)?;
                     // SAFETY: NULL rows need no data.
                     unsafe { writer.fill_validity(false)? };
                 }
@@ -808,6 +993,7 @@ macro_rules! fill_vector {
                 Data::Float(values) => write_values(&mut vector.writer()?, values, validity)?,
                 Data::Double(values) => write_values(&mut vector.writer()?, values, validity)?,
                 Data::Uuid(values) => write_values(&mut vector.writer()?, values, validity)?,
+                Data::Interval(values) => write_values(&mut vector.writer()?, values, validity)?,
                 Data::Decimal { storage, values } => {
                     let mut writer = vector.writer()?;
                     match storage {
@@ -850,7 +1036,8 @@ macro_rules! fill_vector {
                     let mut writer = vector.writer()?;
                     check_len(writer.len(), ranges.len())?;
                     for (row, (start, len)) in ranges.iter().enumerate() {
-                        let text = validity[row].then(|| &data[*start..start + len]);
+                        let text =
+                            (!validity.nulls.contains(row)).then(|| &data[*start..start + len]);
                         // SAFETY: only valid UTF-8 is decoded into a VARCHAR column.
                         writer.set(
                             row,
@@ -867,7 +1054,10 @@ macro_rules! fill_vector {
                     let mut writer = vector.writer()?;
                     check_len(writer.len(), ranges.len())?;
                     for (row, (start, len)) in ranges.iter().enumerate() {
-                        writer.set(row, validity[row].then(|| &data[*start..start + len]))?;
+                        writer.set(
+                            row,
+                            (!validity.nulls.contains(row)).then(|| &data[*start..start + len]),
+                        )?;
                     }
                 }
                 Data::Struct(fields) => {
@@ -947,3 +1137,63 @@ macro_rules! fill_vector {
 
 fill_vector!(fill_vector, Vector);
 fill_vector!(fill_child, ChildVector);
+
+#[cfg(test)]
+mod tests {
+    use super::NullMask;
+
+    #[test]
+    fn null_mask_word_boundaries() {
+        let mut nulls = NullMask::default();
+        let rows = [0, 1, 63, 64, 65, 127, 128, 1023];
+        for row in rows {
+            nulls.set(row, true);
+        }
+        assert_eq!(nulls.iter().collect::<Vec<_>>(), rows);
+        for row in 0..1100 {
+            assert_eq!(nulls.contains(row), rows.contains(&row));
+        }
+        for row in rows {
+            nulls.set(row, false);
+        }
+        assert_eq!(nulls.iter().count(), 0);
+    }
+
+    #[test]
+    fn null_mask_truncate_clears_reused_rows() {
+        for len in [0, 1, 63, 64, 65, 127, 128, 129] {
+            let mut nulls = NullMask::default();
+            for row in 0..256 {
+                nulls.set(row, true);
+            }
+            nulls.truncate(len);
+            assert_eq!(
+                nulls.iter().collect::<Vec<_>>(),
+                (0..len).collect::<Vec<_>>()
+            );
+            assert!((len..256).all(|row| !nulls.contains(row)));
+            nulls.set(len + 7, true);
+            assert_eq!(nulls.iter().count(), len + 1);
+            assert!((len..len + 7).all(|row| !nulls.contains(row)));
+            nulls.clear();
+            assert_eq!(nulls.iter().count(), 0);
+            assert!(!nulls.contains(len + 7));
+        }
+    }
+
+    #[test]
+    fn null_mask_updates_only_the_selected_word() {
+        let mut nulls = NullMask::default();
+        nulls.set(4096, false);
+        assert!(nulls.words.is_empty());
+        for row in 0..4096 {
+            nulls.set(row, true);
+        }
+        for update in 0..4096 {
+            nulls.set(0, update % 2 == 0);
+        }
+        assert_eq!(nulls.words.len(), 64);
+        assert_eq!(nulls.words[0], u64::MAX - 1);
+        assert!(nulls.words[1..].iter().all(|word| *word == u64::MAX));
+    }
+}

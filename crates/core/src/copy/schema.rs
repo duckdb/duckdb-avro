@@ -38,7 +38,7 @@ pub fn type_param(logical_type: &LogicalType, index: usize) -> Result<LogicalTyp
         .ok_or_else(|| internal("Type parameter is not a type"))
 }
 
-/// The field names and types of a STRUCT type.
+/// The field names and types of a STRUCT type, or the member names and types of a UNION type.
 pub fn struct_children(logical_type: &LogicalType) -> Result<Vec<(String, LogicalType)>> {
     let mut children = Vec::new();
     for (name, value) in logical_type.get_params()? {
@@ -48,6 +48,19 @@ pub fn struct_children(logical_type: &LogicalType) -> Result<Vec<(String, Logica
         children.push((name, child_type));
     }
     Ok(children)
+}
+
+/// The symbols of an ENUM type, in dictionary order.
+pub fn enum_symbols(logical_type: &LogicalType) -> Result<Vec<String>> {
+    let mut symbols = Vec::new();
+    for (_, value) in logical_type.get_params()? {
+        symbols.push(
+            value
+                .get::<String>()?
+                .ok_or_else(|| internal("ENUM symbol is not a string"))?,
+        );
+    }
+    Ok(symbols)
 }
 
 fn avro_type_name(logical_type: &LogicalType) -> Result<&'static str> {
@@ -69,6 +82,8 @@ fn avro_type_name(logical_type: &LogicalType) -> Result<&'static str> {
         LogicalTypeID::Struct => "record",
         LogicalTypeID::Uuid | LogicalTypeID::Decimal => "fixed",
         LogicalTypeID::List | LogicalTypeID::Map => "array",
+        LogicalTypeID::Enum => "enum",
+        LogicalTypeID::Union => "union",
         _ => {
             return Err(not_implemented(format!(
                 "Can't convert logical type '{}' to Avro type",
@@ -82,9 +97,8 @@ fn temporal_logical_type(id: LogicalTypeID) -> Option<&'static str> {
     match id {
         LogicalTypeID::Date => Some("date"),
         LogicalTypeID::Time => Some("time-micros"),
-        LogicalTypeID::Timestamp | LogicalTypeID::TimestampMs | LogicalTypeID::TimestampTz => {
-            Some("timestamp-micros")
-        }
+        LogicalTypeID::Timestamp | LogicalTypeID::TimestampTz => Some("timestamp-micros"),
+        LogicalTypeID::TimestampMs => Some("timestamp-millis"),
         LogicalTypeID::TimestampNs | LogicalTypeID::TimestampTzNs => Some("timestamp-nanos"),
         _ => None,
     }
@@ -93,27 +107,44 @@ fn temporal_logical_type(id: LogicalTypeID) -> Option<&'static str> {
 fn is_named(id: LogicalTypeID) -> bool {
     matches!(
         id,
-        LogicalTypeID::Struct | LogicalTypeID::Uuid | LogicalTypeID::Decimal
+        LogicalTypeID::Struct | LogicalTypeID::Enum | LogicalTypeID::Uuid | LogicalTypeID::Decimal
     )
 }
 
+fn is_avro_identifier(name: &str) -> bool {
+    name.bytes()
+        .enumerate()
+        .all(|(index, c)| c.is_ascii_alphabetic() || c == b'_' || (index > 0 && c.is_ascii_digit()))
+}
+
 fn verify_avro_name(name: &str) -> Result<()> {
-    for (index, c) in name.bytes().enumerate() {
-        if !(c.is_ascii_alphabetic() || c == b'_' || (index > 0 && c.is_ascii_digit())) {
-            return Err(invalid_input(format!(
-                "'{name}' is not a valid Avro identifier\nThe identifier has to match the regex: [A-Za-z_][A-Za-z0-9_]*"
-            )));
-        }
+    if !is_avro_identifier(name) {
+        return Err(invalid_input(format!(
+            "'{name}' is not a valid Avro identifier\nThe identifier has to match the regex: [A-Za-z_][A-Za-z0-9_]*"
+        )));
+    }
+    Ok(())
+}
+
+fn verify_enum_symbol(symbol: &str) -> Result<()> {
+    if symbol.is_empty() || !is_avro_identifier(symbol) {
+        return Err(invalid_input(format!(
+            "'{symbol}' is not a valid Avro enum symbol\nThe symbol has to match the regex: [A-Za-z_][A-Za-z0-9_]*"
+        )));
     }
     Ok(())
 }
 
 fn make_nullable(avro_type: Json) -> Json {
-    // A union cannot hold null twice.
-    if avro_type == "null" {
-        return avro_type;
+    match avro_type {
+        // A union cannot hold null twice, nor nest in another union.
+        Json::String(name) if name == "null" => Json::String(name),
+        Json::Array(mut branches) => {
+            branches.insert(0, Json::from("null"));
+            Json::Array(branches)
+        }
+        avro_type => json!(["null", avro_type]),
     }
-    json!(["null", avro_type])
 }
 
 fn child_field_id<'a>(parent: Option<&'a FieldId>, name: &str) -> Option<&'a FieldId> {
@@ -149,7 +180,7 @@ impl<'a> SchemaGenerator<'a> {
     pub fn generate(mut self) -> Result<String> {
         let root_name = std::mem::take(&mut self.root_name);
         verify_avro_name(&root_name)?;
-        self.verify_unique(&root_name)?;
+        self.named_schemas.insert(root_name.clone());
         let field_ids = std::mem::take(&mut self.field_ids);
         let mut field_names = HashMap::new();
         let mut fields = Vec::with_capacity(self.names.len());
@@ -165,21 +196,22 @@ impl<'a> SchemaGenerator<'a> {
         Ok(root.to_string())
     }
 
-    fn verify_unique(&mut self, name: &str) -> Result<()> {
-        if !self.named_schemas.insert(name.to_owned()) {
-            return Err(binder(format!(
-                "Avro schema by the name of '{name}' already exists, names of 'record', 'enum' and 'fixed' types have to be distinct"
-            )));
+    fn unique_name(&mut self, name: &str) -> String {
+        let mut candidate = name.to_owned();
+        let mut suffix = 2;
+        while self.named_schemas.contains(&candidate) {
+            candidate = format!("{name}_{suffix}");
+            suffix += 1;
         }
-        Ok(())
+        self.named_schemas.insert(candidate.clone());
+        candidate
     }
 
     fn generate_name(&mut self, base: &str) -> Result<String> {
         let name = format!("{base}{}", self.generated_name_id);
         self.generated_name_id += 1;
         verify_avro_name(&name)?;
-        self.verify_unique(&name)?;
-        Ok(name)
+        Ok(self.unique_name(&name))
     }
 
     fn set_name(
@@ -191,8 +223,7 @@ impl<'a> SchemaGenerator<'a> {
         let name = match preset {
             Some(preset) => {
                 verify_avro_name(preset)?;
-                self.verify_unique(preset)?;
-                preset.to_owned()
+                self.unique_name(preset)
             }
             None => self.generate_name(base)?,
         };
@@ -226,6 +257,38 @@ impl<'a> SchemaGenerator<'a> {
         Ok(Json::Object(object))
     }
 
+    fn union(&mut self, logical_type: &LogicalType, field_id: Option<&FieldId>) -> Result<Json> {
+        let members = struct_children(logical_type)?;
+        let mut branches = Vec::with_capacity(members.len());
+        // Avro tells the branches of a union apart by type, and named types by name.
+        let mut unnamed_members: HashMap<&str, &str> = HashMap::new();
+        for (member_name, member_type) in &members {
+            if matches!(
+                member_type.id()?,
+                LogicalTypeID::Union | LogicalTypeID::SqlNull
+            ) {
+                return Err(not_implemented(format!(
+                    "Can't convert UNION member '{member_name}' of type {} to an Avro union branch",
+                    member_type.to_text()?
+                )));
+            }
+            branches.push(self.json_type(
+                member_type,
+                child_field_id(field_id, member_name),
+                None,
+            )?);
+            let avro_type = avro_type_name(member_type)?;
+            if !is_named(member_type.id()?)
+                && let Some(previous) = unnamed_members.insert(avro_type, member_name)
+            {
+                return Err(invalid_input(format!(
+                    "Can't convert UNION members '{previous}' and '{member_name}' to an Avro union: both are an Avro '{avro_type}', and a union holds every unnamed type once"
+                )));
+            }
+        }
+        Ok(Json::Array(branches))
+    }
+
     fn json_type(
         &mut self,
         logical_type: &LogicalType,
@@ -239,6 +302,14 @@ impl<'a> SchemaGenerator<'a> {
         match id {
             LogicalTypeID::Struct => {
                 return self.record(&struct_children(logical_type)?, field_id, preset_name);
+            }
+            LogicalTypeID::Union => return self.union(logical_type, field_id),
+            LogicalTypeID::Enum => {
+                let symbols = enum_symbols(logical_type)?;
+                for symbol in &symbols {
+                    verify_enum_symbol(symbol)?;
+                }
+                object.insert("symbols".to_owned(), Json::from(symbols));
             }
             LogicalTypeID::List => {
                 let child_type = type_param(logical_type, 0)?;

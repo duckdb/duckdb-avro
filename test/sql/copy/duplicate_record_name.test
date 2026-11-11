@@ -1,0 +1,66 @@
+# name: test/sql/copy/duplicate_record_name.test
+# description: nested struct fields of the same name produce distinct Avro record names
+# group: [copy]
+
+require avro
+
+# two records would both be called 'value': the second gets a suffix
+statement ok
+COPY (SELECT {'value': {'x': 1}} AS s1, {'value': {'y': 2}} AS s2) TO '__TEST_DIR__/same_name.avro' (FORMAT avro);
+
+query II
+SELECT s1, s2 FROM read_avro('__TEST_DIR__/same_name.avro');
+----
+{'value': {'x': 1}}	{'value': {'y': 2}}
+
+query I
+SELECT regexp_extract_all(value, '"type":"record","name":"([^"]+)"', 1)
+FROM avro_metadata('__TEST_DIR__/same_name.avro') WHERE key = 'avro.schema';
+----
+[root, s1, value, s2, value_2]
+
+# struct-valued maps: every map's entries record is named 'record<n>', the struct values after their field 'value'
+# (names in the order the schema JSON defines them: the outer record first)
+statement ok
+COPY (SELECT MAP {'k': {'x': 1}} AS m1, MAP {'k': {'y': 2}} AS m2) TO '__TEST_DIR__/same_name_map.avro' (FORMAT avro);
+
+query II
+SELECT m1, m2 FROM read_avro('__TEST_DIR__/same_name_map.avro');
+----
+{k={'x': 1}}	{k={'y': 2}}
+
+query I
+SELECT regexp_extract_all(value, '"type":"record","name":"([^"]+)"', 1)
+FROM avro_metadata('__TEST_DIR__/same_name_map.avro') WHERE key = 'avro.schema';
+----
+[root, record0, value, record1, value_2]
+
+# the same name three times, and a field named like the root record
+statement ok
+COPY (SELECT {'a': 1} AS root, [{'a': 2}] AS l1, [{'a': 3}] AS l2, {'root': {'a': 4}} AS s) TO '__TEST_DIR__/thrice.avro' (FORMAT avro);
+
+query I
+SELECT regexp_extract_all(value, '"type":"record","name":"([^"]+)"', 1)
+FROM avro_metadata('__TEST_DIR__/thrice.avro') WHERE key = 'avro.schema';
+----
+[root, root_2, record0, record1, s, root_3]
+
+query IIII
+SELECT * FROM read_avro('__TEST_DIR__/thrice.avro');
+----
+{'a': 1}	[{'a': 2}]	[{'a': 3}]	{'root': {'a': 4}}
+
+# a fixed (DECIMAL, UUID) is named after its field too
+statement ok
+COPY (SELECT {'d': 1.5::DECIMAL(4,1)} AS s1, {'d': 2.5::DECIMAL(4,1)} AS s2) TO '__TEST_DIR__/same_fixed.avro' (FORMAT avro);
+
+query I
+SELECT regexp_extract_all(value, '"type":"fixed","name":"([^"]+)"', 1)
+FROM avro_metadata('__TEST_DIR__/same_fixed.avro') WHERE key = 'avro.schema';
+----
+[d, d_2]
+
+query II
+SELECT s1, s2 FROM read_avro('__TEST_DIR__/same_fixed.avro');
+----
+{'d': 1.5}	{'d': 2.5}

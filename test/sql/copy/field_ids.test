@@ -54,9 +54,9 @@ WHERE key = 'avro.schema';
 r2	r102
 
 # A root record can collide with the Iceberg-style name of a nested record that
-# has a field ID. Reject the collision before producing an invalid Avro schema:
-# named types must be unique across the entire schema.
-statement error
+# has a field ID. Named types must be unique across the entire schema: the
+# nested record gets a suffix.
+statement ok
 COPY (
 	SELECT {'value': 84} data_file
 ) TO '__TEST_DIR__/field_id_record_name_collision.avro' (
@@ -68,8 +68,18 @@ COPY (
 	},
 	ROOT_NAME 'r2'
 );
+
+query I
+SELECT regexp_extract_all(value, '"type":"record","name":"([^"]+)"', 1)
+FROM avro_metadata('__TEST_DIR__/field_id_record_name_collision.avro')
+WHERE key = 'avro.schema';
 ----
-Binder Error: Avro schema by the name of 'r2' already exists, names of 'record', 'enum' and 'fixed' types have to be distinct
+[r2, r2_2]
+
+query I
+SELECT * FROM read_avro('__TEST_DIR__/field_id_record_name_collision.avro');
+----
+{'value': 84}
 
 statement ok
 COPY (
@@ -96,3 +106,22 @@ COPY (
 	},
 	ROOT_NAME 'manifest_file'
 );
+
+# A nested specification needs the column's own id.
+statement error
+COPY (
+	SELECT {'x': 1} a
+) TO '__TEST_DIR__/field_ids_no_own_id.avro' (
+	FIELD_IDS {'a': {'x': 2}}
+);
+----
+Binder Error: Field id of the field is not set
+
+statement error
+COPY (
+	SELECT 1 a
+) TO '__TEST_DIR__/field_ids_nullable_only.avro' (
+	FIELD_IDS {'a': {'__duckdb_nullable': false}}
+);
+----
+Binder Error: Field id of the field is not set

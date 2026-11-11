@@ -216,7 +216,7 @@ fn schema_of_every_type() -> Result<()> {
          TIMESTAMP_NS '2024-01-01' tns, TIMESTAMP_MS '2024-01-01' tms, 'x'::BLOB b, 1.0::DOUBLE f8, true bo, NULL n",
         "",
     )?;
-    let expected = r#"{"type":"record","name":"root","fields":[{"name":"m","type":["null",{"type":"array","logicalType": "map","items":{"type":"record","name":"record0","fields":[{"name":"key","type":["null",{"type":"int"}]},{"name":"value","type":["null",{"type":"string"}]}]}}]},{"name":"l","type":["null",{"type":"array","items":["null",{"type":"record","name":"record1","fields":[{"name":"x","type":["null",{"type":"int"}]}]}]}]},{"name":"d","type":["null",{"type":"fixed","name":"d","size":4,"logicalType":"decimal","precision":8,"scale":2}]},{"name":"u","type":["null",{"type":"fixed","name":"u","size":16,"logicalType":"uuid"}]},{"name":"dt","type":["null",{"type":"int","logicalType":"date"}]},{"name":"t","type":["null",{"type":"long","logicalType":"time-micros"}]},{"name":"ts","type":["null",{"type":"long","logicalType":"timestamp-micros"}]},{"name":"tz","type":["null",{"type":"long","logicalType":"timestamp-micros","adjust-to-utc":true}]},{"name":"tns","type":["null",{"type":"long","logicalType":"timestamp-nanos"}]},{"name":"tms","type":["null",{"type":"long","logicalType":"timestamp-micros"}]},{"name":"b","type":["null",{"type":"bytes"}]},{"name":"f8","type":["null",{"type":"double"}]},{"name":"bo","type":["null",{"type":"boolean"}]},{"name":"n","type":"null"}]}"#;
+    let expected = r#"{"type":"record","name":"root","fields":[{"name":"m","type":["null",{"type":"array","logicalType": "map","items":{"type":"record","name":"record0","fields":[{"name":"key","type":["null",{"type":"int"}]},{"name":"value","type":["null",{"type":"string"}]}]}}]},{"name":"l","type":["null",{"type":"array","items":["null",{"type":"record","name":"record1","fields":[{"name":"x","type":["null",{"type":"int"}]}]}]}]},{"name":"d","type":["null",{"type":"fixed","name":"d","size":4,"logicalType":"decimal","precision":8,"scale":2}]},{"name":"u","type":["null",{"type":"fixed","name":"u","size":16,"logicalType":"uuid"}]},{"name":"dt","type":["null",{"type":"int","logicalType":"date"}]},{"name":"t","type":["null",{"type":"long","logicalType":"time-micros"}]},{"name":"ts","type":["null",{"type":"long","logicalType":"timestamp-micros"}]},{"name":"tz","type":["null",{"type":"long","logicalType":"timestamp-micros","adjust-to-utc":true}]},{"name":"tns","type":["null",{"type":"long","logicalType":"timestamp-nanos"}]},{"name":"tms","type":["null",{"type":"long","logicalType":"timestamp-millis"}]},{"name":"b","type":["null",{"type":"bytes"}]},{"name":"f8","type":["null",{"type":"double"}]},{"name":"bo","type":["null",{"type":"boolean"}]},{"name":"n","type":"null"}]}"#;
     assert_eq!(schema_json(&target), expected);
     Ok(())
 }
@@ -424,9 +424,9 @@ fn values_of_every_type() -> Result<()> {
         out.extend([PRESENT, 1]);
         out.push(PRESENT);
         write_int(out, 1);
-        for micros_or_nanos in [1_000_000, 1_000_000, 1_000_000, 1, 1_000_000, 2] {
+        for stored_value in [1_000_000, 1_000_000, 1_000, 1, 1_000_000, 2] {
             out.push(PRESENT);
-            write_long(out, micros_or_nanos);
+            write_long(out, stored_value);
         }
         out.push(PRESENT);
         out.extend([
@@ -488,21 +488,260 @@ fn required_fields_have_no_union_branch() -> Result<()> {
 }
 
 #[test]
-fn timestamp_ms_is_written_as_micros() -> Result<()> {
+fn timestamp_ms_is_written_as_millis() -> Result<()> {
     let conn = connect()?;
     let dir = test_dir("timestamp_ms");
     let target = copy_to(
         &conn,
         &dir,
         "ms.avro",
-        "FROM (VALUES (TIMESTAMP_MS '1969-12-31 23:59:59.999'), (TIMESTAMP_MS '2024-01-15 12:34:56.789')) t(a)",
+        "FROM (VALUES (TIMESTAMP_MS '1969-12-31 23:59:59.999'), (TIMESTAMP_MS '2024-01-15 12:34:56.789'), \
+         ('infinity'::TIMESTAMP_MS), ('-infinity'::TIMESTAMP_MS)) t(a)",
+        "",
+    )?;
+    assert_eq!(
+        schema_json(&target),
+        r#"{"type":"record","name":"root","fields":[{"name":"a","type":["null",{"type":"long","logicalType":"timestamp-millis"}]}]}"#
+    );
+    let expected = bytes(|out| {
+        for millis in [-1, 1_705_322_096_789, i64::MAX, -i64::MAX] {
+            out.push(PRESENT);
+            write_long(out, millis);
+        }
+    });
+    assert_eq!(data(&target), expected);
+    Ok(())
+}
+
+fn record_names(schema: &str) -> Vec<String> {
+    let schema: serde_json::Value = serde_json::from_str(schema).unwrap();
+    let mut names = Vec::new();
+    collect_record_names(&schema, &mut names);
+    names
+}
+
+fn collect_record_names(json: &serde_json::Value, names: &mut Vec<String>) {
+    match json {
+        serde_json::Value::Object(object) => {
+            if let (Some(kind), Some(name)) = (object.get("type"), object.get("name"))
+                && matches!(kind.as_str(), Some("record" | "enum" | "fixed"))
+            {
+                names.push(name.as_str().unwrap().to_owned());
+            }
+            for key in ["type", "fields", "items"] {
+                if let Some(child) = object.get(key) {
+                    collect_record_names(child, names);
+                }
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                collect_record_names(item, names);
+            }
+        }
+        _ => {}
+    }
+}
+
+#[test]
+fn duplicate_schema_names_get_a_suffix() -> Result<()> {
+    let conn = connect()?;
+    let dir = test_dir("duplicate_names");
+    let cases = [
+        (
+            "SELECT {'value': 84} data_file",
+            "FIELD_IDS {'data_file': {'__duckdb_field_id': 2, 'value': 3}}, ROOT_NAME 'r2'",
+            vec!["r2", "r2_2"],
+        ),
+        (
+            "SELECT {'x': 1} a, {'a': {'y': 2}} b",
+            "",
+            vec!["root", "a", "b", "a_2"],
+        ),
+        ("SELECT 1.5::DECIMAL(4,1) root", "", vec!["root", "root_2"]),
+        (
+            "SELECT [{'x': 1}] a, 1 record0",
+            "ROOT_NAME 'record0'",
+            vec!["record0", "record0_2"],
+        ),
+        (
+            "SELECT {'a': 1} AS root, [{'a': 2}] AS l1, [{'a': 3}] AS l2, {'root': {'a': 4}} AS s",
+            "",
+            vec!["root", "root_2", "record0", "record1", "s", "root_3"],
+        ),
+        (
+            "SELECT {'a': 1} a, {'x': 2} a_2, {'a': {'y': 3}} b",
+            "",
+            vec!["root", "a", "a_2", "b", "a_3"],
+        ),
+        (
+            "SELECT {'d': 1.5::DECIMAL(4,1)} s1, {'d': 'b'::ENUM('a', 'b')} s2",
+            "",
+            vec!["root", "s1", "d", "s2", "d_2"],
+        ),
+    ];
+    for (index, (query, options, expected)) in cases.into_iter().enumerate() {
+        let target = copy_to(&conn, &dir, &format!("{index}.avro"), query, options)?;
+        assert_eq!(record_names(&schema_json(&target)), expected, "{query}");
+    }
+    Ok(())
+}
+
+#[test]
+fn schema_of_unions() -> Result<()> {
+    let conn = connect()?;
+    let dir = test_dir("union_schema");
+    copy(&conn, "CREATE TYPE mood AS ENUM ('sad', 'happy')")?;
+    let cases = [
+        (
+            "SELECT union_value(b := 'abc')::UNION(a INTEGER, b VARCHAR, c FLOAT) u",
+            "",
+            r#"{"type":"record","name":"root","fields":[{"name":"u","type":["null",{"type":"int"},{"type":"string"},{"type":"float"}]}]}"#,
+        ),
+        (
+            "SELECT union_value(a := 1)::UNION(a INTEGER) u",
+            "",
+            r#"{"type":"record","name":"root","fields":[{"name":"u","type":["null",{"type":"int"}]}]}"#,
+        ),
+        (
+            "SELECT union_value(a := 1)::UNION(a INTEGER) u",
+            "FIELD_IDS {'u': {'__duckdb_field_id': 1, '__duckdb_nullable': false}}",
+            r#"{"type":"record","name":"root","fields":[{"name":"u","type":[{"type":"int"}],"field-id":1}]}"#,
+        ),
+        (
+            "SELECT union_value(s := {'x': 1})::UNION(s STRUCT(x INTEGER), t STRUCT(y VARCHAR), l INTEGER[], e mood, \
+             d DECIMAL(5,2), id UUID, ts TIMESTAMP_MS) u",
+            "",
+            r#"{"type":"record","name":"root","fields":[{"name":"u","type":["null",{"type":"record","name":"record0","fields":[{"name":"x","type":["null",{"type":"int"}]}]},{"type":"record","name":"record1","fields":[{"name":"y","type":["null",{"type":"string"}]}]},{"type":"array","items":["null",{"type":"int"}]},{"type":"enum","name":"enum2","symbols":["sad","happy"]},{"type":"fixed","name":"fixed3","size":3,"logicalType":"decimal","precision":5,"scale":2},{"type":"fixed","name":"fixed4","size":16,"logicalType":"uuid"},{"type":"long","logicalType":"timestamp-millis"}]}]}"#,
+        ),
+        (
+            "SELECT {'u': union_value(a := 1)::UNION(a INTEGER, b VARCHAR)} s, \
+             [union_value(b := 'x')::UNION(a INTEGER, b VARCHAR)] l, \
+             MAP {'k': union_value(m := MAP {'k': 7})::UNION(m MAP(VARCHAR, INTEGER), s VARCHAR)} m",
+            "",
+            r#"{"type":"record","name":"root","fields":[{"name":"s","type":["null",{"type":"record","name":"s","fields":[{"name":"u","type":["null",{"type":"int"},{"type":"string"}]}]}]},{"name":"l","type":["null",{"type":"array","items":["null",{"type":"int"},{"type":"string"}]}]},{"name":"m","type":["null",{"type":"array","logicalType": "map","items":{"type":"record","name":"record1","fields":[{"name":"key","type":["null",{"type":"string"}]},{"name":"value","type":["null",{"type":"array","logicalType": "map","items":{"type":"record","name":"record0","fields":[{"name":"key","type":["null",{"type":"string"}]},{"name":"value","type":["null",{"type":"int"}]}]}},{"type":"string"}]}]}}]}]}"#,
+        ),
+    ];
+    for (index, (query, options, expected)) in cases.into_iter().enumerate() {
+        let target = copy_to(&conn, &dir, &format!("{index}.avro"), query, options)?;
+        assert_eq!(schema_json(&target), expected, "{query}");
+    }
+    Ok(())
+}
+
+#[test]
+fn schema_of_enums() -> Result<()> {
+    let conn = connect()?;
+    let dir = test_dir("enum_schema");
+    copy(&conn, "CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy')")?;
+    let cases = [
+        (
+            "SELECT 'ok'::mood m",
+            "",
+            r#"{"type":"record","name":"root","fields":[{"name":"m","type":["null",{"type":"enum","name":"m","symbols":["sad","ok","happy"]}]}]}"#,
+        ),
+        (
+            "SELECT {'m': 'ok'::mood} s, ['sad'::mood] l, MAP {'k': 'happy'::mood} mp, 'sad'::mood nn",
+            "FIELD_IDS {'nn': {'__duckdb_field_id': 1, '__duckdb_nullable': false}}",
+            r#"{"type":"record","name":"root","fields":[{"name":"s","type":["null",{"type":"record","name":"s","fields":[{"name":"m","type":["null",{"type":"enum","name":"m","symbols":["sad","ok","happy"]}]}]}]},{"name":"l","type":["null",{"type":"array","items":["null",{"type":"enum","name":"enum0","symbols":["sad","ok","happy"]}]}]},{"name":"mp","type":["null",{"type":"array","logicalType": "map","items":{"type":"record","name":"record1","fields":[{"name":"key","type":["null",{"type":"string"}]},{"name":"value","type":["null",{"type":"enum","name":"value","symbols":["sad","ok","happy"]}]}]}}]},{"name":"nn","type":{"type":"enum","name":"nn","symbols":["sad","ok","happy"]},"field-id":1}]}"#,
+        ),
+        (
+            "SELECT 'ok'::mood m",
+            "ROOT_NAME 'm'",
+            r#"{"type":"record","name":"m","fields":[{"name":"m","type":["null",{"type":"enum","name":"m_2","symbols":["sad","ok","happy"]}]}]}"#,
+        ),
+    ];
+    for (index, (query, options, expected)) in cases.into_iter().enumerate() {
+        let target = copy_to(&conn, &dir, &format!("{index}.avro"), query, options)?;
+        assert_eq!(schema_json(&target), expected, "{query}");
+    }
+    Ok(())
+}
+
+#[test]
+fn union_values_are_branch_indices() -> Result<()> {
+    let conn = connect()?;
+    let dir = test_dir("union_values");
+    let query = "FROM (VALUES (union_value(a := 7)::UNION(a INTEGER, b VARCHAR, c STRUCT(x INTEGER)), 1), \
+                 (union_value(b := 'x')::UNION(a INTEGER, b VARCHAR, c STRUCT(x INTEGER)), 2), \
+                 (union_value(c := {'x': 3})::UNION(a INTEGER, b VARCHAR, c STRUCT(x INTEGER)), 3), \
+                 (NULL, 4)) t(u, i) ORDER BY i";
+    let nullable = copy_to(
+        &conn,
+        &dir,
+        "nullable.avro",
+        &format!("SELECT u {query}"),
         "",
     )?;
     let expected = bytes(|out| {
+        write_long(out, 1);
+        write_int(out, 7);
+        write_long(out, 2);
+        write_bytes(out, b"x");
+        write_long(out, 3);
         out.push(PRESENT);
-        write_long(out, -1_000);
+        write_int(out, 3);
+        write_long(out, 0);
+    });
+    assert_eq!(data(&nullable), expected);
+
+    let required = copy_to(
+        &conn,
+        &dir,
+        "required.avro",
+        &format!("SELECT u {query} LIMIT 3"),
+        "FIELD_IDS {'u': {'__duckdb_field_id': 1, '__duckdb_nullable': false}}",
+    )?;
+    let expected = bytes(|out| {
+        write_long(out, 0);
+        write_int(out, 7);
+        write_long(out, 1);
+        write_bytes(out, b"x");
+        write_long(out, 2);
         out.push(PRESENT);
-        write_long(out, 1_705_322_096_789_000);
+        write_int(out, 3);
+    });
+    assert_eq!(data(&required), expected);
+    Ok(())
+}
+
+#[test]
+fn enum_values_are_symbol_indices() -> Result<()> {
+    let conn = connect()?;
+    let dir = test_dir("enum_values");
+    copy(&conn, "CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy')")?;
+    copy(
+        &conn,
+        "CREATE TYPE wide AS ENUM (SELECT 's' || i FROM range(300) t(i))",
+    )?;
+    copy(
+        &conn,
+        "CREATE TYPE wider AS ENUM (SELECT 's' || i FROM range(70000) t(i))",
+    )?;
+    let target = copy_to(
+        &conn,
+        &dir,
+        "enums.avro",
+        "FROM (VALUES ('happy'::mood, 's299'::wide, 's69999'::wider), (NULL, 's1'::wide, 's65536'::wider), \
+         ('sad'::mood, NULL, 's0'::wider)) t(m, w, x)",
+        "",
+    )?;
+    let expected = bytes(|out| {
+        for row in [
+            [Some(2), Some(299), Some(69_999)],
+            [None, Some(1), Some(65_536)],
+            [Some(0), None, Some(0)],
+        ] {
+            for index in row {
+                match index {
+                    Some(index) => {
+                        out.push(PRESENT);
+                        write_long(out, index);
+                    }
+                    None => out.push(NULL),
+                }
+            }
+        }
     });
     assert_eq!(data(&target), expected);
     Ok(())
@@ -516,7 +755,8 @@ fn constant_and_repeated_vectors() -> Result<()> {
         &conn,
         &dir,
         "constant.avro",
-        "SELECT {'a': 1, 'b': 'x'} s, [1, 2] l, MAP {'k': [3]} m, 'v' v, 5 i FROM range(3)",
+        "SELECT {'a': 1, 'b': 'x'} s, [1, 2] l, MAP {'k': [3]} m, 'v' v, 5 i, 'b'::ENUM('a', 'b') e, \
+         union_value(b := 'y')::UNION(a INTEGER, b VARCHAR) u FROM range(3)",
         "",
     )?;
     let row = bytes(|out| {
@@ -545,6 +785,10 @@ fn constant_and_repeated_vectors() -> Result<()> {
         write_bytes(out, b"v");
         out.push(PRESENT);
         write_int(out, 5);
+        out.push(PRESENT);
+        write_long(out, 1);
+        write_long(out, 2);
+        write_bytes(out, b"y");
     });
     assert_eq!(data(&target), row.repeat(3));
     Ok(())

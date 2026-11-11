@@ -39,8 +39,25 @@ ASCII escaping convention in [Apache Iceberg's AvroSchemaUtil](https://github.co
 The option defaults to `false` and requires a Boolean value. It applies recursively,
 including structs inside lists and maps, but does not change map keys or `ROOT_NAME`.
 `FIELD_IDS` must use the original input names. If two fields in the same record map to
-the same output name, the export fails. Existing uniqueness checks for named Avro types
-also apply. Exported names are not automatically restored when reading the file.
+the same output name, the export fails. Repeated names of record, enum and fixed types
+get suffixes `_2`, `_3`, and so on. Exported field names are not automatically restored
+when reading the file.
+
+### Writing types and metadata
+
+`COPY ... TO` supports `ENUM` and `UNION` columns, including nested ones. ENUM symbols
+must be valid Avro identifiers. UNION members are written in member order, with `null`
+first for nullable fields; member names are not stored, so reading names them by branch
+index (`u1`, `u2`, and so on when `null` is first). A union with only one non-null member
+reads back as that member's type. Nested UNION or `"NULL"` members and members that map
+to the same unnamed Avro type are rejected.
+
+`TIMESTAMP_MS` is written with `timestamp-millis` and raw millisecond values. It reads
+back as `TIMESTAMP`, preserving positive and negative infinity.
+
+Use `METADATA {key: 'value'}` for extra header entries. Keys beginning with `avro.` are
+reserved and rejected. `CODEC` accepts `null`, `deflate`, `snappy`, `zstandard`, `bzip2`,
+`xz` and `lzma`, case-insensitively.
 
 ### File IO
 The `read_avro` function is integrated into DuckDB's file system abstraction, meaning you can read Avro files directly from e.g. HTTP or S3 sources. For example
@@ -91,8 +108,10 @@ This extension *simplifies* the Avro schema where possible: An Avro union of any
 
 The extension also "flattens" the Avro schema. Avro defines tables as root-level "record" fields, which are the same as DuckDB `STRUCT` fields. For more convenient handling, this extension turns the entries of a single top-level record into top-level columns.
 
+Logical types select the DuckDB type: `date` (`DATE`), `time-millis` and `time-micros` (`TIME`, up to and including `24:00:00`), `timestamp-millis`, `-micros` and `-nanos` (`TIMESTAMP` or `TIMESTAMP_NS`, with time zone when `adjust-to-utc` is set), `local-timestamp-millis`, `-micros` and `-nanos` (`TIMESTAMP` or `TIMESTAMP_NS`), `decimal` on `bytes` or `fixed` (`DECIMAL`), `uuid` on a `string` or a `fixed` of 16 bytes (`UUID`) and `duration` on a `fixed` of 12 bytes (`INTERVAL`). As the Avro specification asks, an unknown logical type and a `decimal` whose precision or scale DuckDB cannot hold are ignored and the underlying type is read; a known logical type on an Avro type it does not apply to is an error. Names in a file's schema need not be valid Avro identifiers, and the `error` record of an Avro protocol is read like a record.
+
 ### Implementation
-The extension is written in Rust against [duckdb-neo](https://github.com/duckdb/duckdb-rs/tree/main/crates/duckdb-neo), the Rust wrapper of DuckDB's V2 C API, and contains no C or C++ code. Avro itself (schemas, the binary encoding, object container files and the `null`, `deflate`, `snappy`, `zstandard`, `bzip2` and `lzma` codecs) is implemented in the extension, in pure Rust.
+The extension is written in Rust against [duckdb-neo](https://github.com/duckdb/duckdb-rs/tree/main/crates/duckdb-neo), the Rust wrapper of DuckDB's V2 C API, and contains no C or C++ code. Avro itself (schemas, the binary encoding, object container files and the `null`, `deflate`, `snappy`, `zstandard`, `bzip2`, `xz` and `lzma` codecs, whose names are matched case-insensitively) is implemented in the extension, in pure Rust.
 
 `read_avro` is a multi-file function built on top of `read_single_avro_file`, which reads a single file; the multi-file layer provides globbing, lists of files, `filename`, `union_by_name`, hive partitioning and the like. A single file is scanned in parallel, one Avro block per thread at a time.
 

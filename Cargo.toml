@@ -17,7 +17,7 @@ snap = "1"
 crc32fast = "1"
 bzip2 = "0.6"
 ruzstd = "0.9"
-lzma-rust2 = { version = "0.25", default-features = false, features = ["std", "encoder", "optimization"] }
+lzma-rust2 = { version = "0.25", default-features = false, features = ["std", "encoder", "optimization", "xz"] }
 
 [profile.release]
 lto = true

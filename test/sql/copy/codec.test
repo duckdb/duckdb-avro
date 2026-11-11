@@ -49,8 +49,8 @@ select count(*) from (
 ----
 0
 
-# zstandard and bzip2 codecs, with enough rows that a block decompresses past the initial buffer.
-foreach codec zstandard bzip2
+# zstandard, bzip2 and xz codecs, with enough rows that a block decompresses past the initial buffer.
+foreach codec zstandard bzip2 xz
 
 statement ok
 COPY (select i a, ('row_' || i::VARCHAR) b from range(100000) t(i)) TO '__TEST_DIR__/codec_${codec}.avro' (FORMAT AVRO, CODEC '${codec}');
@@ -83,6 +83,14 @@ COPY (select 1 a) TO '__TEST_DIR__/codec_ci.avro' (FORMAT AVRO, CODEC 'DEFLATE')
 
 query I
 select a from read_avro('__TEST_DIR__/codec_ci.avro');
+----
+1
+
+statement ok
+COPY (select 1 a) TO '__TEST_DIR__/codec_ci_xz.avro' (FORMAT AVRO, CODEC 'Xz');
+
+query I
+select a from read_avro('__TEST_DIR__/codec_ci_xz.avro');
 ----
 1
 

@@ -2,13 +2,14 @@ use avro_core::avro::binary::{write_bytes, write_long};
 use avro_core::avro::codec::Codec;
 use avro_core::avro::container::{FileInfo, generate_sync, write_block, write_header};
 
-const CODECS: [Codec; 6] = [
+const CODECS: [Codec; 7] = [
     Codec::Null,
     Codec::Deflate,
     Codec::Snappy,
     Codec::Lzma,
     Codec::Zstandard,
     Codec::Bzip2,
+    Codec::Xz,
 ];
 
 const SCHEMA: &str = r#"{"type":"record","name":"row","namespace":"test","fields":[{"name":"id","type":{"type":"long"},"field-id":1},{"name":"name","type":["null",{"type":"string"}]}]}"#;

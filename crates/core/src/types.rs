@@ -11,7 +11,7 @@ use duckdb_neo::{
 };
 
 use crate::avro::schema::{Node, NodeId, Schema};
-use crate::error::{invalid_configuration, invalid_input, not_implemented};
+use crate::error::{internal, invalid_configuration, invalid_input};
 
 /// The kind of an Avro schema node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,6 +32,22 @@ pub enum AvroKind {
     Union,
 }
 
+/// How the values of a primitive are converted on the way into DuckDB.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Conversion {
+    None,
+    /// `time-millis`: range-checked milliseconds, scaled to microseconds.
+    TimeMillis,
+    /// `time-micros`: range-checked microseconds.
+    TimeMicros,
+    /// `timestamp-millis` and `local-timestamp-millis`: scaled to microseconds, the infinities kept.
+    TimestampMillis,
+    /// A `uuid` string, parsed from its text form.
+    UuidText,
+    /// A `duration` fixed(12): months, days and milliseconds.
+    Duration,
+}
+
 /// An Avro schema node, together with the DuckDB type it is read as.
 #[derive(Debug, Clone)]
 pub struct AvroType {
@@ -41,7 +57,7 @@ pub struct AvroType {
     /// The DuckDB union member of each union branch, `None` for the NULL branches.
     pub union_members: Vec<Option<usize>>,
     pub field_id: Option<i32>,
-    pub is_millis: bool,
+    pub conversion: Conversion,
     pub decimal_width: u8,
     pub decimal_scale: u8,
     pub enum_symbols: Vec<String>,
@@ -58,7 +74,7 @@ impl AvroType {
             children: Vec::new(),
             union_members: Vec::new(),
             field_id: None,
-            is_millis: false,
+            conversion: Conversion::None,
             decimal_width: 0,
             decimal_scale: 0,
             enum_symbols: Vec::new(),
@@ -103,103 +119,220 @@ impl AvroColumn {
     }
 }
 
-struct LogicalAnnotation {
-    type_id: LogicalTypeID,
-    width: u8,
-    scale: u8,
+const MAX_DECIMAL_PRECISION: i64 = 38;
+
+enum Annotation {
+    Date,
+    TimeMillis,
+    TimeMicros,
+    TimestampMillis { utc: bool },
+    TimestampMicros { utc: bool },
+    TimestampNanos { utc: bool },
+    LocalTimestampMillis,
+    LocalTimestampMicros,
+    LocalTimestampNanos,
+    Decimal { precision: u8, scale: u8 },
+    Uuid,
+    Duration,
 }
 
-fn logical_type_of(node: &Node) -> Option<&str> {
+fn logical_type_of(node: &Node) -> Option<(&str, Option<i64>, Option<i64>)> {
     match node {
-        Node::Int { logical_type }
-        | Node::Long { logical_type, .. }
-        | Node::Bytes { logical_type, .. }
-        | Node::Fixed { logical_type, .. } => logical_type.as_deref(),
+        Node::Boolean {
+            logical_type,
+            precision,
+            scale,
+        }
+        | Node::Int {
+            logical_type,
+            precision,
+            scale,
+        }
+        | Node::Long {
+            logical_type,
+            precision,
+            scale,
+            ..
+        }
+        | Node::Float {
+            logical_type,
+            precision,
+            scale,
+        }
+        | Node::Double {
+            logical_type,
+            precision,
+            scale,
+        }
+        | Node::Bytes {
+            logical_type,
+            precision,
+            scale,
+        }
+        | Node::String {
+            logical_type,
+            precision,
+            scale,
+        }
+        | Node::Fixed {
+            logical_type,
+            precision,
+            scale,
+            ..
+        } => Some((logical_type.as_deref()?, *precision, *scale)),
         _ => None,
     }
 }
 
-fn annotation(node: &Node) -> Result<Option<LogicalAnnotation>> {
-    let Some(logical_type) = logical_type_of(node) else {
-        return Ok(None);
-    };
-    let integer = matches!(node, Node::Int { .. } | Node::Long { .. });
-    let adjust_to_utc = matches!(
+fn annotation(node: &Node) -> Option<Annotation> {
+    // Unknown logical types and invalid decimals are ignored, as the specification asks: the underlying type is read
+    let utc = matches!(
         node,
         Node::Long {
             adjust_to_utc: Some(true),
             ..
         }
     );
-    let mut result = LogicalAnnotation {
-        type_id: LogicalTypeID::Invalid,
-        width: 0,
-        scale: 0,
-    };
-    result.type_id = match logical_type {
-        // Logical types that annotate a type they cannot annotate are ignored, as the specification says
-        "date"
-        | "time-micros"
-        | "time-millis"
-        | "timestamp-micros"
-        | "timestamp-millis"
-        | "timestamp-nanos"
-        | "local-timestamp-millis"
-            if !integer =>
-        {
-            return Ok(None);
-        }
-        "date" => LogicalTypeID::Date,
+    let (logical_type, precision, scale) = logical_type_of(node)?;
+    Some(match logical_type {
+        "date" => Annotation::Date,
         "decimal" => {
-            // An absent precision or scale is -1, which is out of range for DuckDB and fails when creating the type.
-            let (precision, scale) = match node {
-                Node::Bytes {
-                    precision, scale, ..
-                }
-                | Node::Fixed {
-                    precision, scale, ..
-                } => (precision.unwrap_or(-1), scale.unwrap_or(-1)),
-                _ => (0, 0),
-            };
-            result.width = precision as u8;
-            result.scale = scale as u8;
-            LogicalTypeID::Decimal
-        }
-        "time-micros" | "time-millis" => LogicalTypeID::Time,
-        "timestamp-micros" | "timestamp-millis" if adjust_to_utc => LogicalTypeID::TimestampTz,
-        "timestamp-micros" | "timestamp-millis" => LogicalTypeID::Timestamp,
-        "timestamp-nanos" if adjust_to_utc => LogicalTypeID::TimestampTzNs,
-        "timestamp-nanos" => LogicalTypeID::TimestampNs,
-        "uuid" => {
-            if !matches!(node, Node::Fixed { size: 16, .. }) {
-                return Err(invalid_configuration(
-                    "logical type is uuid, but size != 16",
-                ));
+            let precision = precision?;
+            let scale = scale.unwrap_or(0);
+            if !(1..=MAX_DECIMAL_PRECISION).contains(&precision)
+                || !(0..=precision).contains(&scale)
+            {
+                return None;
             }
-            LogicalTypeID::Uuid
+            Annotation::Decimal {
+                precision: precision as u8,
+                scale: scale as u8,
+            }
         }
-        "local-timestamp-millis" => LogicalTypeID::Timestamp,
-        other => {
-            return Err(not_implemented(format!(
-                "Unknown Avro logical type {other}"
-            )));
-        }
-    };
-    Ok(Some(result))
+        "time-millis" => Annotation::TimeMillis,
+        "time-micros" => Annotation::TimeMicros,
+        "timestamp-millis" => Annotation::TimestampMillis { utc },
+        "timestamp-micros" => Annotation::TimestampMicros { utc },
+        "timestamp-nanos" => Annotation::TimestampNanos { utc },
+        "local-timestamp-millis" => Annotation::LocalTimestampMillis,
+        "local-timestamp-micros" => Annotation::LocalTimestampMicros,
+        "local-timestamp-nanos" => Annotation::LocalTimestampNanos,
+        "uuid" => Annotation::Uuid,
+        "duration" => Annotation::Duration,
+        _ => return None,
+    })
 }
 
-fn primitive(kind: AvroKind, default_type: LogicalTypeID, node: &Node) -> Result<AvroType> {
-    let Some(annotation) = annotation(node)? else {
-        return Ok(AvroType::new(kind, default_type));
+fn unsupported_annotation(node: &Node, type_name: &str) -> duckdb_neo::Error {
+    invalid_input(format!(
+        "Avro logical type '{}' is not supported on Avro type '{type_name}'",
+        logical_type_of(node).map_or("", |(logical_type, ..)| logical_type)
+    ))
+}
+
+fn annotated(kind: AvroKind, type_id: LogicalTypeID, conversion: Conversion) -> AvroType {
+    let mut result = AvroType::new(kind, type_id);
+    result.conversion = conversion;
+    result
+}
+
+fn decimal(kind: AvroKind, precision: u8, scale: u8) -> AvroType {
+    let mut result = AvroType::new(kind, LogicalTypeID::Decimal);
+    result.decimal_width = precision;
+    result.decimal_scale = scale;
+    result
+}
+
+fn primitive(node: &Node) -> Result<AvroType> {
+    let annotation = annotation(node);
+    let timestamp = |utc: bool| {
+        if utc {
+            LogicalTypeID::TimestampTz
+        } else {
+            LogicalTypeID::Timestamp
+        }
     };
-    let mut result = AvroType::new(kind, annotation.type_id);
-    result.decimal_width = annotation.width;
-    result.decimal_scale = annotation.scale;
-    result.is_millis = matches!(
-        logical_type_of(node),
-        Some("timestamp-millis" | "time-millis" | "local-timestamp-millis")
-    );
-    Ok(result)
+    Ok(match (node, annotation) {
+        (Node::Boolean { .. }, None) => AvroType::new(AvroKind::Boolean, LogicalTypeID::Boolean),
+        (Node::Boolean { .. }, Some(_)) => return Err(unsupported_annotation(node, "boolean")),
+        (Node::Float { .. }, None) => AvroType::new(AvroKind::Float, LogicalTypeID::Float),
+        (Node::Float { .. }, Some(_)) => return Err(unsupported_annotation(node, "float")),
+        (Node::Double { .. }, None) => AvroType::new(AvroKind::Double, LogicalTypeID::Double),
+        (Node::Double { .. }, Some(_)) => return Err(unsupported_annotation(node, "double")),
+        (Node::Int { .. }, annotation) => match annotation {
+            None => AvroType::new(AvroKind::Int, LogicalTypeID::Integer),
+            Some(Annotation::Date) => AvroType::new(AvroKind::Int, LogicalTypeID::Date),
+            Some(Annotation::TimeMillis) => {
+                annotated(AvroKind::Int, LogicalTypeID::Time, Conversion::TimeMillis)
+            }
+            Some(_) => return Err(unsupported_annotation(node, "int")),
+        },
+        (Node::Long { .. }, annotation) => {
+            let long = |type_id| AvroType::new(AvroKind::Long, type_id);
+            let millis = |type_id| annotated(AvroKind::Long, type_id, Conversion::TimestampMillis);
+            match annotation {
+                None => long(LogicalTypeID::BigInt),
+                Some(Annotation::TimeMicros) => {
+                    annotated(AvroKind::Long, LogicalTypeID::Time, Conversion::TimeMicros)
+                }
+                Some(Annotation::TimestampMillis { utc }) => millis(timestamp(utc)),
+                Some(Annotation::TimestampMicros { utc }) => long(timestamp(utc)),
+                Some(Annotation::TimestampNanos { utc: true }) => {
+                    long(LogicalTypeID::TimestampTzNs)
+                }
+                Some(Annotation::TimestampNanos { utc: false }) => long(LogicalTypeID::TimestampNs),
+                Some(Annotation::LocalTimestampMillis) => millis(LogicalTypeID::Timestamp),
+                Some(Annotation::LocalTimestampMicros) => long(LogicalTypeID::Timestamp),
+                Some(Annotation::LocalTimestampNanos) => long(LogicalTypeID::TimestampNs),
+                Some(_) => return Err(unsupported_annotation(node, "long")),
+            }
+        }
+        (Node::String { .. }, annotation) => match annotation {
+            None => AvroType::new(AvroKind::String, LogicalTypeID::Varchar),
+            Some(Annotation::Uuid) => {
+                annotated(AvroKind::String, LogicalTypeID::Uuid, Conversion::UuidText)
+            }
+            Some(_) => return Err(unsupported_annotation(node, "string")),
+        },
+        (Node::Bytes { .. }, annotation) => match annotation {
+            None => AvroType::new(AvroKind::Bytes, LogicalTypeID::Blob),
+            Some(Annotation::Decimal { precision, scale }) => {
+                decimal(AvroKind::Bytes, precision, scale)
+            }
+            Some(_) => return Err(unsupported_annotation(node, "bytes")),
+        },
+        (Node::Fixed { size, .. }, annotation) => {
+            let mut result = match annotation {
+                None => AvroType::new(AvroKind::Fixed, LogicalTypeID::Blob),
+                Some(Annotation::Decimal { precision, scale }) => {
+                    decimal(AvroKind::Fixed, precision, scale)
+                }
+                Some(Annotation::Uuid) if *size == 16 => {
+                    AvroType::new(AvroKind::Fixed, LogicalTypeID::Uuid)
+                }
+                Some(Annotation::Uuid) => {
+                    return Err(invalid_configuration(
+                        "logical type is uuid, but size != 16",
+                    ));
+                }
+                Some(Annotation::Duration) if *size == 12 => annotated(
+                    AvroKind::Fixed,
+                    LogicalTypeID::Interval,
+                    Conversion::Duration,
+                ),
+                Some(Annotation::Duration) => {
+                    return Err(invalid_input(
+                        "Avro logical type 'duration' requires a fixed of size 12",
+                    ));
+                }
+                Some(_) => return Err(unsupported_annotation(node, "fixed")),
+            };
+            result.fixed_size =
+                usize::try_from(*size).map_err(|_| invalid_input("Invalid Avro fixed size"))?;
+            result
+        }
+        _ => return Err(internal("Avro schema node is not a primitive")),
+    })
 }
 
 /// Converts the Avro schema node `id` into the type tree it is read with.
@@ -213,7 +346,7 @@ const MAX_TYPE_NODES: usize = 100_000;
 
 #[derive(Default)]
 struct TransformState {
-    parent_names: Vec<String>,
+    parent_records: Vec<NodeId>,
     depth: usize,
     nodes: usize,
 }
@@ -249,19 +382,14 @@ fn transform_kind(schema: &Schema, id: NodeId, state: &mut TransformState) -> Re
     let node = schema.node(id);
     Ok(match node {
         Node::Null => AvroType::new(AvroKind::Null, LogicalTypeID::SqlNull),
-        Node::Boolean => AvroType::new(AvroKind::Boolean, LogicalTypeID::Boolean),
-        Node::Int { .. } => primitive(AvroKind::Int, LogicalTypeID::Integer, node)?,
-        Node::Long { .. } => primitive(AvroKind::Long, LogicalTypeID::BigInt, node)?,
-        Node::Float => AvroType::new(AvroKind::Float, LogicalTypeID::Float),
-        Node::Double => AvroType::new(AvroKind::Double, LogicalTypeID::Double),
-        Node::Bytes { .. } => primitive(AvroKind::Bytes, LogicalTypeID::Blob, node)?,
-        Node::String => AvroType::new(AvroKind::String, LogicalTypeID::Varchar),
-        Node::Fixed { size, .. } => {
-            let mut result = primitive(AvroKind::Fixed, LogicalTypeID::Blob, node)?;
-            result.fixed_size =
-                usize::try_from(*size).map_err(|_| invalid_input("Invalid Avro fixed size"))?;
-            result
-        }
+        Node::Boolean { .. }
+        | Node::Int { .. }
+        | Node::Long { .. }
+        | Node::Float { .. }
+        | Node::Double { .. }
+        | Node::Bytes { .. }
+        | Node::String { .. }
+        | Node::Fixed { .. } => primitive(node)?,
         Node::Union { branches } => {
             let mut result = AvroType::new(AvroKind::Union, LogicalTypeID::Union);
             let mut member_count = 0;
@@ -278,7 +406,7 @@ fn transform_kind(schema: &Schema, id: NodeId, state: &mut TransformState) -> Re
             result
         }
         Node::Record { name, fields, .. } => {
-            if state.parent_names.contains(name) {
+            if state.parent_records.contains(&id) {
                 return Err(invalid_input(format!(
                     "Recursive Avro types not supported: {name}"
                 )));
@@ -287,7 +415,7 @@ fn transform_kind(schema: &Schema, id: NodeId, state: &mut TransformState) -> Re
                 // Kept as a marker, so that the offsets of the fields around it stay right
                 return Ok(AvroType::new(AvroKind::Record, LogicalTypeID::SqlNull));
             }
-            state.parent_names.push(name.clone());
+            state.parent_records.push(id);
             let mut result = AvroType::new(AvroKind::Record, LogicalTypeID::Struct);
             for field in fields {
                 let mut child = transform_node(schema, field.schema, state)?;
@@ -297,7 +425,7 @@ fn transform_kind(schema: &Schema, id: NodeId, state: &mut TransformState) -> Re
                 }
                 result.children.push((field.name.clone(), child));
             }
-            state.parent_names.pop();
+            state.parent_records.pop();
             result
         }
         Node::Enum { symbols, .. } => {

@@ -28,6 +28,12 @@ impl<'a> Decoder<'a> {
 
     /// Reads a zigzag-encoded variable-length long.
     pub fn read_long(&mut self) -> Result<i64> {
+        if let Some(&byte) = self.data.get(self.pos)
+            && byte & 0x80 == 0
+        {
+            self.pos += 1;
+            return Ok(i64::from(byte >> 1) ^ -i64::from(byte & 1));
+        }
         let mut value: u64 = 0;
         let mut offset = 0;
         loop {

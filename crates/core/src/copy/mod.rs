@@ -112,6 +112,12 @@ fn parse_metadata(options: &mut CopyOptions) -> Result<Vec<(String, String)>> {
     }
     let mut metadata = Vec::new();
     for (index, (key, _)) in logical_type.get_params()?.into_iter().enumerate() {
+        // The format reserves the `avro.` keys, and the header already holds the schema and the codec.
+        if key.starts_with("avro.") {
+            return Err(invalid_input(format!(
+                "Avro metadata key '{key}' is reserved"
+            )));
+        }
         metadata.push((key, value.get_child(index)?.dbg_string()?));
     }
     Ok(metadata)

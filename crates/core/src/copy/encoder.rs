@@ -7,7 +7,7 @@ use duckdb_neo::{
     types::{
         BlobValue, DateValue, DecimalSignature, HugeDecimal, HugeInt, List, ListIndex, LongDecimal,
         Map, ShortDecimal, Struct, TimeValue, TimestampMsValue, TimestampNsValue,
-        TimestampTzNsValue, TimestampTzValue, TimestampValue, UncheckedString, UuidValueRaw,
+        TimestampTzNsValue, TimestampTzValue, TimestampValue, UncheckedString, Union, UuidValueRaw,
         WordDecimal,
     },
     vector::{Unknown, Vector, VectorElement, VectorReader},
@@ -18,9 +18,7 @@ use crate::avro::binary::{
     write_boolean, write_bytes, write_double, write_float, write_int, write_long,
 };
 use crate::avro::schema::{Node, NodeId, Schema};
-use crate::error::{internal, invalid_input, out_of_range};
-
-const MICROS_PER_MSEC: i64 = 1000;
+use crate::error::{internal, invalid_input};
 
 #[derive(Debug)]
 enum EncoderKind {
@@ -50,6 +48,27 @@ enum EncoderKind {
         key: Box<ColumnEncoder>,
         value: Box<ColumnEncoder>,
     },
+    Enum(EnumIndexWidth),
+    Union(Vec<ColumnEncoder>),
+}
+
+#[derive(Debug, Clone, Copy)]
+enum EnumIndexWidth {
+    U8,
+    U16,
+    U32,
+}
+
+impl EnumIndexWidth {
+    fn for_symbol_count(count: usize) -> Self {
+        if count <= usize::from(u8::MAX) {
+            Self::U8
+        } else if count <= usize::from(u16::MAX) {
+            Self::U16
+        } else {
+            Self::U32
+        }
+    }
 }
 
 /// How the values of one column (or nested field) are encoded: its Avro type is nullable when it is the union
@@ -94,8 +113,29 @@ pub fn column_encoders(schema: &Schema, types: &[LogicalType]) -> Result<Vec<Col
         .collect()
 }
 
+fn union_branches(schema: &Schema, node: NodeId, member_count: usize) -> Option<(bool, &[NodeId])> {
+    let Node::Union { branches } = schema.node(schema.resolve(node)) else {
+        return None;
+    };
+    if branches.len() == member_count {
+        return Some((false, branches));
+    }
+    match branches.split_first() {
+        Some((null, members))
+            if members.len() == member_count
+                && matches!(schema.node(schema.resolve(*null)), Node::Null) =>
+        {
+            Some((true, members))
+        }
+        _ => None,
+    }
+}
+
 impl ColumnEncoder {
     fn new(logical_type: &LogicalType, schema: &Schema, node: NodeId) -> Result<Self> {
+        if logical_type.id()? == LogicalTypeID::Union {
+            return Self::union(logical_type, schema, node);
+        }
         let (nullable, node) = non_null_branch(schema, node);
         let kind = match logical_type.id()? {
             LogicalTypeID::SqlNull => EncoderKind::Null,
@@ -185,12 +225,37 @@ impl ColumnEncoder {
                     )?),
                 }
             }
+            LogicalTypeID::Enum => {
+                let Node::Enum { symbols, .. } = schema.node(node) else {
+                    return Err(schema_mismatch(logical_type));
+                };
+                if symbols.len() != logical_type.get_params()?.len() {
+                    return Err(schema_mismatch(logical_type));
+                }
+                EncoderKind::Enum(EnumIndexWidth::for_symbol_count(symbols.len()))
+            }
             _ => return Err(schema_mismatch(logical_type)),
         };
         Ok(Self {
             type_name: logical_type.name()?.to_owned(),
             nullable,
             kind,
+        })
+    }
+
+    fn union(logical_type: &LogicalType, schema: &Schema, node: NodeId) -> Result<Self> {
+        let members = struct_children(logical_type)?;
+        let (nullable, branches) = union_branches(schema, node, members.len())
+            .ok_or_else(|| schema_mismatch(logical_type))?;
+        let members = members
+            .iter()
+            .zip(branches)
+            .map(|((_, member_type), branch)| ColumnEncoder::new(member_type, schema, *branch))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(Self {
+            type_name: logical_type.name()?.to_owned(),
+            nullable,
+            kind: EncoderKind::Union(members),
         })
     }
 }
@@ -252,6 +317,12 @@ enum Values<'a> {
         key: Box<ColumnReader<'a>>,
         value: Box<ColumnReader<'a>>,
     },
+    Enum(VectorReader<'a, Unknown>, EnumIndexWidth),
+    Union {
+        rows: VectorReader<'a, Union>,
+        tags: VectorReader<'a, u8>,
+        members: Vec<ColumnReader<'a>>,
+    },
 }
 
 /// The rows of one (flat) vector, read to be encoded with its column's encoder.
@@ -296,6 +367,28 @@ fn huge_int<T: VectorElement>(values: &VectorReader<'_, T>, row: usize) -> Resul
     Ok(Some(
         (i128::from(value.upper) << 64) | i128::from(value.lower),
     ))
+}
+
+fn enum_index(
+    values: &VectorReader<'_, Unknown>,
+    width: EnumIndexWidth,
+    row: usize,
+) -> Result<Option<u32>> {
+    if values.is_null(row)? {
+        return Ok(None);
+    }
+    let physical = values.selection().index(row);
+    let data = values.as_ptr();
+    // SAFETY: the row is in bounds and not NULL, and an ENUM vector stores the dictionary index of every slot as the
+    // unsigned integer of `width`.
+    let index = unsafe {
+        match width {
+            EnumIndexWidth::U8 => u32::from(*data.cast::<u8>().add(physical)),
+            EnumIndexWidth::U16 => u32::from(*data.cast::<u16>().add(physical)),
+            EnumIndexWidth::U32 => *data.cast::<u32>().add(physical),
+        }
+    };
+    Ok(Some(index))
 }
 
 fn write_decimal(out: &mut Vec<u8>, value: i128, size: usize) {
@@ -349,6 +442,17 @@ impl<'a> ColumnReader<'a> {
                     value: Box::new(ColumnReader::new(value, child(entries, 1)?)?),
                 }
             }
+            EncoderKind::Enum(width) => Values::Enum(vector.reader()?, *width),
+            // A UNION vector holds its tags in the first child, and its members after it.
+            EncoderKind::Union(members) => Values::Union {
+                rows: reader(vector)?,
+                tags: reader(child(vector, 0)?)?,
+                members: members
+                    .iter()
+                    .enumerate()
+                    .map(|(index, member)| ColumnReader::new(member, child(vector, index + 1)?))
+                    .collect::<Result<_>>()?,
+            },
         };
         Ok(Self { encoder, values })
     }
@@ -422,18 +526,7 @@ impl<'a> ColumnReader<'a> {
                 Ok(())
             }),
             Values::TimestampMs(values) => self.write(values.get(row)?, out, |out, value| {
-                // Infinite timestamps stay infinite; every finite one fits in microseconds
-                let micros = if value.0 == i64::MAX || value.0 == -i64::MAX {
-                    value.0
-                } else {
-                    value.0.checked_mul(MICROS_PER_MSEC).ok_or_else(|| {
-                        out_of_range(format!(
-                            "Overflow in multiplication of INT64 ({} * {MICROS_PER_MSEC})!",
-                            value.0
-                        ))
-                    })?
-                };
-                write_long(out, micros);
+                write_long(out, value.0);
                 Ok(())
             }),
             Values::TimestampNs(values) => self.write(values.get(row)?, out, |out, value| {
@@ -511,6 +604,30 @@ impl<'a> ColumnReader<'a> {
                 write_long(out, 0);
                 Ok(())
             }),
+            Values::Enum(values, width) => {
+                self.write(enum_index(values, *width, row)?, out, |out, index| {
+                    write_long(out, i64::from(index));
+                    Ok(())
+                })
+            }
+            Values::Union {
+                rows,
+                tags,
+                members,
+            } => {
+                let tag = match tags.get(row)? {
+                    Some(tag) if !rows.is_null(row)? => *tag,
+                    _ => return self.write_null(out),
+                };
+                let member = members.get(usize::from(tag)).ok_or_else(|| {
+                    internal(format!(
+                        "UNION tag {tag} beyond the {} members",
+                        members.len()
+                    ))
+                })?;
+                write_long(out, i64::from(tag) + i64::from(self.encoder.nullable));
+                member.encode(row, out)
+            }
         }
     }
 }

@@ -11,6 +11,9 @@ fn test_dir() -> PathBuf {
 fn avro_files(dir: &Path, files: &mut Vec<PathBuf>) {
     for entry in std::fs::read_dir(dir).unwrap() {
         let path = entry.unwrap().path();
+        if path == test_dir().join("corpus") {
+            continue;
+        }
         if path.is_dir() {
             avro_files(&path, files);
         } else if path.extension().is_some_and(|ext| ext == "avro") {
@@ -48,7 +51,7 @@ fn every_test_file_parses_and_decodes() {
         let data = std::fs::read(path).unwrap();
         let info = FileInfo::parse(&data).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
         let rendered = info.schema.to_json();
-        let reparsed = Schema::parse(rendered.as_bytes()).unwrap();
+        let reparsed = Schema::parse_lenient(rendered.as_bytes()).unwrap();
         assert_eq!(reparsed.to_json(), rendered, "{}", path.display());
 
         let mut objects = 0;
@@ -67,6 +70,38 @@ fn every_test_file_parses_and_decodes() {
             info.blocks.len()
         );
     }
+}
+
+#[test]
+fn corpus_schemas_render_as_json_that_parses_back() {
+    let mut files = Vec::new();
+    let mut sources = vec![test_dir().join("corpus")];
+    while let Some(dir) = sources.pop() {
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                sources.push(path);
+            } else if path.extension().is_some_and(|ext| ext == "avro") {
+                files.push(path);
+            }
+        }
+    }
+    assert!(files.len() > 1300, "found only {} files", files.len());
+    let mut parsed = 0;
+    for path in &files {
+        let data = std::fs::read(path).unwrap();
+        let Ok(info) = FileInfo::parse(&data) else {
+            continue;
+        };
+        let rendered = info.schema.to_json();
+        serde_json::from_str::<serde_json::Value>(&rendered)
+            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        let reparsed = Schema::parse_lenient(rendered.as_bytes())
+            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        assert_eq!(reparsed, info.schema, "{}", path.display());
+        parsed += 1;
+    }
+    assert!(parsed > 1250, "parsed only {parsed} files");
 }
 
 #[test]

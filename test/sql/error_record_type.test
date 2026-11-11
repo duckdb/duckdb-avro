@@ -1,0 +1,17 @@
+# name: test/sql/error_record_type.test
+# description: {"type": "error"} (the error record of an Avro protocol) is read like a record
+# group: [sql]
+
+require avro
+
+# test/corpus/error_record_type.avro: scripts/create_corpus_fixtures.py; Java's Schema.parse accepts the error type
+# anywhere a record is allowed, so files with an error root exist (fastavro's error-type.avro)
+query II
+SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('test/corpus/error_record_type.avro'));
+----
+msg	VARCHAR
+
+query I
+SELECT msg FROM read_avro('test/corpus/error_record_type.avro');
+----
+x
