@@ -57,8 +57,8 @@ jobs:
 
   # the Kani proof harnesses (make kani; README "Formal verification with Kani"): bounded model checking of avro-core's
   # binary layer, codec names, JSON numbers and block framing, of duckdb-ext-api's vector layout helpers and of the
-  # extension's value conversions, type tables, schema rules and row decoder (five concrete record shapes at one row;
-  # the two-row bounds and the nullable and union shapes sit behind kani-heavy). Independent of the other jobs; no DuckDB build involved. The
+  # extension's value conversions, type tables, schema rules and row decoder (four concrete record shapes at one row;
+  # the two-row bounds and the nullable, projection and union shapes sit behind kani-heavy). Independent of the other jobs; no DuckDB build involved. The
   # action installs the pinned Kani release and its CBMC. Harnesses run in sequence (one CBMC at a time, up to 8 GB
   # each on the 16 GiB runner); the harnesses that need more memory or many minutes sit behind the kani-heavy features,
   # which only `make kani` enables. `-Z stubbing` lets the JSON harnesses stand in for core's float parsing.

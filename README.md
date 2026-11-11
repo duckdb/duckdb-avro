@@ -289,10 +289,11 @@ proof over that bound rather than a sample. Proven so far (bounds in parentheses
   `{int, string, double}` (the skipped fields advance the decoder like reading them); an enum of 3 symbols (index
   range check) beside a `fixed(4)`; the row-count contract (a block claiming more rows than its bytes hold fails at
   the first missing row, without a panic); a nullable `["null", "int"]` beside a `string`; and a union
-  `["int", "string", "null"]` (tag, selected member, NULLs of the others). CI runs the first five at one row (blocks
-  <= 10-14 bytes, the contract at 2 claimed rows of <= 5 bytes); `kani-heavy` runs them at two rows (blocks <= 12-24
-  bytes, the contract at 3 claimed rows of <= 8 bytes) and the nullable and union shapes at one row of <= 10 / 8
-  bytes (nine minutes and 14 GB for the nullable one). Strings are bounded to 4 bytes.
+  `["int", "string", "null"]` (tag, selected member, NULLs of the others). CI runs the flat, nested, enum and
+  row-count shapes at one row (blocks <= 10-12 bytes, the contract at 2 claimed rows of <= 5 bytes); `kani-heavy`
+  runs them at two rows (blocks <= 16-24 bytes, the contract at 3 claimed rows of <= 8 bytes) and the nullable,
+  projection and union shapes at one row of <= 10 / 14 / 8 bytes (nine minutes and up to 16 GB each). Strings are
+  bounded to 4 bytes.
 - C API wrapper (`duckdb-ext-api`): validity mask bit arithmetic (2048 rows: exactly bit `row` changes), both
   `string_t` forms (<= 64 bytes), the derived entry count of a selection view (<= 8 indices).
 
@@ -301,7 +302,7 @@ stubbing -p avro-core` / `-p duckdb-ext-api` / `-p duckdb-avro`; the `kani-heavy
 extension enable the thirteen harnesses that need more than a 16 GiB runner holds or run for several minutes (the
 sized block count, the 12-byte names, the written integers, `String::from_utf8_lossy` of <= 4 bytes, what
 `avro_metadata` renders a non-text value with, and the row-decoder shapes at their wider bounds, two to nine minutes
-and up to 16 GB each). CI runs everything else, about 25 minutes. The harnesses are the
+and up to 16 GB each). CI runs everything else, about 24 minutes. The harnesses are the
 `#[cfg(kani)] mod verification` blocks next to
 the code (`crates/avro-core/src/{decode,encode,crc32,schema,json,codec,container}.rs`,
 `crates/duckdb-ext-api/src/verification.rs`, `src/verification.rs`, `src/reader/verification.rs`); under `cfg(kani)`

@@ -27,8 +27,8 @@
 //!
 //! Each shape is a generic body over the block's byte bound and the row count; two proofs instantiate it: a small one
 //! the CI job runs (one row, or one item block) and, for the record shapes, the two-row bound behind the `kani-heavy`
-//! feature, which `make kani` enables (two to nine minutes and up to 16 GB each); the nullable field and the union
-//! have only a heavy one-row proof. The array and map shapes are beyond CBMC (see the note in their place). The harnesses with a `string` column stand
+//! feature, which `make kani` enables (two to nine minutes and up to 16 GB each); the nullable field, the projection
+//! and the union have only a heavy one-row proof. The array and map shapes are beyond CBMC (see the note in their place). The harnesses with a `string` column stand
 //! [`std::str::from_utf8`] in with the byte-sequence table of the Unicode standard ([`utf8_by_table`], `-Z stubbing`):
 //! `core`'s validator costs CBMC minutes per symbolic string, and `read_string_rejects_invalid_utf8_without_panicking`
 //! in `avro-core` proves the two accept exactly the same byte strings. The table check loops over the string's bytes,
@@ -514,8 +514,10 @@ fn nested_and_empty_records_match_the_reference() {
 /// blocks of at most `N` bytes: the skipped `a` and `c` advance the decoder exactly as reading them does, so the
 /// string buffer holds the reference's `b` of every row and the decoder stands where the reference stands.
 fn projection<const N: usize, const ROWS: usize>() {
+    /// The skipped fields are read as `skip` reads them: a skipped `int` is any varint (`skip` validates nothing, so a
+    /// varint beyond i32, which `read_int` refuses, passes), a skipped `double` any 8 bytes.
     fn row<'a>(dec: &mut Decoder<'a>) -> Option<&'a [u8]> {
-        match (dec.read_int(), dec.read_string(), dec.read_double()) {
+        match (dec.read_varint(), dec.read_string(), dec.read_raw(8, "")) {
             (Ok(_), Ok(b), Ok(_)) => {
                 kani::assume(b.len() <= 4);
                 Some(b.as_bytes())
@@ -560,20 +562,13 @@ fn projection<const N: usize, const ROWS: usize>() {
     std::mem::forget(schema);
 }
 
+#[cfg(feature = "kani-heavy")]
 #[kani::proof]
 #[kani::unwind(15)]
 #[kani::stub(std::str::from_utf8, utf8_by_table)]
-fn projection_one_row_skips_the_unread_fields_like_reading_them() {
-    projection::<14, 1>();
-}
-
-#[cfg(feature = "kani-heavy")]
-#[kani::proof]
-#[kani::unwind(17)]
-#[kani::stub(std::str::from_utf8, utf8_by_table)]
 fn projection_skips_the_unread_fields_like_reading_them() {
-    // 24 bytes exceed fifteen minutes of CBMC: the skipped double is 8 bytes of every row
-    projection::<16, 2>();
+    // nine minutes and 16 GB at one row of 14 bytes (the skipped double is 8 of them): `kani-heavy`
+    projection::<14, 1>();
 }
 
 /// 8. An enum of three symbols and a `fixed(4)`, `{e: enum, f: fixed(4)}`, `ROWS` rows, blocks of at most `N`
