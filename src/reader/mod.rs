@@ -10,6 +10,8 @@
 mod file;
 mod node;
 mod schema;
+#[cfg(kani)]
+mod verification;
 
 /// The pure value conversions the proof harnesses of `crate::verification` check.
 #[cfg(kani)]
@@ -106,11 +108,34 @@ struct LocalState {
     projection: Vec<Option<usize>>,
 }
 
+/// Decodes `count` rows (top-level values of `schema`) from `dec` into the output `nodes`, appending to what they hold:
+/// the pure half of a scan, between the decompressed block and the vectors ([`Node::flush`]). `root_is_struct` and
+/// `projection` are the root's [`RootColumns`] and the output column of each of its fields (`None` skips the field).
+/// An error leaves the nodes with the rows before the failing one, plus the fields of that row decoded before it.
+pub(crate) fn decode_rows(
+    dec: &mut Decoder<'_>,
+    schema: &Schema,
+    root_is_struct: bool,
+    nodes: &mut [Node],
+    projection: &[Option<usize>],
+    count: usize,
+) -> Result<()> {
+    for _ in 0..count {
+        decode_row(dec, schema, root_is_struct, nodes, projection)?;
+    }
+    Ok(())
+}
+
 /// Decodes one row (one top-level value) into the output `nodes`; `projection` maps the fields of a record root onto
 /// them.
-fn decode_row(dec: &mut Decoder<'_>, file: &AvroFile, nodes: &mut [Node], projection: &[Option<usize>]) -> Result<()> {
-    let schema = file.schema();
-    if !file.root_is_struct {
+fn decode_row(
+    dec: &mut Decoder<'_>,
+    schema: &Schema,
+    root_is_struct: bool,
+    nodes: &mut [Node],
+    projection: &[Option<usize>],
+) -> Result<()> {
+    if !root_is_struct {
         return nodes[0].decode(dec, schema);
     }
     // the root record, possibly wrapped in a union with null (a NULL root value is a row of NULLs)
@@ -230,9 +255,7 @@ impl TableExec for ReadSingleAvroFile {
         }
         nodes.iter_mut().for_each(Node::clear);
         let mut dec = Decoder::new(&current.data[current.position..]);
-        for _ in 0..count {
-            decode_row(&mut dec, file, nodes, projection)?;
-        }
+        decode_rows(&mut dec, file.schema(), file.root_is_struct, nodes, projection, count)?;
         current.position += dec.position();
         current.rows_left -= count as u64;
         for (index, node) in nodes.iter().enumerate() {
