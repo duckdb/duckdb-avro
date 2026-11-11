@@ -288,11 +288,10 @@ proof over that bound rather than a sample. Proven so far (bounds in parentheses
   nested record `{x: int, y: int}` and an empty record beside an `int`; a projection reading only the `string` of
   `{int, string, double}` (the skipped fields advance the decoder like reading them); an enum of 3 symbols (index
   range check) beside a `fixed(4)`; the row-count contract (a block claiming more rows than its bytes hold fails at
-  the first missing row, without a panic); a nullable `["null", "int"]` beside a `string`; and a union
-  `["int", "string", "null"]` (tag, selected member, NULLs of the others). CI runs the flat, nested, enum and
-  row-count shapes at one row (blocks <= 10-12 bytes, the contract at 2 claimed rows of <= 5 bytes); `kani-heavy`
-  runs them at two rows (blocks <= 16-24 bytes, the contract at 3 claimed rows of <= 8 bytes) and the nullable,
-  projection and union shapes at one row of <= 10 / 14 / 8 bytes (nine minutes and up to 16 GB each). Strings are
+  the first missing row, without a panic); and a nullable `["null", "int"]` beside a `string`. CI runs the flat,
+  nested, enum and row-count shapes at one row (blocks <= 10-12 bytes, the contract at 2 claimed rows of <= 5 bytes);
+  `kani-heavy` runs them at two rows (blocks <= 16-24 bytes, the contract at 3 claimed rows of <= 8 bytes) and the
+  nullable and projection shapes at one row of <= 10 / 14 bytes (nine minutes and up to 16 GB each). Strings are
   bounded to 4 bytes.
 - C API wrapper (`duckdb-ext-api`): validity mask bit arithmetic (2048 rows: exactly bit `row` changes), both
   `string_t` forms (<= 64 bytes), the derived entry count of a selection view (<= 8 indices).
@@ -325,8 +324,9 @@ owned metadata entries of every infeasible path and runs for more than ten minut
 (`root_columns`, the schema generator, the column plans), which call the engine's type constructors (the row-decoder
 harnesses therefore build the node tree a schema walk would produce by hand); the row decoder's `array` and `map`
 shapes, beyond CBMC even at one block of three items in 12 bytes (the item loop is unrolled with a full `read_int` per
-copy on top of the block loop: 80 GB for the array, more than ten minutes for the map; the block count's bound and the
-primitive readers are proven, the list and map assembly stays with the tests); and anything else that crosses the C
+copy on top of the block loop: 80 GB for the array, more than ten minutes for the map), and its three-branch union
+shape (more than twenty minutes at one row of 8 bytes; the block count's bound, the primitive readers and the union
+numbering are proven, the list, map and union assembly stays with the tests); and anything else that crosses the C
 API into the engine (callbacks, vectors, types). Those stay with the sqllogictests and the real-world corpus. No real
 bug has been found by the proofs so far.
 

@@ -27,8 +27,8 @@
 //!
 //! Each shape is a generic body over the block's byte bound and the row count; two proofs instantiate it: a small one
 //! the CI job runs (one row, or one item block) and, for the record shapes, the two-row bound behind the `kani-heavy`
-//! feature, which `make kani` enables (two to nine minutes and up to 16 GB each); the nullable field, the projection
-//! and the union have only a heavy one-row proof. The array and map shapes are beyond CBMC (see the note in their place). The harnesses with a `string` column stand
+//! feature, which `make kani` enables (two to nine minutes and up to 16 GB each); the nullable field and the projection
+//! have only a heavy one-row proof. The array, map and union shapes are beyond CBMC (see the notes in their place). The harnesses with a `string` column stand
 //! [`std::str::from_utf8`] in with the byte-sequence table of the Unicode standard ([`utf8_by_table`], `-Z stubbing`):
 //! `core`'s validator costs CBMC minutes per symbolic string, and `read_string_rejects_invalid_utf8_without_panicking`
 //! in `avro-core` proves the two accept exactly the same byte strings. The table check loops over the string's bytes,
@@ -145,7 +145,7 @@ fn utf8_by_table(bytes: &[u8]) -> Result<&str, std::str::Utf8Error> {
     }
 }
 
-/// Stands in for [`Decoder::skip`] in the harnesses whose only skipped value is a union's `null` branch, which the
+/// Stands in for [`Decoder::skip`] in the harness whose only skipped value is a union's `null` branch, which the
 /// row decoder reaches through `branch_ids[selected]`: the index is symbolic, so the schema node is to CBMC any node
 /// of the arena and every arm of the recursive `skip` stays alive (ten minutes and more for a one-row block). The
 /// stand-in checks that the node skipped is indeed `null` and, like `skip` of `null`, reads nothing.
@@ -348,96 +348,12 @@ fn nullable_field_null_goes_to_the_validity_side() {
 // the row's bytes are shared by every copy. The block count's bound (`read_block_count`) and the primitive readers are
 // proven in `avro-core`; the list and map assembly stays with the sqllogictests and the corpus.
 
-/// 5. A union field `{u: ["int", "string", "null"]}` (strings of at most 4 bytes), `ROWS` rows, blocks of at most
-/// `N` bytes: the tag is the member index (0 for a null row, which is NULL in the validity list), the selected
-/// member holds the value and every other member a NULL for the row.
-fn union_field<const N: usize, const ROWS: usize>() {
-    /// The row's branch (0 int, 1 string, 2 null) with the int or the string bytes it carries.
-    fn row<'a>(dec: &mut Decoder<'a>) -> Option<(u8, i32, &'a [u8])> {
-        match dec.read_union_index(3) {
-            Ok(0) => dec.read_int().ok().map(|v| (0, v, &b""[..])),
-            Ok(1) => dec.read_string().ok().map(|s| {
-                kani::assume(s.len() <= 4);
-                (1, 0, s.as_bytes())
-            }),
-            Ok(_) => Some((2, 0, &b""[..])),
-            Err(_) => None,
-        }
-    }
-    let buf: [u8; N] = kani::any();
-    let data = any_slice(&buf);
-    let mut reference = Decoder::new(data);
-    let row0 = row(&mut reference);
-    let row1 = second_row(ROWS, &row0, || row(&mut reference));
-    let (ok, complete) = outcome(ROWS, &row0, &row1);
-
-    // 0 int, 1 string, 2 null, 3 the union, 4 the record
-    let mut branches = pinned([id(0), id(1), id(2)]);
-    let mut fields = pinned([field(id(3))]);
-    let mut arena = pinned([
-        leaf(SchemaKind::Int),
-        leaf(SchemaKind::String),
-        leaf(SchemaKind::Null),
-        leaf(SchemaKind::Union { branches: leaked(&mut branches) }),
-        record(leaked(&mut fields)),
-    ]);
-    let mut sizes = pinned([1, 1, 0, 1, 1]);
-    let schema = Schema::unchecked(leaked(&mut arena), id(4), leaked(&mut sizes));
-    let mut branch_ids = pinned([id(0), id(1), id(2)]);
-    let mut branch_members = pinned([Some(0), Some(1), None]);
-    let mut members = pinned([int(), string()]);
-    let mut nodes = pinned([Node::Union {
-        branch_ids: leaked(&mut branch_ids),
-        branch_members: leaked(&mut branch_members),
-        members: leaked(&mut members),
-        tags: Vec::with_capacity(ROOM),
-        nulls: Vec::with_capacity(ROOM),
-    }]);
-    let (decoded, position) = decode(data, &schema, &mut *nodes, &[Some(0)], ROWS);
-
-    assert_eq!(decoded, ok);
-    let Node::Union { tags, nulls, .. } = &nodes[0] else { panic!() };
-    let (vi, ni) = ints(&members[0]);
-    let ss = strings(&members[1]);
-    if ok {
-        assert_eq!(position, reference.position());
-    }
-    // the tag goes in before the member decodes, and the members before the selected one get their NULL first
-    assert!(tags.len() <= complete + 1 && vi.len() <= tags.len() && ss.len() <= vi.len() && ss.len() >= complete);
-    if let Some((branch, v, s)) = row0 {
-        assert_eq!(tags[0], if branch == 2 { 0 } else { branch });
-        assert_eq!(vi[0], v);
-        assert_eq!(ss.row(0), s);
-    }
-    if let Some((branch, v, s)) = row1 {
-        assert_eq!(tags[1], if branch == 2 { 0 } else { branch });
-        assert_eq!(vi[1], v);
-        assert_eq!(ss.row(1), s);
-    }
-    let branch_is = |row: &Option<(u8, i32, &[u8])>, b: u8| matches!(row, Some((branch, ..)) if *branch == b);
-    let expected_nulls = null_rows(branch_is(&row0, 2), branch_is(&row1, 2));
-    let shared = nulls.len().min(expected_nulls.len());
-    assert_eq!(&nulls[..shared], &expected_nulls[..shared]);
-    assert!(nulls.len() == expected_nulls.len() || (!ok && nulls.len() == expected_nulls.len() + 1));
-    // a member is NULL in the rows that selected another branch
-    let int_nulls = null_rows(row0.is_some() && !branch_is(&row0, 0), row1.is_some() && !branch_is(&row1, 0));
-    let string_nulls = null_rows(row0.is_some() && !branch_is(&row0, 1), row1.is_some() && !branch_is(&row1, 1));
-    let shared = ni.len().min(int_nulls.len());
-    assert_eq!(&ni[..shared], &int_nulls[..shared]);
-    assert!(ni.len() == int_nulls.len() || (!ok && ni.len() == int_nulls.len() + 1 && vi.len() == complete + 1));
-    assert_eq!(ss.nulls(), string_nulls);
-    std::mem::forget(schema);
-}
-
-#[cfg(feature = "kani-heavy")]
-#[kani::proof]
-#[kani::unwind(12)]
-#[kani::stub(std::str::from_utf8, utf8_by_table)]
-#[kani::stub(avro_core::Decoder::skip, skip_only_null)]
-fn union_field_tag_member_and_null_match_the_reference() {
-    // one row of 10 bytes exceeds ten minutes of CBMC: `kani-heavy`, at 8 bytes
-    union_field::<8, 1>();
-}
+// 5. A union field `{u: ["int", "string", "null"]}` was written the same way (the tag is the member index, 0 for a
+// null row, which is NULL in the validity list; the selected member holds the value and every other member a NULL;
+// `Decoder::skip` stood in by `skip_only_null`, `from_utf8` by the table) and is beyond CBMC: one row of 8 bytes
+// exceeds twenty minutes. The three branches each read a different member and push NULLs into the others, and every
+// branch stays live for every row; the union's tag and member numbering is proven in `crate::verification`
+// (`union_layout`), the union assembly stays with the sqllogictests and the corpus.
 
 /// 6. A nested record and an empty record beside an int, `{o: {x: int, y: int}, e: {}, n: int}`, `ROWS` rows,
 /// blocks of at most `N` bytes: the STRUCT's two field buffers hold the reference's values and its row count grows
