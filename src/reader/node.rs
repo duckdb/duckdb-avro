@@ -46,6 +46,19 @@ impl<T: Element + Default> Prim<T> {
         self.values.len()
     }
 
+    /// The buffered values (a NULL row's is the placeholder) and the NULL rows, for the proof harnesses.
+    #[cfg(kani)]
+    pub(crate) fn buffers(&self) -> (&[T], &[usize]) {
+        (&self.values, &self.nulls)
+    }
+
+    /// An empty buffer with room for `rows` values and NULLs, the state every chunk after the first starts from
+    /// (`clear` keeps the capacity); for the proof harnesses, which cannot afford a reallocation of symbolic length.
+    #[cfg(kani)]
+    pub(crate) fn with_capacity(rows: usize) -> Prim<T> {
+        Prim { values: Vec::with_capacity(rows), nulls: Vec::with_capacity(rows) }
+    }
+
     fn clear(&mut self) {
         self.values.clear();
         self.nulls.clear();
@@ -91,8 +104,29 @@ impl Strings {
         self.ends.push(self.data.len());
     }
 
-    fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.ends.len()
+    }
+
+    /// The bytes of row `row` (empty for a NULL row), for the proof harnesses.
+    #[cfg(kani)]
+    pub(crate) fn row(&self, row: usize) -> &[u8] {
+        let start = if row == 0 { 0 } else { self.ends[row - 1] };
+        &self.data[start..self.ends[row]]
+    }
+
+    /// The NULL rows, for the proof harnesses.
+    #[cfg(kani)]
+    pub(crate) fn nulls(&self) -> &[usize] {
+        &self.nulls
+    }
+
+    /// An empty buffer with room for `rows` rows of `bytes` bytes in all, the state every chunk after the first starts
+    /// from (`clear` keeps the capacity); for the proof harnesses, which cannot afford a reallocation of symbolic
+    /// length.
+    #[cfg(kani)]
+    pub(crate) fn with_capacity(rows: usize, bytes: usize) -> Strings {
+        Strings { data: Vec::with_capacity(bytes), ends: Vec::with_capacity(rows), nulls: Vec::with_capacity(rows) }
     }
 
     fn clear(&mut self) {

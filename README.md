@@ -279,29 +279,55 @@ proof over that bound rather than a sample. Proven so far (bounds in parentheses
   (<= 8 members) and the layout's numbering of every null / non-null pattern (<= 8 branches); the DECIMAL storage
   types of writer and reader agree at every width.
 - Writer: the identifier check against the grammar (strings <= 8 bytes).
+- Row decoder on concrete schemas (the extension's `decode_rows` / `Node::decode`, the pure half of a scan between the
+  decompressed block and the engine's vectors): for each shape the schema and its node tree are fixed, the block is
+  every byte string up to a bound, and the buffers must equal a row-by-row reference decode with the primitive
+  readers (success exactly when every claimed row decodes, the same values, NULLs on the validity side, union tags,
+  the same final position; on an error the rows before the failing one and at most that row's fields decoded before
+  the failure, never a value past the claimed count). The shapes: a flat record `{a: int, b: long, c: boolean}`; a
+  nested record `{x: int, y: int}` and an empty record beside an `int`; a projection reading only the `string` of
+  `{int, string, double}` (the skipped fields advance the decoder like reading them); an enum of 3 symbols (index
+  range check) beside a `fixed(4)`; the row-count contract (a block claiming more rows than its bytes hold fails at
+  the first missing row, without a panic); a nullable `["null", "int"]` beside a `string`; and a union
+  `["int", "string", "null"]` (tag, selected member, NULLs of the others). CI runs the first five at one row (blocks
+  <= 10-14 bytes, the contract at 2 claimed rows of <= 5 bytes); `kani-heavy` runs them at two rows (blocks <= 12-24
+  bytes, the contract at 3 claimed rows of <= 8 bytes) and the nullable and union shapes at one row of <= 10 / 8
+  bytes (nine minutes and 14 GB for the nullable one). Strings are bounded to 4 bytes.
 - C API wrapper (`duckdb-ext-api`): validity mask bit arithmetic (2048 rows: exactly bit `row` changes), both
   `string_t` forms (<= 64 bytes), the derived entry count of a selection view (<= 8 indices).
 
 Running: `make kani` (needs `cargo install --locked kani-verifier && cargo kani setup`), or per package `cargo kani -Z
 stubbing -p avro-core` / `-p duckdb-ext-api` / `-p duckdb-avro`; the `kani-heavy` features of `avro-core` and the
-extension enable the four harnesses that need more than a 16 GiB runner holds or run for several minutes (the sized
-block count, the 12-byte names, the written integers, and `String::from_utf8_lossy` of <= 4 bytes, what
-`avro_metadata` renders a non-text value with). CI runs everything else, about 22 minutes. The harnesses are the
+extension enable the thirteen harnesses that need more than a 16 GiB runner holds or run for several minutes (the
+sized block count, the 12-byte names, the written integers, `String::from_utf8_lossy` of <= 4 bytes, what
+`avro_metadata` renders a non-text value with, and the row-decoder shapes at their wider bounds, two to nine minutes
+and up to 16 GB each). CI runs everything else, about 25 minutes. The harnesses are the
 `#[cfg(kani)] mod verification` blocks next to
 the code (`crates/avro-core/src/{decode,encode,crc32,schema,json,codec,container}.rs`,
-`crates/duckdb-ext-api/src/verification.rs`, `src/verification.rs`); under `cfg(kani)` error messages are the bare
-format strings (`core::fmt` is out of CBMC's reach, no property is about message text) and `core`'s float parsing is
-stubbed where a harness says so.
+`crates/duckdb-ext-api/src/verification.rs`, `src/verification.rs`, `src/reader/verification.rs`); under `cfg(kani)`
+error messages are the bare format strings (`core::fmt` is out of CBMC's reach, no property is about message text),
+`core`'s float parsing is stubbed where a harness says so, and the row-decoder harnesses with a `string` column stand
+`core::str::from_utf8` in with the Unicode table check that `read_string`'s own harness proves equivalent. The
+row-decoder harnesses build their node trees and schema arenas by hand on the harness's stack (CBMC propagates the
+variant of an enum it can see on the stack and prunes the arms of every `match` on it; the same tree behind heap
+allocations keeps every recursive call alive and runs for hours), with the buffers pre-sized as every chunk after the
+first finds them, and with concrete row counts (a symbolic one costs two orders of magnitude more).
 
 Deliberately not covered: the compression codecs (third-party crates, far beyond bounded model checking); the
 recursive JSON value parser and `Schema::parse` (CBMC inlines recursion once per call site per unwinding, and every
 level allocates growable strings and vectors: a one-byte document is already out of reach); the container header,
 block index and writer, `write_string` and the field-name sanitizer, which build owned strings and vectors of symbolic
 length (each such append costs CBMC minutes; their count bounds, grammar and identifier checks are proven separately;
-the union layout is proven at concrete branch counts, the engine's bound of 255 members is out of reach); the schema
-walks themselves (`root_columns`, the schema generator, the column plans), which call the engine's type constructors;
-and anything else that crosses the C API into the engine (callbacks, vectors, types). Those stay with the
-sqllogictests and the real-world corpus. No real bug has been found by the proofs so far.
+the union layout is proven at concrete branch counts, the engine's bound of 255 members is out of reach; the
+container header stays out even for a literal minimal header with only the sync marker symbolic: CBMC explores the
+owned metadata entries of every infeasible path and runs for more than ten minutes); the schema walks themselves
+(`root_columns`, the schema generator, the column plans), which call the engine's type constructors (the row-decoder
+harnesses therefore build the node tree a schema walk would produce by hand); the row decoder's `array` and `map`
+shapes, beyond CBMC even at one block of three items in 12 bytes (the item loop is unrolled with a full `read_int` per
+copy on top of the block loop: 80 GB for the array, more than ten minutes for the map; the block count's bound and the
+primitive readers are proven, the list and map assembly stays with the tests); and anything else that crosses the C
+API into the engine (callbacks, vectors, types). Those stay with the sqllogictests and the real-world corpus. No real
+bug has been found by the proofs so far.
 
 ## CI
 

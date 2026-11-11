@@ -26,6 +26,12 @@ impl SchemaId {
     pub fn index(self) -> usize {
         self.0 as usize
     }
+
+    /// The id of the node at `index`, for the proof harnesses' hand-built arenas ([`Schema::unchecked`]).
+    #[cfg(kani)]
+    pub fn from_index(index: usize) -> SchemaId {
+        SchemaId(index as u32)
+    }
 }
 
 /// The name of a named type: the simple name plus an optional namespace.
@@ -287,6 +293,21 @@ impl Schema {
         let root = builder.add(SchemaNode::new(kind));
         let min_sizes = min_encoded_sizes(&builder.nodes);
         Schema { nodes: builder.nodes, root, named: NameMap::default(), min_sizes }
+    }
+
+    /// The schema over `nodes` (indexed by [`SchemaId::from_index`]) rooted at `root`, without
+    /// [`SchemaBuilder::finish`]'s validation and with [`Schema::min_encoded_size`] of every node as the caller
+    /// states it: for the proof harnesses (`make kani`), whose arenas are concrete and well-formed by construction.
+    /// The validation hashes field names with `RandomState`, whose seeding from the OS random source is out of CBMC's
+    /// reach, and [`min_encoded_sizes`] recurses from inside its loops, which CBMC unrolls into minutes even for a
+    /// handful of nodes (the harness `leaf_sizes` proves its leaf rule, the unit tests its compound rule). The
+    /// harnesses back the vectors with arrays on their own stack: CBMC propagates the variant of a node it can see
+    /// on the stack and prunes the arms of every `match` on it, while a node behind a heap allocation keeps every arm
+    /// (and every recursive call) alive.
+    #[cfg(kani)]
+    pub fn unchecked(nodes: Vec<SchemaNode>, root: SchemaId, min_sizes: Vec<usize>) -> Schema {
+        assert_eq!(min_sizes.len(), nodes.len());
+        Schema { nodes, root, named: NameMap::default(), min_sizes }
     }
 
     pub fn root(&self) -> SchemaId {

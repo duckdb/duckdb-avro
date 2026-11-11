@@ -29,7 +29,7 @@ use crate::reader::{
 };
 
 /// Well-formed UTF-8 by the byte-sequence table of the Unicode standard (Table 3-7), independently of `core::str`.
-fn well_formed_utf8(bytes: &[u8]) -> bool {
+pub(crate) fn well_formed_utf8(bytes: &[u8]) -> bool {
     let mut i = 0;
     while i < bytes.len() {
         let (len, lo, hi) = match bytes[i] {

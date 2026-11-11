@@ -13,9 +13,10 @@
 #                        with their kani-heavy feature; needs `cargo install --locked kani-verifier && cargo kani
 #                        setup`. The harnesses are the `#[cfg(kani)] mod verification` blocks next to the code
 #                        (crates/avro-core/src/{decode,encode,crc32,schema,json,codec,container}.rs), crates/duckdb-
-#                        ext-api/src/verification.rs and src/verification.rs; a normal build never compiles them.
-#                        About half an hour sequential and up to 17 GB (the kani-heavy harnesses; the CI job runs the
-#                        rest in about twenty minutes), no engine needed.
+#                        ext-api/src/verification.rs, src/verification.rs and src/reader/verification.rs (the row
+#                        decoder on concrete schemas); a normal build never compiles them.
+#                        About an hour sequential and up to 17 GB (the kani-heavy harnesses, among them the row-decoder
+#                        shapes at two rows; the CI job runs the rest in under half an hour), no engine needed.
 #   make wasm_eh         the DuckDB-Wasm (wasm_eh) build -> build/wasm_eh/avro.duckdb_extension.wasm; needs emscripten on
 #                        PATH (`source <emsdk>/emsdk_env.sh`, extension-ci-tools pins 6.0.9) and the rust target
 #                        wasm32-unknown-emscripten (`rustup target add wasm32-unknown-emscripten`). `make wasm` is an alias.
