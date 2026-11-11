@@ -7,6 +7,9 @@
 #   make unittest DUCKDB=<duckdb binary of the same build>
 #                        the same tests through DuckDB's own C++ sqllogictest runner (test/unittest next to the binary);
 #                        the build's own extensions (icu, ...) are linked next to avro so that `require icu` autoloads
+#                        (never the build's own avro.duckdb_extension: ours takes that name, as a file of its own).
+#                        A unittest linked against libduckdb.so finds it through DUCKDB_LIB_DIR (default: src/ next
+#                        to the binary, where a DuckDB build puts it), which the recipe prepends to LD_LIBRARY_PATH.
 #   make clippy          cargo clippy + cargo fmt --check
 #   make kani            the Kani proof harnesses (bounded model checking with CBMC) of avro-core, duckdb-ext-api and
 #                        the extension: `cargo kani -Z stubbing -p <package>` per package, avro-core and duckdb-avro
@@ -30,9 +33,10 @@
 #
 # Footer tag: a C_STRUCT_UNSTABLE extension is tied to one engine build by the version tag in its footer
 # (ExtensionHelper::GetVersionDirectoryName: the library version unless it contains "-dev", then the source id). The
-# Python wheel of a pinned build reports an alpha version (v2.0.1-alpha54043), a `make release` of the same commit a
-# dev version (v2.0.0-dev89497, source id 29b26cb106), so the two want different tags for the same binary: `make`
-# stamps build/avro.duckdb_extension for the wheel, `make unittest` stamps a copy for the given binary.
+# pin is the release v2.0.0, which is what its Python wheel and the release binaries report, so their tag is v2.0.0. A
+# source build of the same commit can report a dev version instead (v2.0.0-dev88614, source id d54cbbe3df) and then
+# wants the source id as the tag for the same binary: `make` stamps build/avro.duckdb_extension for the wheel,
+# `make unittest` stamps a copy for the given binary.
 #
 # How `make unittest` gets `require avro` to load the extension: with LOCAL_EXTENSION_REPO set, DuckDB's runner
 # (test/sqlite/sqllogic_test_runner.cpp, LoadDatabase) enables autoload_known_extensions and
@@ -46,7 +50,7 @@
 include DUCKDB_PIN
 PYTHON ?= $(CURDIR)/venv/bin/python
 EXT_VERSION := v$(shell grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)"/\1/')
-# the version tag the footer carries for the wheel: the release tag or alpha version, else the source id of a dev build
+# the version tag the footer carries for the wheel: its library version (the release tag), or the source id of a dev build
 FOOTER_VERSION ?= $(shell $(PYTHON) -c "import duckdb; v, s = duckdb.sql('SELECT library_version, source_id FROM pragma_version()').fetchall()[0]; print(s if '-dev' in v else v)" 2>/dev/null)
 PLATFORM ?= $(shell $(PYTHON) -c "import duckdb; print(duckdb.sql('PRAGMA platform').fetchall()[0][0])" 2>/dev/null)
 RUST_SOURCES := Cargo.toml $(wildcard src/*.rs src/*/*.rs crates/*/Cargo.toml crates/*/src/*.rs crates/*/src/*/*.rs)
@@ -80,14 +84,19 @@ UNITTEST_EXT = build/repository/$(DUCKDB_TAG)/$(DUCKDB_PLATFORM)/avro.duckdb_ext
 # the extensions the engine build produced next to the binary (icu, json, parquet, ...), which a test's `require icu`
 # autoinstalls from the same repository directory
 DUCKDB_REPOSITORY = $(dir $(DUCKDB))repository/$(DUCKDB_TAG)/$(DUCKDB_PLATFORM)
+# all but the build's own avro.duckdb_extension (a build of the C++ extension has one): ours goes under that name
+DUCKDB_EXTENSIONS = $(filter-out %/avro.duckdb_extension,$(wildcard $(DUCKDB_REPOSITORY)/*.duckdb_extension))
+# where a unittest that is linked dynamically finds libduckdb.so
+DUCKDB_LIB_DIR ?= $(dir $(DUCKDB))src
 unittest: target/release/libavro.so
 	@test -n "$(DUCKDB)" || (echo "usage: make unittest DUCKDB=<duckdb binary>" && exit 1)
 	@test -n "$(DUCKDB_TAG)" || (echo "$(DUCKDB) did not report its version" && exit 1)
 	mkdir -p $(dir $(UNITTEST_EXT))
-	@for ext in $(wildcard $(DUCKDB_REPOSITORY)/*.duckdb_extension); do ln -sf $$ext $(dir $(UNITTEST_EXT)); done
+	@for ext in $(DUCKDB_EXTENSIONS); do ln -sf $$ext $(dir $(UNITTEST_EXT)); done
+	$(RM) $(UNITTEST_EXT)
 	cp $< $(UNITTEST_EXT)
 	python3 -I scripts/append_extension_metadata.py --extension $(UNITTEST_EXT) --platform $(DUCKDB_PLATFORM) --abi-type C_STRUCT_UNSTABLE --version "$(DUCKDB_TAG)" --extension-version $(EXT_VERSION)
-	LOCAL_EXTENSION_REPO=$(abspath build/repository) $(UNITTEST) $(if $(TEST_CONFIG),--test-config $(abspath $(TEST_CONFIG))) --test-dir $(CURDIR) "$(TESTS)"
+	LD_LIBRARY_PATH=$(DUCKDB_LIB_DIR)$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} LOCAL_EXTENSION_REPO=$(abspath build/repository) $(UNITTEST) $(if $(TEST_CONFIG),--test-config $(abspath $(TEST_CONFIG))) --test-dir $(CURDIR) "$(TESTS)"
 
 clippy:
 	cargo clippy --release --all-targets --workspace
