@@ -551,6 +551,13 @@ impl Column {
                 decoder.read_double(),
                 "Cannot read double value: ",
             )?),
+            (Data::Float(values), _) => {
+                values.push(prefixed(decoder.read_float(), "Cannot read float value: ")?)
+            }
+            (Data::Boolean(values), _) => values.push(prefixed(
+                decoder.read_boolean(),
+                "Cannot read boolean value: ",
+            )?),
             _ => return self.read_other(decoder),
         }
         self.len += 1;
