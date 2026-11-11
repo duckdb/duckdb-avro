@@ -9,8 +9,11 @@ use std::collections::HashMap;
 use duckdb_neo::{
     Result,
     logical_type::LogicalTypeID,
-    types::{BlobValue, IntervalValue, List, ListIndex, Map, UncheckedString, UuidValueRaw},
-    vector::{ChildVector, NativeElement, Unknown, Vector, VectorWriter},
+    types::{
+        BlobValue, EnumIndex, EnumStorage as IndexStorage, HugeDecimal, IntervalValue, List,
+        ListIndex, Map, UncheckedString, UuidValueRaw,
+    },
+    vector::{ChildVector, NativeElement, PlainNative, Unknown, Vector, VectorWriter},
 };
 
 use crate::avro::binary::Decoder;
@@ -164,9 +167,8 @@ fn parse_uuid(text: &[u8]) -> Option<[u8; 16]> {
     Some(bytes)
 }
 
-fn uuid_value(bytes: [u8; 16]) -> [u64; 2] {
-    let value = UuidValueRaw::from_bytes(bytes).0;
-    [value as u64, (value >> 64) as u64]
+fn uuid_value(bytes: [u8; 16]) -> UuidValueRaw {
+    UuidValueRaw::from_bytes(bytes)
 }
 
 // Keeps the lowest 128 bits of wider integers, like the C++ implementation did.
@@ -211,7 +213,7 @@ enum Data {
     },
     Float(Vec<f32>),
     Double(Vec<f64>),
-    Uuid(Vec<[u64; 2]>),
+    Uuid(Vec<UuidValueRaw>),
     Interval(Vec<IntervalValue>),
     Decimal {
         storage: DecimalStorage,
@@ -512,7 +514,7 @@ impl Column {
             Data::Long { values, .. } => values.push(0),
             Data::Float(values) => values.push(0.0),
             Data::Double(values) => values.push(0.0),
-            Data::Uuid(values) => values.push([0; 2]),
+            Data::Uuid(values) => values.push(UuidValueRaw(0)),
             Data::Interval(values) => values.push(IntervalValue {
                 months: 0,
                 days: 0,
@@ -976,19 +978,24 @@ fn write_validity<E: NativeElement>(
     Ok(())
 }
 
-fn write_values<E: NativeElement, T: Copy>(
+fn write_values<E: NativeElement, T: PlainNative>(
     writer: &mut VectorWriter<'_, E>,
     values: &[T],
     validity: Validity<'_>,
 ) -> Result<()> {
     check_len(writer.len(), values.len())?;
-    let data = writer.as_mut_ptr().cast::<T>();
-    if data.is_null() {
-        return Err(internal("Avro column vector has no data"));
-    }
-    // SAFETY: the vector is flat and writable, holds `values.len()` rows, and `T` is the physical type of its logical
-    // type, which the column was created for.
-    unsafe { std::ptr::copy_nonoverlapping(values.as_ptr(), data, values.len()) };
+    writer.write_slice_as(0, values)?;
+    write_validity(writer, validity)
+}
+
+fn write_indices<T: IndexStorage>(
+    writer: &mut VectorWriter<'_, EnumIndex<T>>,
+    values: &[u32],
+    index: impl Fn(u32) -> T,
+    validity: Validity<'_>,
+) -> Result<()> {
+    check_len(writer.len(), values.len())?;
+    writer.write_indices(0, &convert(values, |value| EnumIndex(index(value))))?;
     write_validity(writer, validity)
 }
 
@@ -1017,8 +1024,7 @@ macro_rules! fill_vector {
                 Data::Null { .. } => {
                     let mut writer = vector.writer()?;
                     check_len(writer.len(), validity.len)?;
-                    // SAFETY: NULL rows need no data.
-                    unsafe { writer.fill_validity(false)? };
+                    writer.fill_null()?;
                 }
                 Data::Boolean(values) => write_values(&mut vector.writer()?, values, validity)?,
                 Data::Int(values) => write_values(&mut vector.writer()?, values, validity)?,
@@ -1039,27 +1045,33 @@ macro_rules! fill_vector {
                         DecimalStorage::Long => {
                             write_values(&mut writer, &convert(values, |v| v as i64), validity)?
                         }
-                        DecimalStorage::Huge => write_values(
-                            &mut writer,
-                            &convert(values, |v| [v as u64, (v >> 64) as u64]),
-                            validity,
-                        )?,
+                        DecimalStorage::Huge => {
+                            write_values(&mut writer, &convert(values, HugeDecimal), validity)?
+                        }
                     }
                 }
                 Data::Enum {
                     storage, values, ..
-                } => {
-                    let mut writer = vector.writer()?;
-                    match storage {
-                        EnumStorage::U8 => {
-                            write_values(&mut writer, &convert(values, |v| v as u8), validity)?
-                        }
-                        EnumStorage::U16 => {
-                            write_values(&mut writer, &convert(values, |v| v as u16), validity)?
-                        }
-                        EnumStorage::U32 => write_values(&mut writer, values, validity)?,
-                    }
-                }
+                } => match storage {
+                    EnumStorage::U8 => write_indices(
+                        &mut vector.cast::<EnumIndex<u8>>()?.writer()?,
+                        values,
+                        |v| v as u8,
+                        validity,
+                    )?,
+                    EnumStorage::U16 => write_indices(
+                        &mut vector.cast::<EnumIndex<u16>>()?.writer()?,
+                        values,
+                        |v| v as u16,
+                        validity,
+                    )?,
+                    EnumStorage::U32 => write_indices(
+                        &mut vector.cast::<EnumIndex<u32>>()?.writer()?,
+                        values,
+                        |v| v,
+                        validity,
+                    )?,
+                },
                 Data::Bytes {
                     varchar: true,
                     data,

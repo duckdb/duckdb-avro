@@ -5,12 +5,12 @@ use duckdb_neo::{
     data_chunk::{ChildrenMut, DataChunkRef},
     logical_type::{LogicalType, LogicalTypeID},
     types::{
-        BlobValue, DateValue, DecimalSignature, HugeDecimal, HugeInt, List, ListIndex, LongDecimal,
-        Map, ShortDecimal, Struct, TimeValue, TimestampMsValue, TimestampNsValue,
+        BlobValue, DateValue, DecimalSignature, EnumIndex, HugeDecimal, List, ListIndex,
+        LongDecimal, Map, ShortDecimal, Struct, TimeValue, TimestampMsValue, TimestampNsValue,
         TimestampTzNsValue, TimestampTzValue, TimestampValue, UncheckedString, Union, UuidValueRaw,
         WordDecimal,
     },
-    vector::{NativeElement, ReadableNativeElement, Unknown, Vector, VectorReader},
+    vector::{ReadableNativeElement, Unknown, Vector, VectorReader},
 };
 
 use super::schema::{EMPTY_STRUCT_MARKER, decimal_fixed_size, struct_children, type_param};
@@ -317,7 +317,7 @@ enum Values<'a> {
         key: Box<ColumnReader<'a>>,
         value: Box<ColumnReader<'a>>,
     },
-    Enum(VectorReader<'a, Unknown>, EnumIndexWidth),
+    Enum(EnumValues<'a>),
     Union {
         rows: VectorReader<'a, Union>,
         tags: VectorReader<'a, u8>,
@@ -344,40 +344,29 @@ fn child<'a>(vector: &'a Vector<'a, Unknown>, index: usize) -> Result<&'a Vector
         .get_untyped_vector_at(index)
 }
 
-fn huge_int<T: NativeElement>(values: &VectorReader<'_, T>, row: usize) -> Result<Option<i128>> {
-    if values.is_null(row)? {
-        return Ok(None);
-    }
-    let physical = values.selection().index(row);
-    // DuckDB aligns 16 byte integers to 8 bytes only, so they are read as HugeInt, not i128.
-    // SAFETY: the row is in bounds and not NULL, and UUID and wide DECIMAL vectors store a 16 byte integer with the
-    // layout of HugeInt in every slot.
-    let value = unsafe { *values.as_ptr().cast::<HugeInt>().add(physical) };
-    Ok(Some(
-        (i128::from(value.upper) << 64) | i128::from(value.lower),
-    ))
+/// The dictionary indices of an ENUM vector, in the integer its dictionary size picks.
+enum EnumValues<'a> {
+    U8(VectorReader<'a, EnumIndex<u8>>),
+    U16(VectorReader<'a, EnumIndex<u16>>),
+    U32(VectorReader<'a, EnumIndex<u32>>),
 }
 
-fn enum_index(
-    values: &VectorReader<'_, Unknown>,
-    width: EnumIndexWidth,
-    row: usize,
-) -> Result<Option<u32>> {
-    if values.is_null(row)? {
-        return Ok(None);
+impl<'a> EnumValues<'a> {
+    fn new(vector: &'a Vector<'a, Unknown>, width: EnumIndexWidth) -> Result<Self> {
+        Ok(match width {
+            EnumIndexWidth::U8 => Self::U8(reader(vector)?),
+            EnumIndexWidth::U16 => Self::U16(reader(vector)?),
+            EnumIndexWidth::U32 => Self::U32(reader(vector)?),
+        })
     }
-    let physical = values.selection().index(row);
-    let data = values.as_ptr();
-    // SAFETY: the row is in bounds and not NULL, and an ENUM vector stores the dictionary index of every slot as the
-    // unsigned integer of `width`.
-    let index = unsafe {
-        match width {
-            EnumIndexWidth::U8 => u32::from(*data.cast::<u8>().add(physical)),
-            EnumIndexWidth::U16 => u32::from(*data.cast::<u16>().add(physical)),
-            EnumIndexWidth::U32 => *data.cast::<u32>().add(physical),
-        }
-    };
-    Ok(Some(index))
+
+    fn get(&self, row: usize) -> Result<Option<u32>> {
+        Ok(match self {
+            Self::U8(values) => values.get(row)?.map(|index| index.index()),
+            Self::U16(values) => values.get(row)?.map(|index| index.index()),
+            Self::U32(values) => values.get(row)?.map(|index| index.index()),
+        })
+    }
 }
 
 fn write_decimal(out: &mut Vec<u8>, value: i128, size: usize) {
@@ -431,7 +420,7 @@ impl<'a> ColumnReader<'a> {
                     value: Box::new(ColumnReader::new(value, child(entries, 1)?)?),
                 }
             }
-            EncoderKind::Enum(width) => Values::Enum(vector.reader()?, *width),
+            EncoderKind::Enum(width) => Values::Enum(EnumValues::new(vector, *width)?),
             // A UNION vector holds its tags in the first child, and its members after it.
             EncoderKind::Union(members) => Values::Union {
                 rows: reader(vector)?,
@@ -530,8 +519,8 @@ impl<'a> ColumnReader<'a> {
                 write_long(out, value.0);
                 Ok(())
             }),
-            Values::Uuid(values) => self.write(huge_int(values, row)?, out, |out, value| {
-                out.extend_from_slice(&UuidValueRaw(value).to_bytes());
+            Values::Uuid(values) => self.write(values.get(row)?, out, |out, value| {
+                out.extend_from_slice(&value.to_bytes());
                 Ok(())
             }),
             Values::ShortDecimal(values, size) => {
@@ -548,12 +537,10 @@ impl<'a> ColumnReader<'a> {
                 write_decimal(out, value.0.into(), *size);
                 Ok(())
             }),
-            Values::HugeDecimal(values, size) => {
-                self.write(huge_int(values, row)?, out, |out, value| {
-                    write_decimal(out, value, *size);
-                    Ok(())
-                })
-            }
+            Values::HugeDecimal(values, size) => self.write(values.get(row)?, out, |out, value| {
+                write_decimal(out, value.0, *size);
+                Ok(())
+            }),
             Values::Struct { rows, fields } => self.write(rows.get(row)?, out, |out, ()| {
                 for field in fields {
                     field.encode(row, out)?;
@@ -591,12 +578,10 @@ impl<'a> ColumnReader<'a> {
                 write_long(out, 0);
                 Ok(())
             }),
-            Values::Enum(values, width) => {
-                self.write(enum_index(values, *width, row)?, out, |out, index| {
-                    write_long(out, i64::from(index));
-                    Ok(())
-                })
-            }
+            Values::Enum(values) => self.write(values.get(row)?, out, |out, index| {
+                write_long(out, i64::from(index));
+                Ok(())
+            }),
             Values::Union {
                 rows,
                 tags,
