@@ -534,7 +534,31 @@ impl Column {
     }
 
     /// Decodes one value and appends it as a row.
+    #[inline]
     pub fn read(&mut self, decoder: &mut Decoder<'_>) -> Result<()> {
+        match (&mut self.data, self.kind) {
+            (
+                Data::Long {
+                    conversion: Conversion::None,
+                    values,
+                },
+                AvroKind::Long,
+            ) => values.push(prefixed(decoder.read_long(), "Cannot read long value: ")?),
+            (Data::Int(values), AvroKind::Int) => {
+                values.push(prefixed(decoder.read_int(), "Cannot read int value: ")?)
+            }
+            (Data::Double(values), _) => values.push(prefixed(
+                decoder.read_double(),
+                "Cannot read double value: ",
+            )?),
+            _ => return self.read_other(decoder),
+        }
+        self.len += 1;
+        Ok(())
+    }
+
+    #[inline(never)]
+    fn read_other(&mut self, decoder: &mut Decoder<'_>) -> Result<()> {
         let kind = self.kind;
         let fixed_size = self.fixed_size;
         match &mut self.data {

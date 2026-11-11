@@ -34,20 +34,26 @@ impl<'a> Decoder<'a> {
             self.pos += 1;
             return Ok(i64::from(byte >> 1) ^ -i64::from(byte & 1));
         }
+        let rest = &self.data[self.pos.min(self.data.len())..];
         let mut value: u64 = 0;
-        let mut offset = 0;
-        loop {
-            if offset == MAX_VARINT_BYTES {
-                return Err(AvroError::new("Varint too long"));
-            }
-            let byte = self.read_fixed(1)?[0];
+        for (offset, &byte) in rest.iter().take(MAX_VARINT_BYTES).enumerate() {
             value |= u64::from(byte & 0x7F) << (7 * offset);
-            offset += 1;
             if byte & 0x80 == 0 {
-                break;
+                self.pos += offset + 1;
+                return Ok(((value >> 1) as i64) ^ -((value & 1) as i64));
             }
         }
-        Ok(((value >> 1) as i64) ^ -((value & 1) as i64))
+        Err(self.varint_error(rest.len()))
+    }
+
+    #[cold]
+    fn varint_error(&mut self, available: usize) -> AvroError {
+        if available >= MAX_VARINT_BYTES {
+            self.pos += MAX_VARINT_BYTES;
+            return AvroError::new("Varint too long");
+        }
+        self.pos += available;
+        AvroError::new("Cannot read 1 bytes from memory buffer")
     }
 
     pub fn read_int(&mut self) -> Result<i32> {
