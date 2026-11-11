@@ -9,8 +9,8 @@ use std::collections::HashMap;
 use duckdb_neo::{
     Result,
     logical_type::LogicalTypeID,
-    types::{BlobValue, IntervalValue, List, Map, UncheckedString, UuidValueRaw},
-    vector::{ChildVector, Unknown, Vector, VectorElement, VectorWriter},
+    types::{BlobValue, IntervalValue, List, ListIndex, Map, UncheckedString, UuidValueRaw},
+    vector::{ChildVector, NativeElement, Unknown, Vector, VectorWriter},
 };
 
 use crate::avro::binary::Decoder;
@@ -230,12 +230,12 @@ enum Data {
     Struct(Vec<Column>),
     List {
         map: bool,
-        entries: Vec<[u64; 2]>,
+        entries: Vec<ListIndex>,
         child: Box<Column>,
         item_size: usize,
     },
     Map {
-        entries: Vec<[u64; 2]>,
+        entries: Vec<ListIndex>,
         keys: Box<Column>,
         values: Box<Column>,
         entry_size: usize,
@@ -522,8 +522,10 @@ impl Column {
             Data::Bytes { data, ranges, .. } => ranges.push((data.len(), 0)),
             Data::Enum { values, .. } => values.push(0),
             Data::Struct(fields) => fields.iter_mut().for_each(Column::push_null),
-            Data::List { entries, child, .. } => entries.push([child.len() as u64, 0]),
-            Data::Map { entries, keys, .. } => entries.push([keys.len() as u64, 0]),
+            Data::List { entries, child, .. } => {
+                entries.push(ListIndex::new(child.len() as u64, 0))
+            }
+            Data::Map { entries, keys, .. } => entries.push(ListIndex::new(keys.len() as u64, 0)),
             Data::Union { tags, children, .. } => {
                 tags.push(0);
                 children.iter_mut().for_each(Column::push_null);
@@ -653,7 +655,7 @@ impl Column {
                         }
                     }
                 }
-                entries.push([offset as u64, (child.len() - offset) as u64]);
+                entries.push(ListIndex::new(offset as u64, (child.len() - offset) as u64));
             }
             Data::Map {
                 entries,
@@ -663,7 +665,7 @@ impl Column {
             } => {
                 let offset = keys.len();
                 read_map(decoder, offset, keys, values, *entry_size)?;
-                entries.push([offset as u64, (keys.len() - offset) as u64]);
+                entries.push(ListIndex::new(offset as u64, (keys.len() - offset) as u64));
             }
             Data::Union {
                 members,
@@ -928,7 +930,7 @@ struct Validity<'a> {
     nulls: &'a NullMask,
 }
 
-fn write_validity<E: VectorElement>(
+fn write_validity<E: NativeElement>(
     writer: &mut VectorWriter<'_, E>,
     validity: Validity<'_>,
 ) -> Result<()> {
@@ -943,7 +945,7 @@ fn write_validity<E: VectorElement>(
     Ok(())
 }
 
-fn write_values<E: VectorElement, T: Copy>(
+fn write_values<E: NativeElement, T: Copy>(
     writer: &mut VectorWriter<'_, E>,
     values: &[T],
     validity: Validity<'_>,
@@ -1039,7 +1041,7 @@ macro_rules! fill_vector {
                         let text =
                             (!validity.nulls.contains(row)).then(|| &data[*start..start + len]);
                         // SAFETY: only valid UTF-8 is decoded into a VARCHAR column.
-                        writer.set(
+                        writer.set_option(
                             row,
                             text.map(|text| unsafe { std::str::from_utf8_unchecked(text) }),
                         )?;
@@ -1054,7 +1056,7 @@ macro_rules! fill_vector {
                     let mut writer = vector.writer()?;
                     check_len(writer.len(), ranges.len())?;
                     for (row, (start, len)) in ranges.iter().enumerate() {
-                        writer.set(
+                        writer.set_option(
                             row,
                             (!validity.nulls.contains(row)).then(|| &data[*start..start + len]),
                         )?;
@@ -1076,8 +1078,11 @@ macro_rules! fill_vector {
                 } => {
                     let mut vector = vector.cast::<List<Unknown>>()?;
                     // SAFETY: every element of the child is written below.
-                    unsafe { vector.set_child_size(child.len())? };
-                    write_values(&mut vector.writer()?, entries, validity)?;
+                    unsafe { vector.set_child_size_uninit(child.len())? };
+                    let mut writer = vector.writer()?;
+                    check_len(writer.len(), entries.len())?;
+                    writer.write_entries(0, entries)?;
+                    write_validity(&mut writer, validity)?;
                     let mut children = vector.children_mut().expect("LIST has a child");
                     fill_child(children.get_untyped_vector_at_mut(0)?, child)?;
                 }
@@ -1089,8 +1094,11 @@ macro_rules! fill_vector {
                 } => {
                     let mut vector = vector.cast::<Map<Unknown, Unknown>>()?;
                     // SAFETY: every entry of the child is written below.
-                    unsafe { vector.set_child_size(child.len())? };
-                    write_values(&mut vector.writer()?, entries, validity)?;
+                    unsafe { vector.set_child_size_uninit(child.len())? };
+                    let mut writer = vector.writer()?;
+                    check_len(writer.len(), entries.len())?;
+                    writer.write_entries(0, entries)?;
+                    write_validity(&mut writer, validity)?;
                     let mut children = vector.children_mut().expect("MAP has entries");
                     fill_child(children.get_untyped_vector_at_mut(0)?, child)?;
                 }
@@ -1102,15 +1110,17 @@ macro_rules! fill_vector {
                 } => {
                     let mut vector = vector.cast::<Map<Unknown, Unknown>>()?;
                     // SAFETY: every entry of the child is written below.
-                    unsafe { vector.set_child_size(keys.len())? };
-                    write_values(&mut vector.writer()?, entries, validity)?;
+                    unsafe { vector.set_child_size_uninit(keys.len())? };
+                    let mut writer = vector.writer()?;
+                    check_len(writer.len(), entries.len())?;
+                    writer.write_entries(0, entries)?;
+                    write_validity(&mut writer, validity)?;
                     let mut children = vector.children_mut().expect("MAP has entries");
                     let mut entries = children.get_untyped_vector_at_mut(0)?;
                     let mut writer = entries.writer()?;
                     check_len(writer.len(), keys.len())?;
                     // SAFETY: every entry has a key and a value, written below.
                     unsafe { writer.fill_validity(true)? };
-                    drop(writer);
                     let mut fields = entries
                         .children_mut()
                         .expect("MAP entries have a key and a value");

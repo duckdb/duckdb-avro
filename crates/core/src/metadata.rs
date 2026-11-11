@@ -102,11 +102,11 @@ impl TableFunctionCallbacks for AvroMetadata {
             for (row, (key, value)) in rows.iter().enumerate() {
                 writer.set(
                     row,
-                    Some(if column == 0 {
+                    if column == 0 {
                         key.as_str()
                     } else {
                         value.as_str()
-                    }),
+                    },
                 )?;
             }
         }

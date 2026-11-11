@@ -10,7 +10,7 @@ use duckdb_neo::{
         TimestampTzNsValue, TimestampTzValue, TimestampValue, UncheckedString, Union, UuidValueRaw,
         WordDecimal,
     },
-    vector::{Unknown, Vector, VectorElement, VectorReader},
+    vector::{NativeElement, ReadableNativeElement, Unknown, Vector, VectorReader},
 };
 
 use super::schema::{EMPTY_STRUCT_MARKER, decimal_fixed_size, struct_children, type_param};
@@ -331,7 +331,9 @@ pub struct ColumnReader<'a> {
     values: Values<'a>,
 }
 
-fn reader<'a, T: VectorElement>(vector: &'a Vector<'a, Unknown>) -> Result<VectorReader<'a, T>> {
+fn reader<'a, T: ReadableNativeElement>(
+    vector: &'a Vector<'a, Unknown>,
+) -> Result<VectorReader<'a, T>> {
     vector.cast_ref::<T>()?.reader()
 }
 
@@ -342,20 +344,7 @@ fn child<'a>(vector: &'a Vector<'a, Unknown>, index: usize) -> Result<&'a Vector
         .get_untyped_vector_at(index)
 }
 
-fn list_entry<'a, T>(rows: &VectorReader<'a, T>, row: usize) -> Result<Option<ListIndex>>
-where
-    T: VectorElement<Internal<'a> = ListIndex>,
-{
-    if rows.is_null(row)? {
-        return Ok(None);
-    }
-    let physical = rows.selection().index(row);
-    // SAFETY: the row is in bounds and not NULL, so its physical slot holds the ListIndex DuckDB stores for every
-    // LIST and MAP row.
-    Ok(Some(unsafe { *rows.as_ptr().add(physical) }))
-}
-
-fn huge_int<T: VectorElement>(values: &VectorReader<'_, T>, row: usize) -> Result<Option<i128>> {
+fn huge_int<T: NativeElement>(values: &VectorReader<'_, T>, row: usize) -> Result<Option<i128>> {
     if values.is_null(row)? {
         return Ok(None);
     }
@@ -571,25 +560,23 @@ impl<'a> ColumnReader<'a> {
                 }
                 Ok(())
             }),
-            Values::List { rows, items } => {
-                self.write(list_entry(rows, row)?, out, |out, entry| {
-                    let (offset, length) = entry_range(entry)?;
-                    if length > 0 {
-                        write_long(out, entry.length() as i64);
-                    }
-                    for item in offset..offset + length {
-                        items.encode(item, out)?;
-                    }
-                    write_long(out, 0);
-                    Ok(())
-                })
-            }
+            Values::List { rows, items } => self.write(rows.get(row)?, out, |out, entry| {
+                let (offset, length) = entry_range(entry)?;
+                if length > 0 {
+                    write_long(out, entry.length() as i64);
+                }
+                for item in offset..offset + length {
+                    items.encode(item, out)?;
+                }
+                write_long(out, 0);
+                Ok(())
+            }),
             Values::Map {
                 rows,
                 entries,
                 key,
                 value,
-            } => self.write(list_entry(rows, row)?, out, |out, entry| {
+            } => self.write(rows.get(row)?, out, |out, entry| {
                 let (offset, length) = entry_range(entry)?;
                 if length > 0 {
                     write_long(out, entry.length() as i64);

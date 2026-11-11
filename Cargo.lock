@@ -172,7 +172,6 @@ dependencies = [
 [[package]]
 name = "duckdb-loadable-macros"
 version = "1.20000.1"
-source = "git+https://github.com/duckdb/duckdb-rs?branch=main#f88a16b9586c2734c825ffad80e3806cbd52a163"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -183,7 +182,6 @@ dependencies = [
 [[package]]
 name = "duckdb-neo"
 version = "0.20000.1"
-source = "git+https://github.com/duckdb/duckdb-rs?branch=main#f88a16b9586c2734c825ffad80e3806cbd52a163"
 dependencies = [
  "duckdb-loadable-macros",
  "libduckdb-sys",
@@ -296,7 +294,6 @@ checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
 [[package]]
 name = "libduckdb-sys"
 version = "1.20000.1"
-source = "git+https://github.com/duckdb/duckdb-rs?branch=main#f88a16b9586c2734c825ffad80e3806cbd52a163"
 dependencies = [
  "flate2",
  "pkg-config",
