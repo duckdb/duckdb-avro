@@ -3535,143 +3535,6 @@ pub type duckdb_v2_table_function_schedule_io_callback_fn = Option<
 /// including the unstable members, in header order.
 #[repr(C)]
 pub struct duckdb_ext_api_v2 {
-    pub duckdb_v2_aggregate_function_set_stats_callback: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_aggregate_function_handle,
-            duckdb_v2_aggregate_function_stats_callback_fn,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_aggregate_function_stats_get_arg_count: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_aggregate_function_stats_info_handle,
-            *mut idx_t,
-            *mut idx_t,
-            *mut idx_t,
-            *mut idx_t,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_aggregate_function_stats_get_arg_stats: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_aggregate_function_stats_info_handle,
-            idx_t,
-            *mut duckdb_v2_stats_handle,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_aggregate_function_stats_get_bind_data: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_aggregate_function_stats_info_handle,
-            *mut *mut c_void,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_aggregate_function_stats_get_result_stats: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_aggregate_function_stats_info_handle,
-            *mut duckdb_v2_stats_handle,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_aggregate_function_stats_get_user_data: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_aggregate_function_stats_info_handle,
-            *mut *mut c_void,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_scalar_function_set_stats_callback: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_scalar_function_handle,
-            duckdb_v2_scalar_function_stats_callback_fn,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_scalar_function_stats_get_arg_count: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_scalar_function_stats_info_handle,
-            *mut idx_t,
-            *mut idx_t,
-            *mut idx_t,
-            *mut idx_t,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_scalar_function_stats_get_arg_stats: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_scalar_function_stats_info_handle,
-            idx_t,
-            *mut duckdb_v2_stats_handle,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_scalar_function_stats_get_bind_data: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_scalar_function_stats_info_handle,
-            *mut *mut c_void,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_scalar_function_stats_get_result_stats: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_scalar_function_stats_info_handle,
-            *mut duckdb_v2_stats_handle,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_scalar_function_stats_get_user_data: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_scalar_function_stats_info_handle,
-            *mut *mut c_void,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_stats_can_have_null: Option<
-        unsafe extern "C" fn(duckdb_v2_stats_handle, *mut bool, *mut duckdb_v2_error_info_handle) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_stats_can_have_valid: Option<
-        unsafe extern "C" fn(duckdb_v2_stats_handle, *mut bool, *mut duckdb_v2_error_info_handle) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_stats_set_can_have_null:
-        Option<unsafe extern "C" fn(duckdb_v2_stats_handle, bool, *mut duckdb_v2_error_info_handle) -> DUCKDB_V2_ERROR>,
-    pub duckdb_v2_stats_set_can_have_valid:
-        Option<unsafe extern "C" fn(duckdb_v2_stats_handle, bool, *mut duckdb_v2_error_info_handle) -> DUCKDB_V2_ERROR>,
-    pub duckdb_v2_table_function_set_stats_callback: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_table_function_handle,
-            duckdb_v2_table_function_stats_callback_fn,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_table_function_stats_get_bind_data: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_table_function_stats_info_handle,
-            *mut *mut c_void,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_table_function_stats_get_column_index: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_table_function_stats_info_handle,
-            *mut idx_t,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_table_function_stats_get_result_stats: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_table_function_stats_info_handle,
-            *mut duckdb_v2_stats_handle,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
-    pub duckdb_v2_table_function_stats_get_user_data: Option<
-        unsafe extern "C" fn(
-            duckdb_v2_table_function_stats_info_handle,
-            *mut *mut c_void,
-            *mut duckdb_v2_error_info_handle,
-        ) -> DUCKDB_V2_ERROR,
-    >,
     pub duckdb_v2_arena_allocate: Option<
         unsafe extern "C" fn(
             duckdb_v2_arena_handle,
@@ -4048,7 +3911,6 @@ pub struct duckdb_ext_api_v2 {
         unsafe extern "C" fn(
             duckdb_v2_connection_handle,
             *const c_char,
-            bool,
             *mut duckdb_v2_statement_iterator_handle,
             *mut duckdb_v2_error_info_handle,
         ) -> DUCKDB_V2_ERROR,
@@ -10631,6 +10493,143 @@ pub struct duckdb_ext_api_v2 {
             *mut duckdb_v2_error_info_handle,
         ) -> DUCKDB_V2_ERROR,
     >,
+    pub duckdb_v2_aggregate_function_set_stats_callback: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_aggregate_function_handle,
+            duckdb_v2_aggregate_function_stats_callback_fn,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_aggregate_function_stats_get_arg_count: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_aggregate_function_stats_info_handle,
+            *mut idx_t,
+            *mut idx_t,
+            *mut idx_t,
+            *mut idx_t,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_aggregate_function_stats_get_arg_stats: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_aggregate_function_stats_info_handle,
+            idx_t,
+            *mut duckdb_v2_stats_handle,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_aggregate_function_stats_get_bind_data: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_aggregate_function_stats_info_handle,
+            *mut *mut c_void,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_aggregate_function_stats_get_result_stats: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_aggregate_function_stats_info_handle,
+            *mut duckdb_v2_stats_handle,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_aggregate_function_stats_get_user_data: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_aggregate_function_stats_info_handle,
+            *mut *mut c_void,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_scalar_function_set_stats_callback: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_scalar_function_handle,
+            duckdb_v2_scalar_function_stats_callback_fn,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_scalar_function_stats_get_arg_count: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_scalar_function_stats_info_handle,
+            *mut idx_t,
+            *mut idx_t,
+            *mut idx_t,
+            *mut idx_t,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_scalar_function_stats_get_arg_stats: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_scalar_function_stats_info_handle,
+            idx_t,
+            *mut duckdb_v2_stats_handle,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_scalar_function_stats_get_bind_data: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_scalar_function_stats_info_handle,
+            *mut *mut c_void,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_scalar_function_stats_get_result_stats: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_scalar_function_stats_info_handle,
+            *mut duckdb_v2_stats_handle,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_scalar_function_stats_get_user_data: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_scalar_function_stats_info_handle,
+            *mut *mut c_void,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_stats_can_have_null: Option<
+        unsafe extern "C" fn(duckdb_v2_stats_handle, *mut bool, *mut duckdb_v2_error_info_handle) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_stats_can_have_valid: Option<
+        unsafe extern "C" fn(duckdb_v2_stats_handle, *mut bool, *mut duckdb_v2_error_info_handle) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_stats_set_can_have_null:
+        Option<unsafe extern "C" fn(duckdb_v2_stats_handle, bool, *mut duckdb_v2_error_info_handle) -> DUCKDB_V2_ERROR>,
+    pub duckdb_v2_stats_set_can_have_valid:
+        Option<unsafe extern "C" fn(duckdb_v2_stats_handle, bool, *mut duckdb_v2_error_info_handle) -> DUCKDB_V2_ERROR>,
+    pub duckdb_v2_table_function_set_stats_callback: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_table_function_handle,
+            duckdb_v2_table_function_stats_callback_fn,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_table_function_stats_get_bind_data: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_table_function_stats_info_handle,
+            *mut *mut c_void,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_table_function_stats_get_column_index: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_table_function_stats_info_handle,
+            *mut idx_t,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_table_function_stats_get_result_stats: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_table_function_stats_info_handle,
+            *mut duckdb_v2_stats_handle,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
+    pub duckdb_v2_table_function_stats_get_user_data: Option<
+        unsafe extern "C" fn(
+            duckdb_v2_table_function_stats_info_handle,
+            *mut *mut c_void,
+            *mut duckdb_v2_error_info_handle,
+        ) -> DUCKDB_V2_ERROR,
+    >,
 }
 
 /// All `duckdb_v2_*` entry points declared by the header, in header order.
@@ -10639,27 +10638,6 @@ pub struct duckdb_ext_api_v2 {
     reason = "the generated name table is read by a const assert, which a static cannot be"
 )]
 pub const DUCKDB_V2_FUNCTION_NAMES: [&str; 1032] = [
-    "duckdb_v2_aggregate_function_set_stats_callback",
-    "duckdb_v2_aggregate_function_stats_get_arg_count",
-    "duckdb_v2_aggregate_function_stats_get_arg_stats",
-    "duckdb_v2_aggregate_function_stats_get_bind_data",
-    "duckdb_v2_aggregate_function_stats_get_result_stats",
-    "duckdb_v2_aggregate_function_stats_get_user_data",
-    "duckdb_v2_scalar_function_set_stats_callback",
-    "duckdb_v2_scalar_function_stats_get_arg_count",
-    "duckdb_v2_scalar_function_stats_get_arg_stats",
-    "duckdb_v2_scalar_function_stats_get_bind_data",
-    "duckdb_v2_scalar_function_stats_get_result_stats",
-    "duckdb_v2_scalar_function_stats_get_user_data",
-    "duckdb_v2_stats_can_have_null",
-    "duckdb_v2_stats_can_have_valid",
-    "duckdb_v2_stats_set_can_have_null",
-    "duckdb_v2_stats_set_can_have_valid",
-    "duckdb_v2_table_function_set_stats_callback",
-    "duckdb_v2_table_function_stats_get_bind_data",
-    "duckdb_v2_table_function_stats_get_column_index",
-    "duckdb_v2_table_function_stats_get_result_stats",
-    "duckdb_v2_table_function_stats_get_user_data",
     "duckdb_v2_arena_allocate",
     "duckdb_v2_bignum_decode",
     "duckdb_v2_bignum_encode",
@@ -11280,19 +11258,6 @@ pub const DUCKDB_V2_FUNCTION_NAMES: [&str; 1032] = [
     "duckdb_v2_query_metrics_node_get_metric_value",
     "duckdb_v2_query_metrics_node_get_name",
     "duckdb_v2_statement_add_collection",
-    "duckdb_v2_context_allocate_data",
-    "duckdb_v2_allocated_data_get_pointer",
-    "duckdb_v2_allocated_data_get_size",
-    "duckdb_v2_allocated_data_destroy",
-    "duckdb_v2_cast_function_set_bind_callback",
-    "duckdb_v2_cast_function_bind_get_source_type",
-    "duckdb_v2_cast_function_bind_get_target_type",
-    "duckdb_v2_cast_function_bind_get_user_data",
-    "duckdb_v2_cast_function_bind_set_bind_data",
-    "duckdb_v2_cast_function_exec_get_bind_data",
-    "duckdb_v2_cast_function_exec_set_raise_error",
-    "duckdb_v2_context_get_transaction_timestamp",
-    "duckdb_v2_file_system_path_is_pipe",
     "duckdb_v2_library_api_table_size",
     "duckdb_v2_context_should_log",
     "duckdb_v2_copy_function_set_copy_from_function",
@@ -11671,6 +11636,40 @@ pub const DUCKDB_V2_FUNCTION_NAMES: [&str; 1032] = [
     "duckdb_v2_dictionary_get_vector",
     "duckdb_v2_dictionary_destroy",
     "duckdb_v2_vector_dictionary",
+    "duckdb_v2_aggregate_function_set_stats_callback",
+    "duckdb_v2_aggregate_function_stats_get_arg_count",
+    "duckdb_v2_aggregate_function_stats_get_arg_stats",
+    "duckdb_v2_aggregate_function_stats_get_bind_data",
+    "duckdb_v2_aggregate_function_stats_get_result_stats",
+    "duckdb_v2_aggregate_function_stats_get_user_data",
+    "duckdb_v2_scalar_function_set_stats_callback",
+    "duckdb_v2_scalar_function_stats_get_arg_count",
+    "duckdb_v2_scalar_function_stats_get_arg_stats",
+    "duckdb_v2_scalar_function_stats_get_bind_data",
+    "duckdb_v2_scalar_function_stats_get_result_stats",
+    "duckdb_v2_scalar_function_stats_get_user_data",
+    "duckdb_v2_stats_can_have_null",
+    "duckdb_v2_stats_can_have_valid",
+    "duckdb_v2_stats_set_can_have_null",
+    "duckdb_v2_stats_set_can_have_valid",
+    "duckdb_v2_table_function_set_stats_callback",
+    "duckdb_v2_table_function_stats_get_bind_data",
+    "duckdb_v2_table_function_stats_get_column_index",
+    "duckdb_v2_table_function_stats_get_result_stats",
+    "duckdb_v2_table_function_stats_get_user_data",
+    "duckdb_v2_context_allocate_data",
+    "duckdb_v2_allocated_data_get_pointer",
+    "duckdb_v2_allocated_data_get_size",
+    "duckdb_v2_allocated_data_destroy",
+    "duckdb_v2_cast_function_set_bind_callback",
+    "duckdb_v2_cast_function_bind_get_source_type",
+    "duckdb_v2_cast_function_bind_get_target_type",
+    "duckdb_v2_cast_function_bind_get_user_data",
+    "duckdb_v2_cast_function_bind_set_bind_data",
+    "duckdb_v2_cast_function_exec_get_bind_data",
+    "duckdb_v2_cast_function_exec_set_raise_error",
+    "duckdb_v2_context_get_transaction_timestamp",
+    "duckdb_v2_file_system_path_is_pipe",
 ];
 
 /// The entries of `duckdb_ext_api_v2` in table (field) order: entry `i` of this array is the name of the
@@ -11681,27 +11680,6 @@ pub const DUCKDB_V2_FUNCTION_NAMES: [&str; 1032] = [
     reason = "the generated name table is read by a const assert, which a static cannot be"
 )]
 pub const API_TABLE_FUNCTION_NAMES: [&str; 1032] = [
-    "duckdb_v2_aggregate_function_set_stats_callback",
-    "duckdb_v2_aggregate_function_stats_get_arg_count",
-    "duckdb_v2_aggregate_function_stats_get_arg_stats",
-    "duckdb_v2_aggregate_function_stats_get_bind_data",
-    "duckdb_v2_aggregate_function_stats_get_result_stats",
-    "duckdb_v2_aggregate_function_stats_get_user_data",
-    "duckdb_v2_scalar_function_set_stats_callback",
-    "duckdb_v2_scalar_function_stats_get_arg_count",
-    "duckdb_v2_scalar_function_stats_get_arg_stats",
-    "duckdb_v2_scalar_function_stats_get_bind_data",
-    "duckdb_v2_scalar_function_stats_get_result_stats",
-    "duckdb_v2_scalar_function_stats_get_user_data",
-    "duckdb_v2_stats_can_have_null",
-    "duckdb_v2_stats_can_have_valid",
-    "duckdb_v2_stats_set_can_have_null",
-    "duckdb_v2_stats_set_can_have_valid",
-    "duckdb_v2_table_function_set_stats_callback",
-    "duckdb_v2_table_function_stats_get_bind_data",
-    "duckdb_v2_table_function_stats_get_column_index",
-    "duckdb_v2_table_function_stats_get_result_stats",
-    "duckdb_v2_table_function_stats_get_user_data",
     "duckdb_v2_arena_allocate",
     "duckdb_v2_bignum_decode",
     "duckdb_v2_bignum_encode",
@@ -12713,6 +12691,27 @@ pub const API_TABLE_FUNCTION_NAMES: [&str; 1032] = [
     "duckdb_v2_dictionary_get_vector",
     "duckdb_v2_dictionary_destroy",
     "duckdb_v2_vector_dictionary",
+    "duckdb_v2_aggregate_function_set_stats_callback",
+    "duckdb_v2_aggregate_function_stats_get_arg_count",
+    "duckdb_v2_aggregate_function_stats_get_arg_stats",
+    "duckdb_v2_aggregate_function_stats_get_bind_data",
+    "duckdb_v2_aggregate_function_stats_get_result_stats",
+    "duckdb_v2_aggregate_function_stats_get_user_data",
+    "duckdb_v2_scalar_function_set_stats_callback",
+    "duckdb_v2_scalar_function_stats_get_arg_count",
+    "duckdb_v2_scalar_function_stats_get_arg_stats",
+    "duckdb_v2_scalar_function_stats_get_bind_data",
+    "duckdb_v2_scalar_function_stats_get_result_stats",
+    "duckdb_v2_scalar_function_stats_get_user_data",
+    "duckdb_v2_stats_can_have_null",
+    "duckdb_v2_stats_can_have_valid",
+    "duckdb_v2_stats_set_can_have_null",
+    "duckdb_v2_stats_set_can_have_valid",
+    "duckdb_v2_table_function_set_stats_callback",
+    "duckdb_v2_table_function_stats_get_bind_data",
+    "duckdb_v2_table_function_stats_get_column_index",
+    "duckdb_v2_table_function_stats_get_result_stats",
+    "duckdb_v2_table_function_stats_get_user_data",
 ];
 
 const _: () = assert!(

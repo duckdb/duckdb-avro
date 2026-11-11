@@ -366,22 +366,19 @@ impl Drop for QueryResult {
 
 impl Connection {
     /// `ClientContext::IterateStatements`: the statements of `sql` as an iterator (`duckdb_v2_parse_sql`). The text
-    /// is handed to the parser as it is (bytes that are not UTF-8 are its to reject); a NUL byte is an error. With
-    /// `apply_invalidation_policy` a parse error invalidates the connection's active transaction according to the
-    /// transaction invalidation policy, like an error from running the statement would - pass it when the statements
-    /// are parsed to be run; without it a parse error leaves the transaction usable, for callers that only inspect
-    /// the statements.
-    pub fn parse_statements(&self, sql: &[u8], apply_invalidation_policy: bool) -> Result<StatementIterator> {
+    /// is handed to the parser as it is (bytes that are not UTF-8 are its to reject); a NUL byte is an error. Parsing
+    /// touches neither the catalog nor a transaction: the connection supplies the parser options and parser
+    /// extensions.
+    pub fn parse_statements(&self, sql: &[u8]) -> Result<StatementIterator> {
         let csql = std::ffi::CString::new(sql).map_err(|_| Error::invalid_input("the query contains a NUL byte"))?;
         let mut iterator: duckdb_v2_statement_iterator_handle = std::ptr::null_mut();
-        api_call!(duckdb_v2_parse_sql(self.as_raw(), csql.as_ptr(), apply_invalidation_policy, &mut iterator));
+        api_call!(duckdb_v2_parse_sql(self.as_raw(), csql.as_ptr(), &mut iterator));
         Ok(StatementIterator { raw: iterator })
     }
 
-    /// Parses `sql` into its statements, without applying the invalidation policy (the statements are inspected, not
-    /// run).
+    /// Parses `sql` into its statements.
     pub fn parse(&self, sql: &str) -> Result<Vec<Statement>> {
-        self.parse_statements(sql.as_bytes(), false)?.collect()
+        self.parse_statements(sql.as_bytes())?.collect()
     }
 
     /// `Connection::Prepare` of a parsed statement (`duckdb_v2_prepared_statement_create`); `require_cacheable`
