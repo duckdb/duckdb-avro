@@ -11,10 +11,13 @@ if (EMSCRIPTEN)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
   
-  # _LINKED_LIBS influences only Wasm compilation
-  # it's unclear why this is needed, but somehow global symbols aren't properly exported otherwise
-  # this solves by basically re-linking (at the moment the Wasm binary is actually produced)
-  set (DUCKDB_EXTENSION_AVRO_LINKED_LIBS "../../vcpkg_installed/wasm32-emscripten/lib/lib*.a")
+  # _LINKED_LIBS influences only Wasm compilation. DuckDB produces the loadable .wasm by relinking the extension
+  # archive with emcc (-sSIDE_MODULE=2) together with the archives listed here, and nothing else: whatever the
+  # extension links through target_link_libraries() but does not list here is left as an unresolved import. So the
+  # vcpkg libraries, avro-c itself and the C++ API shim all have to appear. Without the last two every avro_* and
+  # duckdb::cxx::* symbol is imported from the host, no engine provides them, and the extension cannot be loaded.
+  set (DUCKDB_EXTENSION_AVRO_LINKED_LIBS
+       "../../vcpkg_installed/wasm32-emscripten/lib/lib*.a $<TARGET_FILE:avro-static> $<TARGET_FILE:duckdb_cpp_api_loadable>")
 endif()
 
 # Disable avro-c examples, tests, docs
