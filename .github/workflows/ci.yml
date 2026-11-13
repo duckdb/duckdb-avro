@@ -18,8 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      # the toolchain of Cargo.toml's rust-version: rustfmt and clippy change their output between releases, so `stable`
+      # would turn a compiler release into a red lint job
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.99.0
           components: clippy, rustfmt
       - run: cargo fmt --check
       - run: cargo clippy --release --all-targets --workspace -- -D warnings
@@ -29,7 +32,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.99.0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
