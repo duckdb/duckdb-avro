@@ -50,15 +50,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data1.avro
 2013-08-31T07:11:21Z	Cherno Alpha	ru	masterYi	false	true	true	false	article	Asia	Russia	Oblast	Moscow	123	12	111
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data1.avro')) TO '{TEST_DIR}/wikipedia_index_data1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data1.avro')) TO '__TEST_DIR__/wikipedia_index_data1.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/wikipedia_index_data1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/wikipedia_index_data1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data1.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/wikipedia_index_data1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data1.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/wikipedia_index_data1.avro'))
 ----
 0
 
@@ -99,15 +99,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data2.avro
 2013-09-01T01:02:33Z	Gypsy Danger	en	nuclear	true	true	false	false	article	North America	United States	Bay Area	San Francisco	57	200	-143
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data2.avro')) TO '{TEST_DIR}/wikipedia_index_data2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data2.avro')) TO '__TEST_DIR__/wikipedia_index_data2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/wikipedia_index_data2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/wikipedia_index_data2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/wikipedia_index_data2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/wikipedia_index_data2.avro'))
 ----
 0
 
@@ -149,14 +149,14 @@ SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data3.avro
 2013-09-01T12:41:27Z	Coyote Tango	ja	stringer	true	false	true	false	wikipedia	Asia	Japan	Kanto	Tokyo	1	10	-9
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data3.avro')) TO '{TEST_DIR}/wikipedia_index_data3.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data3.avro')) TO '__TEST_DIR__/wikipedia_index_data3.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/wikipedia_index_data3.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data3.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/wikipedia_index_data3.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data3.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data3.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/wikipedia_index_data3.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__druid/wikipedia_index_data3.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/wikipedia_index_data3.avro'))
 ----
 0

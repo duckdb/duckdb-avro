@@ -1,0 +1,13 @@
+[package]
+name = "avro_wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "avro"
+crate-type = ["staticlib"]
+
+[dependencies]
+duckdb-neo = { workspace = true, features = ["build-extension"] }
+avro_core.workspace = true

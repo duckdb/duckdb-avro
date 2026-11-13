@@ -52,13 +52,13 @@ SELECT * FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflate
 000B	Rodmus3	Prime	1000	true	Pluton	{weapon={'name': ElectroHammer, 'weight': 180}}	[]	infinity
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated.avro')) TO '{TEST_DIR}/transformers-deflated.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated.avro')) TO '__TEST_DIR__/transformers-deflated.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/transformers-deflated.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/transformers-deflated.avro'))
 ----
 id	BLOB
 fname	VARCHAR
@@ -71,12 +71,12 @@ friends	BLOB[]
 energy_level	UNION(u1 INTEGER, u2 VARCHAR)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/transformers-deflated.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/transformers-deflated.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/transformers-deflated.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/transformers-deflated.avro'))
 ----
 0
 
@@ -155,13 +155,13 @@ SELECT * FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflate
 000B	Rodmus3	Prime	1000	true	Pluton	{weapon={'name': ElectroHammer, 'weight': 180}}	[]	infinity
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated2.avro')) TO '{TEST_DIR}/transformers-deflated2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated2.avro')) TO '__TEST_DIR__/transformers-deflated2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/transformers-deflated2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/transformers-deflated2.avro'))
 ----
 id	BLOB
 fname	VARCHAR
@@ -174,12 +174,12 @@ friends	BLOB[]
 energy_level	UNION(u1 INTEGER, u2 VARCHAR)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/transformers-deflated2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/transformers-deflated2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/transformers-deflated2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers-deflated2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/transformers-deflated2.avro'))
 ----
 0
 
@@ -222,13 +222,13 @@ SELECT * FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers.avro')
 000B	Rodmus3	Prime	1000	true	Pluton	{weapon={'name': ElectroHammer, 'weight': 180}}	[]	infinity
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers.avro')) TO '{TEST_DIR}/transformers.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers.avro')) TO '__TEST_DIR__/transformers.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/transformers.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/transformers.avro'))
 ----
 id	BLOB
 fname	VARCHAR
@@ -241,11 +241,11 @@ friends	BLOB[]
 energy_level	UNION(u1 INTEGER, u2 VARCHAR)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/transformers.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/transformers.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/transformers.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_SIfoxDevTeam__eavro/transformers.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/transformers.avro'))
 ----
 0

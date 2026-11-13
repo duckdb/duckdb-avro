@@ -38,15 +38,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex.avro')
 {'id': 1, 'name': avro}	HEARTS	[one, two, three]	{a=1, b=2}	100	abababababababab
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex.avro')) TO '{TEST_DIR}/complex.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex.avro')) TO '__TEST_DIR__/complex.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/complex.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/complex.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/complex.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/complex.avro'))
 ----
 0
 
@@ -82,15 +82,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex_nest.avro')
 {'inner': {'val': 123}}	{'list': [1, 2, 3]}	{'dict': {a=x, b=y}}	[{'value': one}, {'value': two}]	[[1, 2], [3, 4]]	[{a=1, b=2}, {c=3}]	{r1={'id': 10}, r2={'id': 20}}	{nums=[5, 6, 7]}	{outer={inner=val}}	{'entries': [{'flag': true}, {'flag': false}]}	{'entries': [{x=1}, {y=2}]}	[{one={'ok': true}}, {two={'ok': false}}]	{group=[{'score': 99.9}, {'score': 88.8}]}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex_nest.avro')) TO '{TEST_DIR}/complex_nest.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex_nest.avro')) TO '__TEST_DIR__/complex_nest.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/complex_nest.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex_nest.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/complex_nest.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex_nest.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex_nest.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/complex_nest.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/complex_nest.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/complex_nest.avro'))
 ----
 0
 
@@ -122,15 +122,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/direct_reader_matri
 0	9	0.0	3.25	false	RED	WXYZ	7
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/direct_reader_matrix.avro')) TO '{TEST_DIR}/direct_reader_matrix.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/direct_reader_matrix.avro')) TO '__TEST_DIR__/direct_reader_matrix.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/direct_reader_matrix.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/direct_reader_matrix.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/direct_reader_matrix.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/direct_reader_matrix.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/direct_reader_matrix.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/direct_reader_matrix.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/direct_reader_matrix.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/direct_reader_matrix.avro'))
 ----
 0
 
@@ -165,7 +165,7 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/logical.avro')
 
 # the writer refuses this schema
 statement error
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/logical.avro')) TO '{TEST_DIR}/logical.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/logical.avro')) TO '__TEST_DIR__/logical.avro' (FORMAT avro)
 ----
 Can't convert logical type 'INTERVAL' to Avro type
 
@@ -289,15 +289,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/multiblock.avro')
 99	name_99
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/multiblock.avro')) TO '{TEST_DIR}/multiblock.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/multiblock.avro')) TO '__TEST_DIR__/multiblock.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/multiblock.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/multiblock.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/multiblock.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/multiblock.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/multiblock.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/multiblock.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/multiblock.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/multiblock.avro'))
 ----
 0
 
@@ -328,15 +328,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.avro')
 NULL	true	123	1234567890123	3.14	2.7182818284	abc	hello avro
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.avro')) TO '{TEST_DIR}/primitive.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.avro')) TO '__TEST_DIR__/primitive.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/primitive.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/primitive.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/primitive.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/primitive.avro'))
 ----
 0
 
@@ -367,15 +367,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.deflate.a
 NULL	true	123	1234567890123	3.14	2.7182818284	abc	hello avro
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.deflate.avro')) TO '{TEST_DIR}/primitive.deflate.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.deflate.avro')) TO '__TEST_DIR__/primitive.deflate.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/primitive.deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/primitive.deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.deflate.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.deflate.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/primitive.deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.deflate.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/primitive.deflate.avro'))
 ----
 0
 
@@ -406,15 +406,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.snappy.av
 NULL	true	123	1234567890123	3.14	2.7182818284	abc	hello avro
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.snappy.avro')) TO '{TEST_DIR}/primitive.snappy.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.snappy.avro')) TO '__TEST_DIR__/primitive.snappy.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/primitive.snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/primitive.snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.snappy.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.snappy.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/primitive.snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive.snappy.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/primitive.snappy.avro'))
 ----
 0
 
@@ -440,15 +440,15 @@ bytes_field	BLOB
 string_field	VARCHAR
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive_empty.avro')) TO '{TEST_DIR}/primitive_empty.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive_empty.avro')) TO '__TEST_DIR__/primitive_empty.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/primitive_empty.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive_empty.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/primitive_empty.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive_empty.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive_empty.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/primitive_empty.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/primitive_empty.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/primitive_empty.avro'))
 ----
 0
 
@@ -496,15 +496,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1-2.avro')
 10	11	12	10000000000	1.23	3.14	100.50	you	are	beautiful	false	2023-10-29 02:00:00	2023-10-29	[D, E, F]	{k1=3, k2=5}	{'name': leo, 'age': 54, 'gender': male}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1-2.avro')) TO '{TEST_DIR}/row_1-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1-2.avro')) TO '__TEST_DIR__/row_1-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/row_1-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/row_1-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/row_1-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/row_1-2.avro'))
 ----
 0
 
@@ -543,15 +543,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1.avro')
 1	2	3	10000000000	1.23	3.14	100.50	you	are	beautiful	false	2023-10-29 02:00:00	2023-10-29	[D, E, F]	{k1=3, k2=5}	{'name': chandler, 'age': 54}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1.avro')) TO '{TEST_DIR}/row_1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1.avro')) TO '__TEST_DIR__/row_1.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/row_1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/row_1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/row_1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_1.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/row_1.avro'))
 ----
 0
 
@@ -590,15 +590,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_2.avro')
 7	13	74	13000000000	6.15	4.376	57.30	world	Char	Varchar	true	2022-01-01 02:00:00	2022-01-01	[A, B, C]	{key1=1, key2=2}	{'name': John, 'age': 30}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_2.avro')) TO '{TEST_DIR}/row_2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_2.avro')) TO '__TEST_DIR__/row_2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/row_2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/row_2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/row_2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/row_2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/row_2.avro'))
 ----
 0
 
@@ -625,15 +625,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user.avro')
 1003	Charlie
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user.avro')) TO '{TEST_DIR}/user.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user.avro')) TO '__TEST_DIR__/user.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/user.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/user.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/user.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/user.avro'))
 ----
 0
 
@@ -661,15 +661,15 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user1.avro')
 2	Charlie	{'address': 456 Elm St, 'email': charlie@example.com}	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user1.avro')) TO '{TEST_DIR}/user1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user1.avro')) TO '__TEST_DIR__/user1.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/user1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/user1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user1.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/user1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user1.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/user1.avro'))
 ----
 0
 
@@ -695,14 +695,14 @@ SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user2.avro')
 3	Bob	{'age': 30, 'email': bob@example.com}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user2.avro')) TO '{TEST_DIR}/user2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user2.avro')) TO '__TEST_DIR__/user2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/user2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/user2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/user2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_StarRocks__starrocks/user2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/user2.avro'))
 ----
 0

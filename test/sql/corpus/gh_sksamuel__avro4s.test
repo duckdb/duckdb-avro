@@ -34,23 +34,23 @@ sammy
 true
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/eithers.avro')) TO '{TEST_DIR}/eithers.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/eithers.avro')) TO '__TEST_DIR__/eithers.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/eithers.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/eithers.avro'))
 ----
 either	UNION(u1 VARCHAR, u2 BOOLEAN)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/eithers.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_sksamuel__avro4s/eithers.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/eithers.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_sksamuel__avro4s/eithers.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_sksamuel__avro4s/eithers.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/eithers.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_sksamuel__avro4s/eithers.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/eithers.avro'))
 ----
 0
 
@@ -75,15 +75,15 @@ sammy
 NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/options.avro')) TO '{TEST_DIR}/options.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/options.avro')) TO '__TEST_DIR__/options.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/options.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/options.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/options.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/options.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/options.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/options.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/options.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/options.avro'))
 ----
 0
 
@@ -112,14 +112,14 @@ michelangelo	1475	1564	Caprese	[sculpture, fresco]
 raphael	1483	1520	florence	[painter, architect]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/painters.avro')) TO '{TEST_DIR}/painters.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/painters.avro')) TO '__TEST_DIR__/painters.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/painters.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/painters.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/painters.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/painters.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/painters.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/painters.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_sksamuel__avro4s/painters.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/painters.avro'))
 ----
 0

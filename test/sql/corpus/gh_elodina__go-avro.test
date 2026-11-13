@@ -39,15 +39,15 @@ SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/complex.avro')
 [string1, string2, string3, string4, string5]	[1, 2, 3, 4, 5]	C	{key4=4, key3=3, key5=5, key2=2, key1=1}	union value	\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04	{'longRecordField': 1925639126735, 'stringRecordField': I am a test record, 'intRecordField': 666, 'floatRecordField': 7171.17}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/complex.avro')) TO '{TEST_DIR}/complex.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/complex.avro')) TO '__TEST_DIR__/complex.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/complex.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/complex.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/complex.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/complex.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/complex.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/complex.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/complex.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/complex.avro'))
 ----
 0
 
@@ -76,13 +76,13 @@ SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/complex_of_complex.avro
 [[string00, string01, string02, string03, string04], [string10, string11, string12, string13, string14], [string20, string21, string22, string23, string24], [string30, string31, string32, string33, string34], [string40, string41, string42, string43, string44]]	[{'longRecordField': 0, 'stringRecordField': TestRecord0, 'intRecordField': 1000, 'floatRecordField': 0.05}, {'longRecordField': 1, 'stringRecordField': TestRecord1, 'intRecordField': 1001, 'floatRecordField': 1.05}]	[32, not an integer, 49]	{another key={'doubleRecordField': 33.5, 'fixedRecordField': '\\x01\\x02\\x03\\x04'}, a key={'doubleRecordField': 32.5, 'fixedRecordField': '\\x00\\x01\\x02\\x03'}}	{another key=another value, one more key=123, a key=a value}	{'stringArray': [0, 1, 2, 3, 4], 'enumRecordField': D}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/complex_of_complex.avro')) TO '{TEST_DIR}/complex_of_complex.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/complex_of_complex.avro')) TO '__TEST_DIR__/complex_of_complex.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/complex_of_complex.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/complex_of_complex.avro'))
 ----
 arrayStringArray	VARCHAR[][]
 recordArray	STRUCT(longRecordField BIGINT, stringRecordField VARCHAR, intRecordField INTEGER, floatRecordField FLOAT)[]
@@ -92,12 +92,12 @@ intOrStringMap	MAP(VARCHAR, UNION(u1 INTEGER, u2 VARCHAR))
 nullOrRecordUnion	STRUCT(stringArray VARCHAR[], enumRecordField ENUM('A', 'B', 'C', 'D'))
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/complex_of_complex.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_elodina__go-avro/complex_of_complex.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/complex_of_complex.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_elodina__go-avro/complex_of_complex.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_elodina__go-avro/complex_of_complex.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/complex_of_complex.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_elodina__go-avro/complex_of_complex.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/complex_of_complex.avro'))
 ----
 0
 
@@ -128,14 +128,14 @@ SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/primitives.avro')
 true	7498	7921326876135578931	87612736.0	98671578.12563892	\x01\x02\x03\x04\x05\x06\x07\x08\x09	A very long and cute string here!	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/primitives.avro')) TO '{TEST_DIR}/primitives.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/primitives.avro')) TO '__TEST_DIR__/primitives.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/primitives.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/primitives.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/primitives.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/primitives.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/primitives.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/primitives.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_elodina__go-avro/primitives.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/primitives.avro'))
 ----
 0

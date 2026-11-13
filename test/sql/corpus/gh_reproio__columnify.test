@@ -41,15 +41,15 @@ false	1	1	1.1	1.1	bytes	string	[{'boolean': false, 'int': 1, 'long': 1, 'float':
 false	2	2	2.2	2.2	bytes	string	[{'boolean': false, 'int': 2, 'long': 2, 'float': 2.2, 'double': 2.2, 'bytes': bytes, 'string': string}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/array.avro')) TO '{TEST_DIR}/array.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/array.avro')) TO '__TEST_DIR__/array.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/array.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/array.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/array.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/array.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/array.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/array.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/array.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/array.avro'))
 ----
 0
 
@@ -86,15 +86,15 @@ SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/logicals.avro')
 1970-01-11	00:00:10	00:00:10	1970-01-01 00:00:10	1970-01-01 00:00:10
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/logicals.avro')) TO '{TEST_DIR}/logicals.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/logicals.avro')) TO '__TEST_DIR__/logicals.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/logicals.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/logicals.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/logicals.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/logicals.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/logicals.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/logicals.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/logicals.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/logicals.avro'))
 ----
 0
 
@@ -126,15 +126,15 @@ false	1	1	1.1	1.1	bytes	string	{'boolean': false, 'int': 1, 'long': 1, 'float': 
 false	2	2	2.2	2.2	bytes	string	{'boolean': false, 'int': 2, 'long': 2, 'float': 2.2, 'double': 2.2, 'bytes': bytes, 'string': string}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nested.avro')) TO '{TEST_DIR}/nested.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nested.avro')) TO '__TEST_DIR__/nested.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/nested.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nested.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/nested.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nested.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nested.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/nested.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nested.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/nested.avro'))
 ----
 0
 
@@ -168,15 +168,15 @@ NULL	NULL
 NULL	[{'boolean': true, 'int': -120284706, 'long': 3934822438577813854, 'float': 0.9792121, 'double': 0.8598279548509492, 'bytes': '\\x83*\\xE5$', 'string': jfqytlsrixugae}, {'boolean': true, 'int': -167433176, 'long': 4996907008784510459, 'float': 0.5693579, 'double': 0.7272509771521923, 'bytes': '\\xF6z\\xE4\\xBE', 'string': laruxgvtikw}, {'boolean': false, 'int': 1939227671, 'long': -4522720500642051954, 'float': 0.6620586, 'double': 0.2977905118815489, 'bytes': '\\xC5\\xCC\\xFB\\xC4\\x149r', 'string': dhu}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullable_complex.avro')) TO '{TEST_DIR}/nullable_complex.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullable_complex.avro')) TO '__TEST_DIR__/nullable_complex.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/nullable_complex.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullable_complex.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/nullable_complex.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullable_complex.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullable_complex.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/nullable_complex.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullable_complex.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/nullable_complex.avro'))
 ----
 0
 
@@ -215,15 +215,15 @@ true	-433672812	4602315000893829332	0.43936086	0.4923838260209136	~\x9C\x86\xA0)
 NULL	NULL	NULL	NULL	0.24505978464315714	NULL	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullables.avro')) TO '{TEST_DIR}/nullables.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullables.avro')) TO '__TEST_DIR__/nullables.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/nullables.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullables.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/nullables.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullables.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullables.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/nullables.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/nullables.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/nullables.avro'))
 ----
 0
 
@@ -254,14 +254,14 @@ false	1	1	1.1	1.1	foo	foo
 false	2	2	2.2	2.2	bar	bar
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/primitives.avro')) TO '{TEST_DIR}/primitives.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/primitives.avro')) TO '__TEST_DIR__/primitives.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/primitives.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/primitives.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/primitives.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/primitives.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/primitives.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/primitives.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_reproio__columnify/primitives.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/primitives.avro'))
 ----
 0

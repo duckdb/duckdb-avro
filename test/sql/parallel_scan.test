@@ -14,11 +14,11 @@ COPY (
 	       ('row_' || (i % 100)::VARCHAR) AS payload,
 	       [i::BIGINT, (i + 1)::BIGINT] AS items
 	FROM range(20000) t(i)
-) TO '{TEST_DIR}/parallel.avro' (FORMAT AVRO)
+) TO '__TEST_DIR__/parallel.avro' (FORMAT AVRO)
 
 query IIIII
 SELECT count(*), sum(id), min(id), max(id), sum(items[2])
-FROM read_avro('{TEST_DIR}/parallel.avro')
+FROM read_avro('__TEST_DIR__/parallel.avro')
 ----
 20000	199990000	0	19999	200010000
 
@@ -26,42 +26,42 @@ statement ok
 COPY (
 	SELECT i::BIGINT AS id, ('compressed_' || i::VARCHAR) AS payload
 	FROM range(20000) t(i)
-) TO '{TEST_DIR}/parallel_deflate.avro' (FORMAT AVRO, CODEC 'deflate')
+) TO '__TEST_DIR__/parallel_deflate.avro' (FORMAT AVRO, CODEC 'deflate')
 
 query III
 SELECT count(*), sum(id), count(DISTINCT payload)
-FROM read_avro('{TEST_DIR}/parallel_deflate.avro')
+FROM read_avro('__TEST_DIR__/parallel_deflate.avro')
 ----
 20000	199990000	20000
 
 # Empty and single-block containers retain their normal behavior.
 statement ok
-COPY (SELECT 1::BIGINT AS id WHERE false) TO '{TEST_DIR}/parallel_empty.avro' (FORMAT AVRO)
+COPY (SELECT 1::BIGINT AS id WHERE false) TO '__TEST_DIR__/parallel_empty.avro' (FORMAT AVRO)
 
 query I
-SELECT count(*) FROM read_avro('{TEST_DIR}/parallel_empty.avro')
+SELECT count(*) FROM read_avro('__TEST_DIR__/parallel_empty.avro')
 ----
 0
 
 statement ok
-COPY (SELECT 42::BIGINT AS id) TO '{TEST_DIR}/parallel_single.avro' (FORMAT AVRO)
+COPY (SELECT 42::BIGINT AS id) TO '__TEST_DIR__/parallel_single.avro' (FORMAT AVRO)
 
 query I
-SELECT id FROM read_avro('{TEST_DIR}/parallel_single.avro')
+SELECT id FROM read_avro('__TEST_DIR__/parallel_single.avro')
 ----
 42
 
 # Multiple files still combine file-level and block-level scheduling.
 statement ok
 COPY (SELECT i::BIGINT AS id FROM range(5000) t(i))
-TO '{TEST_DIR}/parallel_1.avro' (FORMAT AVRO)
+TO '__TEST_DIR__/parallel_1.avro' (FORMAT AVRO)
 
 statement ok
 COPY (SELECT i::BIGINT AS id FROM range(5000, 10000) t(i))
-TO '{TEST_DIR}/parallel_2.avro' (FORMAT AVRO)
+TO '__TEST_DIR__/parallel_2.avro' (FORMAT AVRO)
 
 query II
 SELECT count(*), sum(id)
-FROM read_avro(['{TEST_DIR}/parallel_1.avro', '{TEST_DIR}/parallel_2.avro'])
+FROM read_avro(['__TEST_DIR__/parallel_1.avro', '__TEST_DIR__/parallel_2.avro'])
 ----
 10000	49995000

@@ -34,24 +34,24 @@ SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/avroUtilsTestFile.avro')
 {'RecordInUnion': {'Field': stringValue1}}	{stringKey={'Field': stringValue2}}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/avroUtilsTestFile.avro')) TO '{TEST_DIR}/avroUtilsTestFile.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/avroUtilsTestFile.avro')) TO '__TEST_DIR__/avroUtilsTestFile.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/avroUtilsTestFile.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/avroUtilsTestFile.avro'))
 ----
 TestUnionObject	UNION(u1 STRUCT(RecordInUnion STRUCT(Field VARCHAR)), u2 MAP(VARCHAR, VARCHAR))
 Map	MAP(VARCHAR, STRUCT(Field VARCHAR))
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/avroUtilsTestFile.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__gobblin/avroUtilsTestFile.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/avroUtilsTestFile.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__gobblin/avroUtilsTestFile.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__gobblin/avroUtilsTestFile.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/avroUtilsTestFile.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__gobblin/avroUtilsTestFile.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/avroUtilsTestFile.avro'))
 ----
 0
 
@@ -78,15 +78,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/converted_pickfields_nes
 18 values hashing to 8bdf98fdba7bd27bc132f220492e1d17
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/converted_pickfields_nested_with_union.avro')) TO '{TEST_DIR}/converted_pickfields_nested_with_union.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/converted_pickfields_nested_with_union.avro')) TO '__TEST_DIR__/converted_pickfields_nested_with_union.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/converted_pickfields_nested_with_union.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/converted_pickfields_nested_with_union.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/converted_pickfields_nested_with_union.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/converted_pickfields_nested_with_union.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/converted_pickfields_nested_with_union.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/converted_pickfields_nested_with_union.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/converted_pickfields_nested_with_union.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/converted_pickfields_nested_with_union.avro'))
 ----
 0
 
@@ -113,15 +113,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/envelope.avro')
 {payloadSchemaId=payloadSchemaId-20170906185911}	envelopeRecord-20170906185911	6simpleRecord-20170906185911\xEE\xC2\x95\xFB\x8C\x96\x09	{'id': simpleRecord-20170906185911, 'created': 20170906185911}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/envelope.avro')) TO '{TEST_DIR}/envelope.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/envelope.avro')) TO '__TEST_DIR__/envelope.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/envelope.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/envelope.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/envelope.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/envelope.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/envelope.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/envelope.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/envelope.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/envelope.avro'))
 ----
 0
 
@@ -150,15 +150,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput.avro')
 testName	NULL	NULL	12	13	14
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput.avro')) TO '{TEST_DIR}/fieldPickInput.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput.avro')) TO '__TEST_DIR__/fieldPickInput.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/fieldPickInput.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/fieldPickInput.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/fieldPickInput.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/fieldPickInput.avro'))
 ----
 0
 
@@ -188,15 +188,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput_arrays.av
 My Name	4	NULL	30	45	60	[hello world, foobar]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput_arrays.avro')) TO '{TEST_DIR}/fieldPickInput_arrays.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput_arrays.avro')) TO '__TEST_DIR__/fieldPickInput_arrays.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/fieldPickInput_arrays.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput_arrays.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/fieldPickInput_arrays.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput_arrays.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput_arrays.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/fieldPickInput_arrays.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/fieldPickInput_arrays.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/fieldPickInput_arrays.avro'))
 ----
 0
 
@@ -223,15 +223,15 @@ Alyssa	256	NULL
 Ben	7	red
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/hive-test.avro')) TO '{TEST_DIR}/hive-test.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/hive-test.avro')) TO '__TEST_DIR__/hive-test.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/hive-test.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/hive-test.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/hive-test.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/hive-test.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/hive-test.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/hive-test.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/hive-test.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/hive-test.avro'))
 ----
 0
 
@@ -269,15 +269,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/mockAvro.avro')
 {'memberId': 8, 'time': 1420099200000, 'service': ams}	true	REQUEUE	MEMBER	PURGE_ACCOUNT	1420099200000	1420099200000	1
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/mockAvro.avro')) TO '{TEST_DIR}/mockAvro.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/mockAvro.avro')) TO '__TEST_DIR__/mockAvro.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/mockAvro.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/mockAvro.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/mockAvro.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/mockAvro.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/mockAvro.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/mockAvro.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/mockAvro.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/mockAvro.avro'))
 ----
 0
 
@@ -307,15 +307,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/nested.avro')
 John	9	blue	1462387756716	0	1462387756716	{'city': Mountain view, 'street_number': 2029}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/nested.avro')) TO '{TEST_DIR}/nested.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/nested.avro')) TO '__TEST_DIR__/nested.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/nested.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/nested.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/nested.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/nested.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/nested.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/nested.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/nested.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/nested.avro'))
 ----
 0
 
@@ -346,15 +346,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/pickfields_nested_with_u
 42 values hashing to 173481becefaf55514b625a4001c7aa6
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/pickfields_nested_with_union.avro')) TO '{TEST_DIR}/pickfields_nested_with_union.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/pickfields_nested_with_union.avro')) TO '__TEST_DIR__/pickfields_nested_with_union.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/pickfields_nested_with_union.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/pickfields_nested_with_union.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/pickfields_nested_with_union.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/pickfields_nested_with_union.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/pickfields_nested_with_union.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/pickfields_nested_with_union.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/pickfields_nested_with_union.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/pickfields_nested_with_union.avro'))
 ----
 0
 
@@ -380,15 +380,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/record_with_arrays.avro'
 valMain	foo	[{'fieldToEncrypt': val0, 'someOtherField': foo0}, {'fieldToEncrypt': val1, 'someOtherField': foo1}, {'fieldToEncrypt': val2, 'someOtherField': foo2}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/record_with_arrays.avro')) TO '{TEST_DIR}/record_with_arrays.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/record_with_arrays.avro')) TO '__TEST_DIR__/record_with_arrays.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/record_with_arrays.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/record_with_arrays.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/record_with_arrays.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/record_with_arrays.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/record_with_arrays.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/record_with_arrays.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/record_with_arrays.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/record_with_arrays.avro'))
 ----
 0
 
@@ -415,14 +415,14 @@ Alyssa	256	NULL
 Ben	7	red
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/serde.avro')) TO '{TEST_DIR}/serde.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/serde.avro')) TO '__TEST_DIR__/serde.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/serde.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/serde.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/serde.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/serde.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/serde.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/serde.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__gobblin/serde.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/serde.avro'))
 ----
 0

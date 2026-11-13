@@ -44,15 +44,15 @@ SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/test_share_feature_lis
 [{'name': mon_fruits, 'term': pineapple, 'value': 2.0}, {'name': mon_fruits, 'term': apple, 'value': 2.0}, {'name': mon_fruits, 'term': grapes, 'value': 2.0}]	[{'name': tue_fruits, 'term': apple, 'value': 1.5}, {'name': tue_fruits, 'term': pear, 'value': 1.0}]	[{'name': wed_fruits, 'term': apple, 'value': 1.5}]	[{'name': david_fruits, 'term': apple, 'value': 1.5}]	[random, pick]	[good, one]	ipad	unseen
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/test_share_feature_list.avro')) TO '{TEST_DIR}/test_share_feature_list.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/test_share_feature_list.avro')) TO '__TEST_DIR__/test_share_feature_list.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test_share_feature_list.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/test_share_feature_list.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test_share_feature_list.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/test_share_feature_list.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/test_share_feature_list.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test_share_feature_list.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/test_share_feature_list.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test_share_feature_list.avro'))
 ----
 0
 
@@ -83,15 +83,15 @@ SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/text.avro')
 1	You probably all already know this by now, but 5 additional episodes never aired can be viewed on ABC.com I've watched a lot of television over the years and this is possibly my favorite show, ever. It's a crime that this beautifully written and acted show was canceled. The actors that played Laura, Whit, Carlos, Mae, Damian, Anya and omg, Steven Caseman - are all incredible and so natural in those roles. Even the kids are great. Wonderful show. So sad that it's gone. Of course I wonder about the reasons it was canceled. There is no way I'll let myself believe that Ms. Moynahan's pregnancy had anything to do with it. It was in the perfect time slot in this market. I've watched all the episodes again on ABC.com - I hope they all come out on DVD some day. Thanks for reading.	[{'name': wideFeatures, 'term': review-length, 'value': 14.0}, {'name': wideFeatures, 'term': num-sentence, 'value': 783.0}]	[{'name': words, 'term': probably, 'value': 1.0}, {'name': words, 'term': already, 'value': 1.0}, {'name': words, 'term': know, 'value': 1.0}, {'name': words, 'term': 5, 'value': 1.0}, {'name': words, 'term': additional, 'value': 1.0}, {'name': words, 'term': episodes, 'value': 1.0}, {'name': words, 'term': never, 'value': 1.0}, {'name': words, 'term': aired, 'value': 1.0}, {'name': words, 'term': viewed, 'value': 1.0}, {'name': words, 'term': abc, 'value': 1.0}, {'name': words, 'term': com, 'value': 1.0}, {'name': words, 'term': watched, 'value': 1.0}, {'name': words, 'term': lot, 'value': 1.0}, {'name': words, 'term': television, 'value': 1.0}, {'name': words, 'term': years, 'value': 1.0}, {'name': words, 'term': possibly, 'value': 1.0}, {'name': words, 'term': favorite, 'value': 1.0}, {'name': words, 'term': show, 'value': 1.0}, {'name': words, 'term': ever, 'value': 1.0}, {'name': words, 'term': crime, 'value': 1.0}, {'name': words, 'term': beautifully, 'value': 1.0}, {'name': words, 'term': written, 'value': 1.0}, {'name': words, 'term': acted, 'value': 1.0}, {'name': words, 'term': show, 'value': 1.0}, {'name': words, 'term': canceled, 'value': 1.0}, {'name': words, 'term': actors, 'value': 1.0}, {'name': words, 'term': played, 'value': 1.0}, {'name': words, 'term': laura, 'value': 1.0}, {'name': words, 'term': whit, 'value': 1.0}, {'name': words, 'term': carlos, 'value': 1.0}, {'name': words, 'term': mae, 'value': 1.0}, {'name': words, 'term': damian, 'value': 1.0}, {'name': words, 'term': anya, 'value': 1.0}, {'name': words, 'term': omg, 'value': 1.0}, {'name': words, 'term': steven, 'value': 1.0}, {'name': words, 'term': caseman, 'value': 1.0}, {'name': words, 'term': incredible, 'value': 1.0}, {'name': words, 'term': natural, 'value': 1.0}, {'name': words, 'term': roles, 'value': 1.0}, {'name': words, 'term': even, 'value': 1.0}, {'name': words, 'term': kids, 'value': 1.0}, {'name': words, 'term': great, 'value': 1.0}, {'name': words, 'term': wonderful, 'value': 1.0}, {'name': words, 'term': show, 'value': 1.0}, {'name': words, 'term': sad, 'value': 1.0}, {'name': words, 'term': gone, 'value': 1.0}, {'name': words, 'term': course, 'value': 1.0}, {'name': words, 'term': wonder, 'value': 1.0}, {'name': words, 'term': reasons, 'value': 1.0}, {'name': words, 'term': canceled, 'value': 1.0}, {'name': words, 'term': way, 'value': 1.0}, {'name': words, 'term': let, 'value': 1.0}, {'name': words, 'term': believe, 'value': 1.0}, {'name': words, 'term': ms, 'value': 1.0}, {'name': words, 'term': moynahan, 'value': 1.0}, {'name': words, 'term': pregnancy, 'value': 1.0}, {'name': words, 'term': anything, 'value': 1.0}, {'name': words, 'term': perfect, 'value': 1.0}, {'name': words, 'term': time, 'value': 1.0}, {'name': words, 'term': slot, 'value': 1.0}, {'name': words, 'term': market, 'value': 1.0}, {'name': words, 'term': watched, 'value': 1.0}, {'name': words, 'term': episodes, 'value': 1.0}, {'name': words, 'term': abc, 'value': 1.0}, {'name': words, 'term': com, 'value': 1.0}, {'name': words, 'term': hope, 'value': 1.0}, {'name': words, 'term': come, 'value': 1.0}, {'name': words, 'term': dvd, 'value': 1.0}, {'name': words, 'term': day, 'value': 1.0}, {'name': words, 'term': thanks, 'value': 0.0}, {'name': words, 'term': reading, 'value': 0.0}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/text.avro')) TO '{TEST_DIR}/text.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/text.avro')) TO '__TEST_DIR__/text.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/text.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/text.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/text.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/text.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/text.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/text.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/text.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/text.avro'))
 ----
 0
 
@@ -131,14 +131,14 @@ SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/textSequence.avro')
 16	[0.015653133, 0.2707215, 0.61928445, 0.3458038, 0.10125828, 0.22293264]	-6124047445937448721	clowiltpfbhwmgakcfkqrpduuianjdeqnonxfpidyjlqrwfscdediltdkaxupneqwmieacclfwafdjyolxkoridnysvredstvlbspflgtygigbnlpmnjjdsppdcjesolandgbkbjatotdetkinaeeuxkefdfmprx	[nmxsoh, g, ffpchkvpirxs, kjtcnmpoe, wkdpfm]	svu	[{'term': xtntdgaphxbn, 'value': 0.22315902}, {'term': hmwmheiddil, 'value': 0.9777673}, {'term': rhdhdvhggebsyyo, 'value': 0.91398287}]	{'sparse': {'indices': [{'ints': [-453165247, 494048012, 546539272, 2030292189, -1858795255, 2069616783], 'longs': [-5179311030859218028, -684499890950863881]}, {'ints': [-1097891620, 1458034586, 1241998919, 470930325, -242961942, 1817441108], 'longs': [-3602639516182200954, 8374232482146901932, 509542660614819703]}, {'ints': [452147022, 1083692409, -1092031251, -1237775042], 'longs': [-2821415173581271327, -7027172284306962757]}, {'ints': [-1082280580, 741575318, 1193098184, 18867796, -923388294, 393595836], 'longs': [-5931873526296983922, 8991487034119552762, -8929450433143147890, -4136814557160032596, -3996229476502672827]}, {'ints': [113160388, -1373115034, 932536077, -1607635754], 'longs': [8745304457289474282, 4512700046999876382]}], 'values': {'booleans': [false, false, true, false, true, false], 'bytes': '\\xA8\\x8C\\xE5E\\x88\\xC5d', 'doubles': [0.31725425864675993, 0.7923862210923945, 0.8214596827752578, 0.13805936152489895, 0.21049693307403505], 'floats': [0.54941434, 0.5052577, 0.7130548, 0.26296276], 'ints': [-980951097, 145040699, -523979259, 1184177112, 501237171], 'longs': [2332044990936956532, -6655999399866094804, -2353786339946721375, 5517757523795845856], 'strings': ['0\\xB0\\x9B\\x87/\\xECY`', 'E\\x02\\x0B\\x8A\\xCAz\\x1D*\\xDB', 'Y\\x91\\xA9=x[\\xC4\\x1C\\x9A\\xCDu']}}}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/textSequence.avro')) TO '{TEST_DIR}/textSequence.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/textSequence.avro')) TO '__TEST_DIR__/textSequence.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/textSequence.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/textSequence.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/textSequence.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/textSequence.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/textSequence.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/textSequence.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__Avro2TF/textSequence.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/textSequence.avro'))
 ----
 0

@@ -11,22 +11,22 @@ statement ok
 CREATE TABLE moods AS SELECT * FROM (VALUES ('happy'::mood, 1), (NULL::mood, 2), ('sad'::mood, 3), ('ok'::mood, 4)) t(m, i);
 
 statement ok
-COPY (SELECT * FROM moods ORDER BY i) TO '{TEST_DIR}/enum.avro' (FORMAT avro);
+COPY (SELECT * FROM moods ORDER BY i) TO '__TEST_DIR__/enum.avro' (FORMAT avro);
 
 # the enum is named after its field, its symbols come in DuckDB's order, the field is nullable like any other
 query I
-SELECT value FROM avro_metadata('{TEST_DIR}/enum.avro') WHERE key = 'avro.schema';
+SELECT value FROM avro_metadata('__TEST_DIR__/enum.avro') WHERE key = 'avro.schema';
 ----
 {"type":"record","name":"root","fields":[{"name":"m","type":["null",{"type":"enum","name":"m","symbols":["sad","ok","happy"]}]},{"name":"i","type":["null",{"type":"int"}]}]}
 
 query II
-SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('{TEST_DIR}/enum.avro'));
+SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('__TEST_DIR__/enum.avro'));
 ----
 m	ENUM('sad', 'ok', 'happy')
 i	INTEGER
 
 query II
-SELECT m, i FROM read_avro('{TEST_DIR}/enum.avro') ORDER BY i;
+SELECT m, i FROM read_avro('__TEST_DIR__/enum.avro') ORDER BY i;
 ----
 happy	1
 NULL	2
@@ -37,21 +37,21 @@ ok	4
 statement ok
 COPY (
 	SELECT {'m': 'ok'::mood} AS s, ['sad'::mood, NULL, 'happy'::mood] AS l, MAP {'k': 'happy'::mood} AS mp, 'sad'::mood AS nn
-) TO '{TEST_DIR}/enum_nested.avro' (FORMAT avro, FIELD_IDS {'nn': {'__duckdb_field_id': 1, '__duckdb_nullable': false}});
+) TO '__TEST_DIR__/enum_nested.avro' (FORMAT avro, FIELD_IDS {'nn': {'__duckdb_field_id': 1, '__duckdb_nullable': false}});
 
 query I
-SELECT value FROM avro_metadata('{TEST_DIR}/enum_nested.avro') WHERE key = 'avro.schema';
+SELECT value FROM avro_metadata('__TEST_DIR__/enum_nested.avro') WHERE key = 'avro.schema';
 ----
-{"type":"record","name":"root","fields":[{"name":"s","type":["null",{"type":"record","name":"s","fields":[{"name":"m","type":["null",{"type":"enum","name":"m","symbols":["sad","ok","happy"]}]}]}]},{"name":"l","type":["null",{"type":"array","items":["null",{"type":"enum","name":"enum0","symbols":["sad","ok","happy"]}]}]},{"name":"mp","type":["null",{"type":"array","logicalType":"map","items":{"type":"record","name":"record1","fields":[{"name":"key","type":["null",{"type":"string"}]},{"name":"value","type":["null",{"type":"enum","name":"value","symbols":["sad","ok","happy"]}]}]}}]},{"name":"nn","type":{"type":"enum","name":"nn","symbols":["sad","ok","happy"]},"field-id":1}]}
+{"type":"record","name":"root","fields":[{"name":"s","type":["null",{"type":"record","name":"s","fields":[{"name":"m","type":["null",{"type":"enum","name":"m","symbols":["sad","ok","happy"]}]}]}]},{"name":"l","type":["null",{"type":"array","items":["null",{"type":"enum","name":"enum0","symbols":["sad","ok","happy"]}]}]},{"name":"mp","type":["null",{"type":"array","logicalType": "map","items":{"type":"record","name":"record1","fields":[{"name":"key","type":["null",{"type":"string"}]},{"name":"value","type":["null",{"type":"enum","name":"value","symbols":["sad","ok","happy"]}]}]}}]},{"name":"nn","type":{"type":"enum","name":"nn","symbols":["sad","ok","happy"]},"field-id":1}]}
 
 query IIII
-SELECT * FROM read_avro('{TEST_DIR}/enum_nested.avro');
+SELECT * FROM read_avro('__TEST_DIR__/enum_nested.avro');
 ----
 {'m': ok}	[sad, NULL, happy]	{k=happy}	sad
 
 # a NULL in a non-nullable enum field
 statement error
-COPY (SELECT NULL::mood AS nn) TO '{TEST_DIR}/enum_null.avro' (FORMAT avro, FIELD_IDS {'nn': {'__duckdb_field_id': 1, '__duckdb_nullable': false}});
+COPY (SELECT NULL::mood AS nn) TO '__TEST_DIR__/enum_null.avro' (FORMAT avro, FIELD_IDS {'nn': {'__duckdb_field_id': 1, '__duckdb_nullable': false}});
 ----
 Cannot insert NULL to non-nullable field
 
@@ -60,10 +60,10 @@ statement ok
 CREATE TYPE big AS ENUM (SELECT 's' || i FROM range(300) t(i));
 
 statement ok
-COPY (SELECT ('s' || i)::big AS b, i FROM range(300) t(i)) TO '{TEST_DIR}/enum_big.avro' (FORMAT avro);
+COPY (SELECT ('s' || i)::big AS b, i FROM range(300) t(i)) TO '__TEST_DIR__/enum_big.avro' (FORMAT avro);
 
 query I
-SELECT count(*) FROM read_avro('{TEST_DIR}/enum_big.avro') WHERE b::VARCHAR = 's' || i;
+SELECT count(*) FROM read_avro('__TEST_DIR__/enum_big.avro') WHERE b::VARCHAR = 's' || i;
 ----
 300
 
@@ -72,6 +72,6 @@ statement ok
 CREATE TYPE odd AS ENUM ('a', 'decently long enum value');
 
 statement error
-COPY (SELECT 'a'::odd AS o) TO '{TEST_DIR}/enum_odd.avro' (FORMAT avro);
+COPY (SELECT 'a'::odd AS o) TO '__TEST_DIR__/enum_odd.avro' (FORMAT avro);
 ----
 Invalid Input Error: 'decently long enum value' is not a valid Avro enum symbol

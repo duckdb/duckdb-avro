@@ -33,15 +33,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotati
 1
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution00.avro')) TO '{TEST_DIR}/AvroRecordTestEvolution00.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution00.avro')) TO '__TEST_DIR__/AvroRecordTestEvolution00.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroRecordTestEvolution00.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution00.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroRecordTestEvolution00.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution00.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution00.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroRecordTestEvolution00.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution00.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroRecordTestEvolution00.avro'))
 ----
 0
 
@@ -66,15 +66,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotati
 1	Palmae
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution01.avro')) TO '{TEST_DIR}/AvroRecordTestEvolution01.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution01.avro')) TO '__TEST_DIR__/AvroRecordTestEvolution01.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroRecordTestEvolution01.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution01.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroRecordTestEvolution01.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution01.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution01.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroRecordTestEvolution01.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroRecordTestEvolution01.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroRecordTestEvolution01.avro'))
 ----
 0
 
@@ -98,15 +98,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotati
 4
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderExtendedTest00.avro')) TO '{TEST_DIR}/AvroTypeProviderExtendedTest00.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderExtendedTest00.avro')) TO '__TEST_DIR__/AvroTypeProviderExtendedTest00.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderExtendedTest00.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderExtendedTest00.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderExtendedTest00.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderExtendedTest00.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderExtendedTest00.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderExtendedTest00.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderExtendedTest00.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderExtendedTest00.avro'))
 ----
 0
 
@@ -130,15 +130,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotati
 4
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderPreexistingCompanionTest00.avro')) TO '{TEST_DIR}/AvroTypeProviderPreexistingCompanionTest00.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderPreexistingCompanionTest00.avro')) TO '__TEST_DIR__/AvroTypeProviderPreexistingCompanionTest00.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderPreexistingCompanionTest00.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderPreexistingCompanionTest00.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderPreexistingCompanionTest00.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderPreexistingCompanionTest00.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderPreexistingCompanionTest00.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderPreexistingCompanionTest00.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderPreexistingCompanionTest00.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderPreexistingCompanionTest00.avro'))
 ----
 0
 
@@ -162,15 +162,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotati
 1
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestEvolution00.avro')) TO '{TEST_DIR}/AvroTypeProviderTestEvolution00.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestEvolution00.avro')) TO '__TEST_DIR__/AvroTypeProviderTestEvolution00.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestEvolution00.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestEvolution00.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestEvolution00.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestEvolution00.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestEvolution00.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestEvolution00.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestEvolution00.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestEvolution00.avro'))
 ----
 0
 
@@ -194,15 +194,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotati
 [{'x': 4}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDeeplyNested.avro')) TO '{TEST_DIR}/AvroTypeProviderTestNoNamespaceDeeplyNested.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDeeplyNested.avro')) TO '__TEST_DIR__/AvroTypeProviderTestNoNamespaceDeeplyNested.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestNoNamespaceDeeplyNested.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDeeplyNested.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestNoNamespaceDeeplyNested.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDeeplyNested.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDeeplyNested.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestNoNamespaceDeeplyNested.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDeeplyNested.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestNoNamespaceDeeplyNested.avro'))
 ----
 0
 
@@ -226,15 +226,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotati
 [{'x': 5}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDoubleNested.avro')) TO '{TEST_DIR}/AvroTypeProviderTestNoNamespaceDoubleNested.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDoubleNested.avro')) TO '__TEST_DIR__/AvroTypeProviderTestNoNamespaceDoubleNested.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestNoNamespaceDoubleNested.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDoubleNested.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestNoNamespaceDoubleNested.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDoubleNested.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDoubleNested.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestNoNamespaceDoubleNested.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceDoubleNested.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestNoNamespaceDoubleNested.avro'))
 ----
 0
 
@@ -258,15 +258,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotati
 {'x': 2}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceNested.avro')) TO '{TEST_DIR}/AvroTypeProviderTestNoNamespaceNested.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceNested.avro')) TO '__TEST_DIR__/AvroTypeProviderTestNoNamespaceNested.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestNoNamespaceNested.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceNested.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestNoNamespaceNested.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceNested.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceNested.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestNoNamespaceNested.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceNested.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestNoNamespaceNested.avro'))
 ----
 0
 
@@ -290,15 +290,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotati
 {'x': 6}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceOption.avro')) TO '{TEST_DIR}/AvroTypeProviderTestNoNamespaceOption.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceOption.avro')) TO '__TEST_DIR__/AvroTypeProviderTestNoNamespaceOption.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestNoNamespaceOption.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceOption.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestNoNamespaceOption.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceOption.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceOption.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestNoNamespaceOption.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/AvroTypeProviderTestNoNamespaceOption.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestNoNamespaceOption.avro'))
 ----
 0
 
@@ -325,14 +325,14 @@ Dr. Miranda	419
 Dr. Titania	424
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/PackedAvroOutput.avro')) TO '{TEST_DIR}/PackedAvroOutput.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/PackedAvroOutput.avro')) TO '__TEST_DIR__/PackedAvroOutput.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/PackedAvroOutput.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/PackedAvroOutput.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/PackedAvroOutput.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/PackedAvroOutput.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/PackedAvroOutput.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/PackedAvroOutput.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__avro-scala-macro-annotations/PackedAvroOutput.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/PackedAvroOutput.avro'))
 ----
 0

@@ -36,14 +36,14 @@ Alyssa	256	NULL
 Ben	7	red
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_thanhson1085__python-kafka-avro/users.avro')) TO '{TEST_DIR}/users.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_thanhson1085__python-kafka-avro/users.avro')) TO '__TEST_DIR__/users.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/users.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_thanhson1085__python-kafka-avro/users.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/users.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_thanhson1085__python-kafka-avro/users.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_thanhson1085__python-kafka-avro/users.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/users.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_thanhson1085__python-kafka-avro/users.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/users.avro'))
 ----
 0

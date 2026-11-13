@@ -83,14 +83,14 @@ Vv»§WR2g½¤TxHLw[m	[]
 1<§Fª>; Ueq}/;	[{'name': ¼sIG, 'saturation': 0.4354708453453844}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__flink/testdata.avro')) TO '{TEST_DIR}/testdata.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__flink/testdata.avro')) TO '__TEST_DIR__/testdata.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/testdata.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__flink/testdata.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/testdata.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__flink/testdata.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__flink/testdata.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/testdata.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__flink/testdata.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/testdata.avro'))
 ----
 0

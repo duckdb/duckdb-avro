@@ -33,15 +33,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest00.avro')) TO '{TEST_DIR}/AvroTypeProviderTest00.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest00.avro')) TO '__TEST_DIR__/AvroTypeProviderTest00.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest00.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest00.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest00.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest00.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest00.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest00.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest00.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest00.avro'))
 ----
 0
 
@@ -65,15 +65,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1.0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest01.avro')) TO '{TEST_DIR}/AvroTypeProviderTest01.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest01.avro')) TO '__TEST_DIR__/AvroTypeProviderTest01.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest01.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest01.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest01.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest01.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest01.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest01.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest01.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest01.avro'))
 ----
 0
 
@@ -97,15 +97,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest02.avro')) TO '{TEST_DIR}/AvroTypeProviderTest02.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest02.avro')) TO '__TEST_DIR__/AvroTypeProviderTest02.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest02.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest02.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest02.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest02.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest02.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest02.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest02.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest02.avro'))
 ----
 0
 
@@ -129,15 +129,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1.0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest03.avro')) TO '{TEST_DIR}/AvroTypeProviderTest03.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest03.avro')) TO '__TEST_DIR__/AvroTypeProviderTest03.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest03.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest03.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest03.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest03.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest03.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest03.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest03.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest03.avro'))
 ----
 0
 
@@ -161,15 +161,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 true
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest04.avro')) TO '{TEST_DIR}/AvroTypeProviderTest04.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest04.avro')) TO '__TEST_DIR__/AvroTypeProviderTest04.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest04.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest04.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest04.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest04.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest04.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest04.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest04.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest04.avro'))
 ----
 0
 
@@ -193,15 +193,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 hello world
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest05.avro')) TO '{TEST_DIR}/AvroTypeProviderTest05.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest05.avro')) TO '__TEST_DIR__/AvroTypeProviderTest05.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest05.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest05.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest05.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest05.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest05.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest05.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest05.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest05.avro'))
 ----
 0
 
@@ -225,15 +225,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest06.avro')) TO '{TEST_DIR}/AvroTypeProviderTest06.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest06.avro')) TO '__TEST_DIR__/AvroTypeProviderTest06.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest06.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest06.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest06.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest06.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest06.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest06.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest06.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest06.avro'))
 ----
 0
 
@@ -257,15 +257,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest07.avro')) TO '{TEST_DIR}/AvroTypeProviderTest07.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest07.avro')) TO '__TEST_DIR__/AvroTypeProviderTest07.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest07.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest07.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest07.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest07.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest07.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest07.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest07.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest07.avro'))
 ----
 0
 
@@ -289,15 +289,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest08.avro')) TO '{TEST_DIR}/AvroTypeProviderTest08.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest08.avro')) TO '__TEST_DIR__/AvroTypeProviderTest08.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest08.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest08.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest08.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest08.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest08.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest08.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest08.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest08.avro'))
 ----
 0
 
@@ -321,15 +321,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [head.tail]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest10.avro')) TO '{TEST_DIR}/AvroTypeProviderTest10.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest10.avro')) TO '__TEST_DIR__/AvroTypeProviderTest10.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest10.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest10.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest10.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest10.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest10.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest10.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest10.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest10.avro'))
 ----
 0
 
@@ -353,15 +353,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [1, 2]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest11.avro')) TO '{TEST_DIR}/AvroTypeProviderTest11.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest11.avro')) TO '__TEST_DIR__/AvroTypeProviderTest11.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest11.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest11.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest11.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest11.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest11.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest11.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest11.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest11.avro'))
 ----
 0
 
@@ -385,15 +385,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 I'm here
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest12.avro')) TO '{TEST_DIR}/AvroTypeProviderTest12.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest12.avro')) TO '__TEST_DIR__/AvroTypeProviderTest12.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest12.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest12.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest12.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest12.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest12.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest12.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest12.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest12.avro'))
 ----
 0
 
@@ -417,15 +417,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest13.avro')) TO '{TEST_DIR}/AvroTypeProviderTest13.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest13.avro')) TO '__TEST_DIR__/AvroTypeProviderTest13.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest13.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest13.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest13.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest13.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest13.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest13.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest13.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest13.avro'))
 ----
 0
 
@@ -450,15 +450,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1	2
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest14.avro')) TO '{TEST_DIR}/AvroTypeProviderTest14.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest14.avro')) TO '__TEST_DIR__/AvroTypeProviderTest14.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest14.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest14.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest14.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest14.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest14.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest14.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest14.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest14.avro'))
 ----
 0
 
@@ -483,15 +483,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1.0	2.0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest15.avro')) TO '{TEST_DIR}/AvroTypeProviderTest15.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest15.avro')) TO '__TEST_DIR__/AvroTypeProviderTest15.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest15.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest15.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest15.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest15.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest15.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest15.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest15.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest15.avro'))
 ----
 0
 
@@ -516,15 +516,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1	2
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest16.avro')) TO '{TEST_DIR}/AvroTypeProviderTest16.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest16.avro')) TO '__TEST_DIR__/AvroTypeProviderTest16.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest16.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest16.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest16.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest16.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest16.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest16.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest16.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest16.avro'))
 ----
 0
 
@@ -549,15 +549,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1.0	2.0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest17.avro')) TO '{TEST_DIR}/AvroTypeProviderTest17.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest17.avro')) TO '__TEST_DIR__/AvroTypeProviderTest17.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest17.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest17.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest17.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest17.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest17.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest17.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest17.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest17.avro'))
 ----
 0
 
@@ -582,15 +582,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 true	false
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest18.avro')) TO '{TEST_DIR}/AvroTypeProviderTest18.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest18.avro')) TO '__TEST_DIR__/AvroTypeProviderTest18.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest18.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest18.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest18.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest18.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest18.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest18.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest18.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest18.avro'))
 ----
 0
 
@@ -615,15 +615,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1	2
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest19.avro')) TO '{TEST_DIR}/AvroTypeProviderTest19.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest19.avro')) TO '__TEST_DIR__/AvroTypeProviderTest19.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest19.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest19.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest19.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest19.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest19.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest19.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest19.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest19.avro'))
 ----
 0
 
@@ -648,15 +648,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 NULL	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest20.avro')) TO '{TEST_DIR}/AvroTypeProviderTest20.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest20.avro')) TO '__TEST_DIR__/AvroTypeProviderTest20.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest20.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest20.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest20.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest20.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest20.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest20.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest20.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest20.avro'))
 ----
 0
 
@@ -681,15 +681,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [mekka.lekka.hi]	[mekka.hiney.ho]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest24.avro')) TO '{TEST_DIR}/AvroTypeProviderTest24.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest24.avro')) TO '__TEST_DIR__/AvroTypeProviderTest24.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest24.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest24.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest24.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest24.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest24.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest24.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest24.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest24.avro'))
 ----
 0
 
@@ -714,15 +714,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [1, 2]	[3, 4]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest25.avro')) TO '{TEST_DIR}/AvroTypeProviderTest25.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest25.avro')) TO '__TEST_DIR__/AvroTypeProviderTest25.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest25.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest25.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest25.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest25.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest25.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest25.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest25.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest25.avro'))
 ----
 0
 
@@ -747,15 +747,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 sun	moon
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest26.avro')) TO '{TEST_DIR}/AvroTypeProviderTest26.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest26.avro')) TO '__TEST_DIR__/AvroTypeProviderTest26.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest26.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest26.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest26.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest26.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest26.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest26.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest26.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest26.avro'))
 ----
 0
 
@@ -780,15 +780,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1	2
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest27.avro')) TO '{TEST_DIR}/AvroTypeProviderTest27.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest27.avro')) TO '__TEST_DIR__/AvroTypeProviderTest27.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest27.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest27.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest27.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest27.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest27.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest27.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest27.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest27.avro'))
 ----
 0
 
@@ -812,15 +812,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [[blackbird.grackle]]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest28.avro')) TO '{TEST_DIR}/AvroTypeProviderTest28.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest28.avro')) TO '__TEST_DIR__/AvroTypeProviderTest28.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest28.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest28.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest28.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest28.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest28.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest28.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest28.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest28.avro'))
 ----
 0
 
@@ -844,15 +844,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [[1, 2]]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest29.avro')) TO '{TEST_DIR}/AvroTypeProviderTest29.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest29.avro')) TO '__TEST_DIR__/AvroTypeProviderTest29.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest29.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest29.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest29.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest29.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest29.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest29.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest29.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest29.avro'))
 ----
 0
 
@@ -876,15 +876,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [starling.oriole]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest30.avro')) TO '{TEST_DIR}/AvroTypeProviderTest30.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest30.avro')) TO '__TEST_DIR__/AvroTypeProviderTest30.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest30.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest30.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest30.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest30.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest30.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest30.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest30.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest30.avro'))
 ----
 0
 
@@ -908,15 +908,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [5, 6]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest31.avro')) TO '{TEST_DIR}/AvroTypeProviderTest31.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest31.avro')) TO '__TEST_DIR__/AvroTypeProviderTest31.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest31.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest31.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest31.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest31.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest31.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest31.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest31.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest31.avro'))
 ----
 0
 
@@ -940,15 +940,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [cowbird]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest32.avro')) TO '{TEST_DIR}/AvroTypeProviderTest32.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest32.avro')) TO '__TEST_DIR__/AvroTypeProviderTest32.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest32.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest32.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest32.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest32.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest32.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest32.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest32.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest32.avro'))
 ----
 0
 
@@ -972,15 +972,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [1]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest33.avro')) TO '{TEST_DIR}/AvroTypeProviderTest33.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest33.avro')) TO '__TEST_DIR__/AvroTypeProviderTest33.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest33.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest33.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest33.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest33.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest33.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest33.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest33.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest33.avro'))
 ----
 0
 
@@ -1004,15 +1004,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [cowbird, NULL]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest34.avro')) TO '{TEST_DIR}/AvroTypeProviderTest34.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest34.avro')) TO '__TEST_DIR__/AvroTypeProviderTest34.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest34.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest34.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest34.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest34.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest34.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest34.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest34.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest34.avro'))
 ----
 0
 
@@ -1036,15 +1036,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [1, NULL]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest35.avro')) TO '{TEST_DIR}/AvroTypeProviderTest35.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest35.avro')) TO '__TEST_DIR__/AvroTypeProviderTest35.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest35.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest35.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest35.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest35.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest35.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest35.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest35.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest35.avro'))
 ----
 0
 
@@ -1068,15 +1068,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [NULL, [cowbird, NULL]]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest36.avro')) TO '{TEST_DIR}/AvroTypeProviderTest36.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest36.avro')) TO '__TEST_DIR__/AvroTypeProviderTest36.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest36.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest36.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest36.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest36.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest36.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest36.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest36.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest36.avro'))
 ----
 0
 
@@ -1100,15 +1100,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [NULL, [1, NULL]]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest37.avro')) TO '{TEST_DIR}/AvroTypeProviderTest37.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest37.avro')) TO '__TEST_DIR__/AvroTypeProviderTest37.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest37.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest37.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest37.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest37.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest37.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest37.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest37.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest37.avro'))
 ----
 0
 
@@ -1133,15 +1133,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [[hi.bye], [yay.nay]]	[[one.two], [three.four]]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest38.avro')) TO '{TEST_DIR}/AvroTypeProviderTest38.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest38.avro')) TO '__TEST_DIR__/AvroTypeProviderTest38.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest38.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest38.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest38.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest38.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest38.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest38.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest38.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest38.avro'))
 ----
 0
 
@@ -1166,15 +1166,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [[1, 2], [3, 4]]	[[5, 6], [7, 8]]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest39.avro')) TO '{TEST_DIR}/AvroTypeProviderTest39.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest39.avro')) TO '__TEST_DIR__/AvroTypeProviderTest39.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest39.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest39.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest39.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest39.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest39.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest39.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest39.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest39.avro'))
 ----
 0
 
@@ -1199,15 +1199,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [up.down]	[left.right]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest40.avro')) TO '{TEST_DIR}/AvroTypeProviderTest40.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest40.avro')) TO '__TEST_DIR__/AvroTypeProviderTest40.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest40.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest40.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest40.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest40.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest40.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest40.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest40.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest40.avro'))
 ----
 0
 
@@ -1232,15 +1232,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [1, 2]	[3, 4]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest41.avro')) TO '{TEST_DIR}/AvroTypeProviderTest41.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest41.avro')) TO '__TEST_DIR__/AvroTypeProviderTest41.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest41.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest41.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest41.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest41.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest41.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest41.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest41.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest41.avro'))
 ----
 0
 
@@ -1265,15 +1265,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [NULL, red]	[blue, NULL]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest42.avro')) TO '{TEST_DIR}/AvroTypeProviderTest42.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest42.avro')) TO '__TEST_DIR__/AvroTypeProviderTest42.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest42.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest42.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest42.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest42.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest42.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest42.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest42.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest42.avro'))
 ----
 0
 
@@ -1298,15 +1298,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [1, NULL]	[3, NULL]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest43.avro')) TO '{TEST_DIR}/AvroTypeProviderTest43.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest43.avro')) TO '__TEST_DIR__/AvroTypeProviderTest43.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest43.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest43.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest43.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest43.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest43.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest43.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest43.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest43.avro'))
 ----
 0
 
@@ -1331,15 +1331,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [gold, NULL]	[silver, NULL]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest44.avro')) TO '{TEST_DIR}/AvroTypeProviderTest44.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest44.avro')) TO '__TEST_DIR__/AvroTypeProviderTest44.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest44.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest44.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest44.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest44.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest44.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest44.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest44.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest44.avro'))
 ----
 0
 
@@ -1364,15 +1364,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [8, NULL]	[10, NULL]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest45.avro')) TO '{TEST_DIR}/AvroTypeProviderTest45.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest45.avro')) TO '__TEST_DIR__/AvroTypeProviderTest45.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest45.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest45.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest45.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest45.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest45.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest45.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest45.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest45.avro'))
 ----
 0
 
@@ -1397,15 +1397,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [NULL, [green, NULL]]	[NULL, [NULL, yellow]]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest46.avro')) TO '{TEST_DIR}/AvroTypeProviderTest46.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest46.avro')) TO '__TEST_DIR__/AvroTypeProviderTest46.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest46.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest46.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest46.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest46.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest46.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest46.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest46.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest46.avro'))
 ----
 0
 
@@ -1430,15 +1430,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [NULL, [2, NULL]]	[NULL, [NULL, 4]]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest47.avro')) TO '{TEST_DIR}/AvroTypeProviderTest47.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest47.avro')) TO '__TEST_DIR__/AvroTypeProviderTest47.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest47.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest47.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest47.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest47.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest47.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest47.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest47.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest47.avro'))
 ----
 0
 
@@ -1463,15 +1463,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1	bonjour
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest48.avro')) TO '{TEST_DIR}/AvroTypeProviderTest48.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest48.avro')) TO '__TEST_DIR__/AvroTypeProviderTest48.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest48.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest48.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest48.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest48.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest48.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest48.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest48.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest48.avro'))
 ----
 0
 
@@ -1496,15 +1496,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 bueno	2
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest49.avro')) TO '{TEST_DIR}/AvroTypeProviderTest49.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest49.avro')) TO '__TEST_DIR__/AvroTypeProviderTest49.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest49.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest49.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest49.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest49.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest49.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest49.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest49.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest49.avro'))
 ----
 0
 
@@ -1529,15 +1529,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 tropics	3
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest50.avro')) TO '{TEST_DIR}/AvroTypeProviderTest50.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest50.avro')) TO '__TEST_DIR__/AvroTypeProviderTest50.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest50.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest50.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest50.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest50.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest50.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest50.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest50.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest50.avro'))
 ----
 0
 
@@ -1562,15 +1562,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 4	level
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest51.avro')) TO '{TEST_DIR}/AvroTypeProviderTest51.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest51.avro')) TO '__TEST_DIR__/AvroTypeProviderTest51.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest51.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest51.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest51.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest51.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest51.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest51.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest51.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest51.avro'))
 ----
 0
 
@@ -1595,15 +1595,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [am.pm]	[5, 6]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest52.avro')) TO '{TEST_DIR}/AvroTypeProviderTest52.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest52.avro')) TO '__TEST_DIR__/AvroTypeProviderTest52.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest52.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest52.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest52.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest52.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest52.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest52.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest52.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest52.avro'))
 ----
 0
 
@@ -1628,15 +1628,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [7, 8]	[bon.sois]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest53.avro')) TO '{TEST_DIR}/AvroTypeProviderTest53.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest53.avro')) TO '__TEST_DIR__/AvroTypeProviderTest53.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest53.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest53.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest53.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest53.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest53.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest53.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest53.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest53.avro'))
 ----
 0
 
@@ -1661,15 +1661,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [bronco, NULL]	[9, NULL]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest54.avro')) TO '{TEST_DIR}/AvroTypeProviderTest54.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest54.avro')) TO '__TEST_DIR__/AvroTypeProviderTest54.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest54.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest54.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest54.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest54.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest54.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest54.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest54.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest54.avro'))
 ----
 0
 
@@ -1694,15 +1694,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [10, NULL]	[bronca, NULL]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest55.avro')) TO '{TEST_DIR}/AvroTypeProviderTest55.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest55.avro')) TO '__TEST_DIR__/AvroTypeProviderTest55.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest55.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest55.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest55.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest55.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest55.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest55.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest55.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest55.avro'))
 ----
 0
 
@@ -1727,15 +1727,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [[tibetan, NULL], NULL]	[[11, NULL], NULL]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest56.avro')) TO '{TEST_DIR}/AvroTypeProviderTest56.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest56.avro')) TO '__TEST_DIR__/AvroTypeProviderTest56.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest56.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest56.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest56.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest56.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest56.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest56.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest56.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest56.avro'))
 ----
 0
 
@@ -1760,15 +1760,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [[12, NULL], NULL]	[[fire, NULL], NULL]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest57.avro')) TO '{TEST_DIR}/AvroTypeProviderTest57.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest57.avro')) TO '__TEST_DIR__/AvroTypeProviderTest57.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest57.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest57.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest57.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest57.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest57.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest57.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest57.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest57.avro'))
 ----
 0
 
@@ -1792,15 +1792,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {'x': 1}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest58.avro')) TO '{TEST_DIR}/AvroTypeProviderTest58.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest58.avro')) TO '__TEST_DIR__/AvroTypeProviderTest58.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest58.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest58.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest58.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest58.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest58.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest58.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest58.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest58.avro'))
 ----
 0
 
@@ -1824,15 +1824,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {'x': {'x': 1}}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest59.avro')) TO '{TEST_DIR}/AvroTypeProviderTest59.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest59.avro')) TO '__TEST_DIR__/AvroTypeProviderTest59.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest59.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest59.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest59.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest59.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest59.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest59.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest59.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest59.avro'))
 ----
 0
 
@@ -1857,15 +1857,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {'x': 1}	{'x': {'x': 2}}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest60.avro')) TO '{TEST_DIR}/AvroTypeProviderTest60.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest60.avro')) TO '__TEST_DIR__/AvroTypeProviderTest60.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest60.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest60.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest60.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest60.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest60.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest60.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest60.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest60.avro'))
 ----
 0
 
@@ -1889,15 +1889,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [{'x': 1}, {'x': 2}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest61.avro')) TO '{TEST_DIR}/AvroTypeProviderTest61.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest61.avro')) TO '__TEST_DIR__/AvroTypeProviderTest61.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest61.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest61.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest61.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest61.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest61.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest61.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest61.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest61.avro'))
 ----
 0
 
@@ -1921,15 +1921,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [{'x': {'x': 1}}, {'x': {'x': 2}}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest62.avro')) TO '{TEST_DIR}/AvroTypeProviderTest62.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest62.avro')) TO '__TEST_DIR__/AvroTypeProviderTest62.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest62.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest62.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest62.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest62.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest62.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest62.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest62.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest62.avro'))
 ----
 0
 
@@ -1953,15 +1953,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {'x': 1}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest64.avro')) TO '{TEST_DIR}/AvroTypeProviderTest64.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest64.avro')) TO '__TEST_DIR__/AvroTypeProviderTest64.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest64.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest64.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest64.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest64.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest64.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest64.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest64.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest64.avro'))
 ----
 0
 
@@ -1985,15 +1985,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest65.avro')) TO '{TEST_DIR}/AvroTypeProviderTest65.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest65.avro')) TO '__TEST_DIR__/AvroTypeProviderTest65.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest65.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest65.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest65.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest65.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest65.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest65.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest65.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest65.avro'))
 ----
 0
 
@@ -2017,15 +2017,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {'x': {'x': 1}}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest66.avro')) TO '{TEST_DIR}/AvroTypeProviderTest66.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest66.avro')) TO '__TEST_DIR__/AvroTypeProviderTest66.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest66.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest66.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest66.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest66.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest66.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest66.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest66.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest66.avro'))
 ----
 0
 
@@ -2050,15 +2050,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {'x': 1}	{'x': {'x': 4}, 'y': {'x': {'x': 1}}}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest67.avro')) TO '{TEST_DIR}/AvroTypeProviderTest67.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest67.avro')) TO '__TEST_DIR__/AvroTypeProviderTest67.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest67.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest67.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest67.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest67.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest67.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest67.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest67.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest67.avro'))
 ----
 0
 
@@ -2083,15 +2083,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [{'x': 1}, NULL]	[NULL, [{'x': 1.0}, {'x': 2.0}]]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest68.avro')) TO '{TEST_DIR}/AvroTypeProviderTest68.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest68.avro')) TO '__TEST_DIR__/AvroTypeProviderTest68.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest68.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest68.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest68.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest68.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest68.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest68.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest68.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest68.avro'))
 ----
 0
 
@@ -2115,15 +2115,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 (empty)
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest69.avro')) TO '{TEST_DIR}/AvroTypeProviderTest69.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest69.avro')) TO '__TEST_DIR__/AvroTypeProviderTest69.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest69.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest69.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest69.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest69.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest69.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTest69.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTest69.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTest69.avro'))
 ----
 0
 
@@ -2147,15 +2147,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {justice=1}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap01.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap01.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap01.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap01.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap01.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap01.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap01.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap01.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap01.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap01.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap01.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap01.avro'))
 ----
 0
 
@@ -2179,15 +2179,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {justice=law}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap02.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap02.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap02.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap02.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap02.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap02.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap02.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap02.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap02.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap02.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap02.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap02.avro'))
 ----
 0
 
@@ -2211,15 +2211,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {justice=[1, 2]}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap03.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap03.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap03.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap03.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap03.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap03.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap03.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap03.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap03.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap03.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap03.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap03.avro'))
 ----
 0
 
@@ -2244,15 +2244,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {law=4, justice=2}	{sweet=1}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap04.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap04.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap04.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap04.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap04.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap04.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap04.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap04.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap04.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap04.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap04.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap04.avro'))
 ----
 0
 
@@ -2277,15 +2277,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {law=order, justice=crime}	{sweet=sour}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap05.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap05.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap05.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap05.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap05.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap05.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap05.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap05.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap05.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap05.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap05.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap05.avro'))
 ----
 0
 
@@ -2310,15 +2310,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {law=[1, 2], justice=NULL}	{sweet=[3, 4]}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap06.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap06.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap06.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap06.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap06.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap06.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap06.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap06.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap06.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap06.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap06.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap06.avro'))
 ----
 0
 
@@ -2342,15 +2342,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {pepper={onion=6}}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap07.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap07.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap07.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap07.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap07.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap07.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap07.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap07.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap07.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap07.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap07.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap07.avro'))
 ----
 0
 
@@ -2374,15 +2374,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 [{pepper={onion=garlic}}, {bongo={tabla=conga}}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap08.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap08.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap08.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap08.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap08.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap08.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap08.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap08.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap08.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap08.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap08.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap08.avro'))
 ----
 0
 
@@ -2406,15 +2406,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {pepper=[howdy, doody]}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap09.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap09.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap09.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap09.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap09.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap09.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap09.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap09.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap09.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap09.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap09.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap09.avro'))
 ----
 0
 
@@ -2439,15 +2439,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {pepper={onion=6}}	{salt={garlic=7}}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap10.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap10.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap10.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap10.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap10.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap10.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap10.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap10.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap10.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap10.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap10.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap10.avro'))
 ----
 0
 
@@ -2472,15 +2472,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {pepper={onion=6}}	[{salt={garlic=oil}}, {sriracha={chili=oil}}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap11.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap11.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap11.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap11.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap11.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap11.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap11.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap11.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap11.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap11.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap11.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap11.avro'))
 ----
 0
 
@@ -2505,15 +2505,15 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 {c1={00={'x': 2}}}	{58={'x': {'x': 4}}}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap12.avro')) TO '{TEST_DIR}/AvroTypeProviderTestMap12.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap12.avro')) TO '__TEST_DIR__/AvroTypeProviderTestMap12.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap12.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap12.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap12.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap12.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap12.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestMap12.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestMap12.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestMap12.avro'))
 ----
 0
 
@@ -2537,14 +2537,14 @@ SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypePr
 1
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestNoNamespace.avro')) TO '{TEST_DIR}/AvroTypeProviderTestNoNamespace.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestNoNamespace.avro')) TO '__TEST_DIR__/AvroTypeProviderTestNoNamespace.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestNoNamespace.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestNoNamespace.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestNoNamespace.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestNoNamespace.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestNoNamespace.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/AvroTypeProviderTestNoNamespace.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_julianpeeters__sbt-avrohugger/AvroTypeProviderTestNoNamespace.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/AvroTypeProviderTestNoNamespace.avro'))
 ----
 0

@@ -46,15 +46,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-1.
 iceberg-warehouse/people/metadata/794bd2ee-052c-449c-9a6f-3a88857c747f-m0.avro	6658	0	0	1	1	6653143792592159268	1	0	0	1	0	0	[]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-1.avro')) TO '{TEST_DIR}/manifest-list-v2-1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-1.avro')) TO '__TEST_DIR__/manifest-list-v2-1.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/manifest-list-v2-1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/manifest-list-v2-1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-1.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/manifest-list-v2-1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-1.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/manifest-list-v2-1.avro'))
 ----
 0
 
@@ -91,15 +91,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-2.
 iceberg-warehouse_2/people/metadata/80064d99-bd75-4cf3-9b27-13a60f189039-m0.avro	6660	0	0	1	1	3083072880052097243	1	0	0	1	0	0	[]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-2.avro')) TO '{TEST_DIR}/manifest-list-v2-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-2.avro')) TO '__TEST_DIR__/manifest-list-v2-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/manifest-list-v2-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/manifest-list-v2-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/manifest-list-v2-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/manifest-list-v2-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/manifest-list-v2-2.avro'))
 ----
 0
 
@@ -128,15 +128,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/pyiceberg-v2-data.a
 1	7	1	1	{'content': 0, 'file_path': 's3://bucket/table/data/category=c1/00001.parquet', 'file_format': PARQUET, 'partition': {'category': c1}, 'record_count': 101, 'file_size_in_bytes': 1001, 'column_sizes': {1=11, 2=21, 3=31}, 'value_counts': {1=101, 2=101, 3=101}, 'null_value_counts': {1=0, 2=1, 3=1}, 'nan_value_counts': {3=1}, 'lower_bounds': {1='\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00', 2=c1}, 'upper_bounds': {1='3\\x00\\x00\\x00\\x00\\x00\\x00\\x00', 2=c1}, 'key_metadata': NULL, 'split_offsets': [4], 'equality_ids': NULL, 'sort_order_id': 0, 'referenced_data_file': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/pyiceberg-v2-data.avro')) TO '{TEST_DIR}/pyiceberg-v2-data.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/pyiceberg-v2-data.avro')) TO '__TEST_DIR__/pyiceberg-v2-data.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/pyiceberg-v2-data.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/pyiceberg-v2-data.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/pyiceberg-v2-data.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/pyiceberg-v2-data.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/pyiceberg-v2-data.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/pyiceberg-v2-data.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-rust/pyiceberg-v2-data.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/pyiceberg-v2-data.avro'))
 ----
 0
 
@@ -146,4 +146,4 @@ SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-ru
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_apache__iceberg-rust/repeated-decimal-type-definitions.avro')
 ----
-Avro schema by the name of 'decimal_10_2' already exists, names of 'record', 'enum' and 'fixed' types have to be distinct
+Cannot parse file header: Cannot save fixed schema

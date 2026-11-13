@@ -45,15 +45,15 @@ SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.deflate.avro')
 [string61, string2, string3, string4, string5]	[17, 2, 3, 4, 5]	C	{key1=1, key2=2, key5=5, key3=3, key4=4}	union value	\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04	{'longRecordField': 1925639126735, 'stringRecordField': I am a test record, 'intRecordField': 666, 'floatRecordField': 7171.17}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.deflate.avro')) TO '{TEST_DIR}/complex7.deflate.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.deflate.avro')) TO '__TEST_DIR__/complex7.deflate.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/complex7.deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/complex7.deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.deflate.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.deflate.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/complex7.deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.deflate.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/complex7.deflate.avro'))
 ----
 0
 
@@ -89,14 +89,14 @@ SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.null.avro')
 [string61, string2, string3, string4, string5]	[17, 2, 3, 4, 5]	C	{key1=1, key2=2, key5=5, key3=3, key4=4}	union value	\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04	{'longRecordField': 1925639126735, 'stringRecordField': I am a test record, 'intRecordField': 666, 'floatRecordField': 7171.17}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.null.avro')) TO '{TEST_DIR}/complex7.null.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.null.avro')) TO '__TEST_DIR__/complex7.null.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/complex7.null.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.null.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/complex7.null.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.null.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.null.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/complex7.null.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_go-avro__avro/complex7.null.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/complex7.null.avro'))
 ----
 0

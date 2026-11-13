@@ -38,15 +38,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__pinot/clientSalaryNulls_data.avr
 500 values hashing to 234bcfe92f828649ddf6dc7120584e3f
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/clientSalaryNulls_data.avro')) TO '{TEST_DIR}/clientSalaryNulls_data.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/clientSalaryNulls_data.avro')) TO '__TEST_DIR__/clientSalaryNulls_data.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/clientSalaryNulls_data.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/clientSalaryNulls_data.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/clientSalaryNulls_data.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/clientSalaryNulls_data.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/clientSalaryNulls_data.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/clientSalaryNulls_data.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/clientSalaryNulls_data.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/clientSalaryNulls_data.avro'))
 ----
 0
 
@@ -77,15 +77,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__pinot/customer.avro')
 1	Customer#000000001	IVhzIApeRb ot,c,E	15	25-989-741-2988	711.56	BUILDING	to the even, regular platelets. regular, ironic epitaphs nag e
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/customer.avro')) TO '{TEST_DIR}/customer.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/customer.avro')) TO '__TEST_DIR__/customer.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/customer.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/customer.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/customer.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/customer.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/customer.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/customer.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/customer.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/customer.avro'))
 ----
 0
 
@@ -141,15 +141,15 @@ D_HOLIDAYFL	INTEGER	0	1	2	0.027386541471048513	0.16323891714075528	0.0	0.0	0.0	2
 D_WEEKDAYFL	INTEGER	0	1	2	0.7143974960876369	0.4517892985792754	0.0	1.0	1.0	2556	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dates.avro')) TO '{TEST_DIR}/dates.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dates.avro')) TO '__TEST_DIR__/dates.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/dates.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dates.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/dates.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dates.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dates.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/dates.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dates.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/dates.avro'))
 ----
 0
 
@@ -184,15 +184,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dedupIngestionTestData.avr
 4	9	16071
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dedupIngestionTestData.avro')) TO '{TEST_DIR}/dedupIngestionTestData.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dedupIngestionTestData.avro')) TO '__TEST_DIR__/dedupIngestionTestData.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/dedupIngestionTestData.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dedupIngestionTestData.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/dedupIngestionTestData.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dedupIngestionTestData.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dedupIngestionTestData.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/dedupIngestionTestData.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/dedupIngestionTestData.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/dedupIngestionTestData.avro'))
 ----
 0
 
@@ -236,15 +236,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__pinot/lineitem.avro')
 1	1	1	6	32	28832.0	0.07	0.02	N	O	1996-01-30	1996-02-07	1996-02-03	DELIVER IN PERSON	MAIL	arefully slyly ex
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/lineitem.avro')) TO '{TEST_DIR}/lineitem.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/lineitem.avro')) TO '__TEST_DIR__/lineitem.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/lineitem.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/lineitem.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/lineitem.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/lineitem.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/lineitem.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/lineitem.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/lineitem.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/lineitem.avro'))
 ----
 0
 
@@ -295,15 +295,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__pinot/nation.avro')
 24	UNITED STATES	1	y final packages. slow foxes cajole quickly. quickly silent platelets breach ironic accounts. unusual pinto be
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/nation.avro')) TO '{TEST_DIR}/nation.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/nation.avro')) TO '__TEST_DIR__/nation.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/nation.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/nation.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/nation.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/nation.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/nation.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/nation.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/nation.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/nation.avro'))
 ----
 0
 
@@ -335,15 +335,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__pinot/orders.avro')
 1	1	O	124828.11	1996-01-02	5-LOW	Clerk#000000951	0	nstructions sleep furiously among 
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/orders.avro')) TO '{TEST_DIR}/orders.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/orders.avro')) TO '__TEST_DIR__/orders.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/orders.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/orders.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/orders.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/orders.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/orders.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/orders.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/orders.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/orders.avro'))
 ----
 0
 
@@ -375,15 +375,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__pinot/part.avro')
 1	goldenrod lavender spring chocolate lace	Manufacturer#1	Brand#13	PROMO BURNISHED COPPER	7	JUMBO PKG	901.0	ly. slyly ironi
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/part.avro')) TO '{TEST_DIR}/part.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/part.avro')) TO '__TEST_DIR__/part.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/part.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/part.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/part.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/part.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/part.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/part.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/part.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/part.avro'))
 ----
 0
 
@@ -414,15 +414,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__pinot/partsupp.avro')
 1	1	4069	357.84	al, regular dependencies serve carefully after the quickly final pinto beans. furiously even deposits sleep quickly final, silent pinto beans. fluffily reg
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/partsupp.avro')) TO '{TEST_DIR}/partsupp.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/partsupp.avro')) TO '__TEST_DIR__/partsupp.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/partsupp.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/partsupp.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/partsupp.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/partsupp.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/partsupp.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/partsupp.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/partsupp.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/partsupp.avro'))
 ----
 0
 
@@ -452,15 +452,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__pinot/region.avro')
 4	MIDDLE EAST	uickly special accounts cajole carefully blithely close requests. carefully final asymptotes haggle furiousl
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/region.avro')) TO '{TEST_DIR}/region.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/region.avro')) TO '__TEST_DIR__/region.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/region.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/region.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/region.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/region.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/region.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/region.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/region.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/region.avro'))
 ----
 0
 
@@ -490,14 +490,14 @@ SELECT * FROM read_avro('test/corpus/gh_apache__pinot/supplier.avro')
 1	Supplier#000000001	 N kD4on9OM Ipw3,gf0JBoQDd7tgrzrddZ	17	27-918-335-1736	5755.94	each slyly above the careful
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/supplier.avro')) TO '{TEST_DIR}/supplier.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/supplier.avro')) TO '__TEST_DIR__/supplier.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/supplier.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/supplier.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/supplier.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__pinot/supplier.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/supplier.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/supplier.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__pinot/supplier.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/supplier.avro'))
 ----
 0

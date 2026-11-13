@@ -42,15 +42,15 @@ user1	Good morning	20151023	10
 user6	You can totally do this	20220623	756
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/a-twitter.avro')) TO '{TEST_DIR}/a-twitter.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/a-twitter.avro')) TO '__TEST_DIR__/a-twitter.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/a-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/a-twitter.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/a-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/a-twitter.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/a-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/a-twitter.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/a-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/a-twitter.avro'))
 ----
 0
 
@@ -82,15 +82,15 @@ user10	Try Again. Fail again. Fail better	20110822
 user14	Take the risk or lose the chance	20091005
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/b-twitter.avro')) TO '{TEST_DIR}/b-twitter.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/b-twitter.avro')) TO '__TEST_DIR__/b-twitter.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/b-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/b-twitter.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/b-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/b-twitter.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/b-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/b-twitter.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/b-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/b-twitter.avro'))
 ----
 0
 
@@ -121,15 +121,15 @@ user19	Prove them wrong
 user18	He who is brave is free
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/c-twitter.avro')) TO '{TEST_DIR}/c-twitter.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/c-twitter.avro')) TO '__TEST_DIR__/c-twitter.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/c-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/c-twitter.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/c-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/c-twitter.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/c-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/c-twitter.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/c-twitter.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/c-twitter.avro'))
 ----
 0
 
@@ -154,15 +154,15 @@ SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/original000000000000
 foo	12
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/original000000000000.avro')) TO '{TEST_DIR}/original000000000000.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/original000000000000.avro')) TO '__TEST_DIR__/original000000000000.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/original000000000000.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/original000000000000.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/original000000000000.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/original000000000000.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/original000000000000.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/original000000000000.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/original000000000000.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/original000000000000.avro'))
 ----
 0
 
@@ -236,15 +236,15 @@ Wisconsin	WI
 Wyoming	WY
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/us-states.avro')) TO '{TEST_DIR}/us-states.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/us-states.avro')) TO '__TEST_DIR__/us-states.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/us-states.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/us-states.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/us-states.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/us-states.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/us-states.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/us-states.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/us-states.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/us-states.avro'))
 ----
 0
 
@@ -270,14 +270,14 @@ SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/widened000000000000.
 bar	32	314
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/widened000000000000.avro')) TO '{TEST_DIR}/widened000000000000.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/widened000000000000.avro')) TO '__TEST_DIR__/widened000000000000.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/widened000000000000.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/widened000000000000.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/widened000000000000.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/widened000000000000.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/widened000000000000.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/widened000000000000.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gcs_cloud-samples-data/widened000000000000.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/widened000000000000.avro'))
 ----
 0

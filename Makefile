@@ -1,136 +1,45 @@
-# Builds the avro extension for the DuckDB build named in DUCKDB_PIN and runs its tests on that build.
-#
-#   make                 cargo build --release + metadata footer -> build/avro.duckdb_extension (needs `make venv` once)
-#   make venv            a Python virtualenv with the pinned duckdb wheel (venv/)
-#   make test            test/sql (including the generated test/sql/corpus) through scripts/run_sqllogic.py on the
-#                        pinned wheel (cwd = repository root, the tests name their fixtures relative to it)
-#   make unittest DUCKDB=<duckdb binary of the same build>
-#                        the same tests through DuckDB's own C++ sqllogictest runner (test/unittest next to the binary);
-#                        the build's own extensions (icu, ...) are linked next to avro so that `require icu` autoloads
-#                        (never the build's own avro.duckdb_extension: ours takes that name, as a file of its own).
-#                        A unittest linked against libduckdb.so finds it through DUCKDB_LIB_DIR (default: src/ next
-#                        to the binary, where a DuckDB build puts it), which the recipe prepends to LD_LIBRARY_PATH.
-#   make clippy          cargo clippy + cargo fmt --check
-#   make kani            the Kani proof harnesses (bounded model checking with CBMC) of avro-core, duckdb-ext-api and
-#                        the extension: `cargo kani -Z stubbing -p <package>` per package, avro-core and duckdb-avro
-#                        with their kani-heavy feature; needs `cargo install --locked kani-verifier && cargo kani
-#                        setup`. The harnesses are the `#[cfg(kani)] mod verification` blocks next to the code
-#                        (crates/avro-core/src/{decode,encode,crc32,schema,json,codec,container}.rs), crates/duckdb-
-#                        ext-api/src/verification.rs, src/verification.rs and src/reader/verification.rs (the row
-#                        decoder on concrete schemas); a normal build never compiles them.
-#                        About an hour sequential and up to 17 GB (the kani-heavy harnesses, among them the row-decoder
-#                        shapes at two rows; the CI job runs the rest in under half an hour), no engine needed.
-#   make wasm_eh         the DuckDB-Wasm (wasm_eh) build -> build/wasm_eh/avro.duckdb_extension.wasm; needs emscripten on
-#                        PATH (`source <emsdk>/emsdk_env.sh`, extension-ci-tools pins 6.0.9) and the rust target
-#                        wasm32-unknown-emscripten (`rustup target add wasm32-unknown-emscripten`). `make wasm` is an alias.
-#   make clean
-#
-# DuckDB-Wasm: a loadable extension is an emscripten side module (what DuckDB's build_loadable_extension does with
-# `emcc -O3 -sSIDE_MODULE=2` and what .cargo/config.toml passes for the wasm32-unknown-emscripten target), stamped with
-# the same footer as a native build but platform wasm_eh. Only wasm_eh: Rust's prebuilt std for emscripten carries
-# wasm exception-handling opcodes (its unwinding), which the wasm_mvp engine does not accept, and wasm_threads needs a
-# std built with shared memory and atomics (-Zbuild-std).
-#
-# Footer tag: a C_STRUCT_UNSTABLE extension is tied to one engine build by the version tag in its footer
-# (ExtensionHelper::GetVersionDirectoryName: the library version unless it contains "-dev", then the source id). The
-# pin is the release v2.0.0, which is what its Python wheel and the release binaries report, so their tag is v2.0.0. A
-# source build of the same commit can report a dev version instead (v2.0.0-dev88614, source id d54cbbe3df) and then
-# wants the source id as the tag for the same binary: `make` stamps build/avro.duckdb_extension for the wheel,
-# `make unittest` stamps a copy for the given binary.
-#
-# How `make unittest` gets `require avro` to load the extension: with LOCAL_EXTENSION_REPO set, DuckDB's runner
-# (test/sqlite/sqllogic_test_runner.cpp, LoadDatabase) enables autoload_known_extensions and
-# autoinstall_known_extensions with that directory as autoinstall_extension_repository; `require avro` then counts as
-# PRESENT without loading (avro is in AUTOLOADABLE_EXTENSIONS of extension_entries.hpp) and the first read_avro /
-# avro_metadata / COPY ... (FORMAT avro) autoinstalls and loads <repo>/<version tag>/<platform>/avro.duckdb_extension.
-# The target lays the stamped copy out in build/repository that way. Autoinstall requires the engine to know the
-# function: a function the entries do not list would need an explicit LOAD in the test.
-#
-# Re-pinning: see docs/UPDATING.md.
-include DUCKDB_PIN
-PYTHON ?= $(CURDIR)/venv/bin/python
-EXT_VERSION := v$(shell grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)"/\1/')
-# the version tag the footer carries for the wheel: its library version (the release tag), or the source id of a dev build
-FOOTER_VERSION ?= $(shell $(PYTHON) -c "import duckdb; v, s = duckdb.sql('SELECT library_version, source_id FROM pragma_version()').fetchall()[0]; print(s if '-dev' in v else v)" 2>/dev/null)
-PLATFORM ?= $(shell $(PYTHON) -c "import duckdb; print(duckdb.sql('PRAGMA platform').fetchall()[0][0])" 2>/dev/null)
-RUST_SOURCES := Cargo.toml $(wildcard src/*.rs src/*/*.rs crates/*/Cargo.toml crates/*/src/*.rs crates/*/src/*/*.rs)
+.PHONY: clean clean_all
 
-all: build/avro.duckdb_extension
+PROJ_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-venv:
-	python3 -m venv venv
-	venv/bin/pip install -q "duckdb==$(DUCKDB_WHEEL)"
+EXTENSION_NAME=avro
 
-target/release/libavro.so: $(RUST_SOURCES)
-	cargo build --release
+# Mark the extension as C_STRUCT_UNSTABLE: DuckDB 2.x requires the _init_c_api_v2 entrypoint.
+# Binaries load only in the exact TARGET_DUCKDB_VERSION, not in newer DuckDB releases.
+USE_UNSTABLE_C_API=1
+CAPI_VERSION=2
 
-build/avro.duckdb_extension: target/release/libavro.so
-	@test -n "$(FOOTER_VERSION)" || (echo "no duckdb Python package in $(PYTHON): run make venv (or set PYTHON=)" && exit 1)
-	mkdir -p build
-	cp $< $@
-	python3 -I scripts/append_extension_metadata.py --extension $@ --platform $(PLATFORM) --abi-type C_STRUCT_UNSTABLE --version "$(FOOTER_VERSION)" --extension-version $(EXT_VERSION)
+# Target DuckDB version
+TARGET_DUCKDB_VERSION=v2.0.0
 
-test: build/avro.duckdb_extension
-	AVRO_EXTENSION=$(abspath build/avro.duckdb_extension) $(PYTHON) -I scripts/run_sqllogic.py test/sql/*.test test/sql/copy/*.test test/sql/copy/*.test_slow test/sql/corpus/*.test
+all: configure debug
 
-# the C++ runner: the binary's own version tag and platform name the repository directory the stamped copy goes into
-DUCKDB ?=
-UNITTEST ?= $(dir $(DUCKDB))test/unittest
-TEST_CONFIG ?=
-TESTS ?= test/sql/*
-DUCKDB_TAG = $(shell $(DUCKDB) -init /dev/null -csv -noheader -c "SELECT CASE WHEN library_version LIKE '%-dev%' THEN source_id ELSE library_version END FROM pragma_version()" 2>/dev/null)
-DUCKDB_PLATFORM = $(shell $(DUCKDB) -init /dev/null -csv -noheader -c "PRAGMA platform" 2>/dev/null)
-UNITTEST_EXT = build/repository/$(DUCKDB_TAG)/$(DUCKDB_PLATFORM)/avro.duckdb_extension
-# the extensions the engine build produced next to the binary (icu, json, parquet, ...), which a test's `require icu`
-# autoinstalls from the same repository directory
-DUCKDB_REPOSITORY = $(dir $(DUCKDB))repository/$(DUCKDB_TAG)/$(DUCKDB_PLATFORM)
-# all but the build's own avro.duckdb_extension (a build of the C++ extension has one): ours goes under that name
-DUCKDB_EXTENSIONS = $(filter-out %/avro.duckdb_extension,$(wildcard $(DUCKDB_REPOSITORY)/*.duckdb_extension))
-# where a unittest that is linked dynamically finds libduckdb.so
-DUCKDB_LIB_DIR ?= $(dir $(DUCKDB))src
-unittest: target/release/libavro.so
-	@test -n "$(DUCKDB)" || (echo "usage: make unittest DUCKDB=<duckdb binary>" && exit 1)
-	@test -n "$(DUCKDB_TAG)" || (echo "$(DUCKDB) did not report its version" && exit 1)
-	mkdir -p $(dir $(UNITTEST_EXT))
-	@for ext in $(DUCKDB_EXTENSIONS); do ln -sf $$ext $(dir $(UNITTEST_EXT)); done
-	$(RM) $(UNITTEST_EXT)
-	cp $< $(UNITTEST_EXT)
-	python3 -I scripts/append_extension_metadata.py --extension $(UNITTEST_EXT) --platform $(DUCKDB_PLATFORM) --abi-type C_STRUCT_UNSTABLE --version "$(DUCKDB_TAG)" --extension-version $(EXT_VERSION)
-	LD_LIBRARY_PATH=$(DUCKDB_LIB_DIR)$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH} LOCAL_EXTENSION_REPO=$(abspath build/repository) $(UNITTEST) $(if $(TEST_CONFIG),--test-config $(abspath $(TEST_CONFIG))) --test-dir $(CURDIR) "$(TESTS)"
+# Include makefiles from DuckDB
+include extension-ci-tools/makefiles/c_api_extensions/base.Makefile
+include extension-ci-tools/makefiles/c_api_extensions/rust.Makefile
 
-clippy:
-	cargo clippy --release --all-targets --workspace
-	cargo fmt --check
+# Build workspace libraries rather than the CI tools' Wasm example target.
+IS_EXAMPLE=
+ifneq ($(DUCKDB_WASM_PLATFORM),)
+	TARGET_INFO=--target $(TARGET) --package avro_wasm
+else
+	TARGET_INFO+=--package avro
+endif
 
-# one package at a time, harnesses in sequence (each CBMC run takes up to 17 GB); the CI job runs the same without
-# kani-heavy, the feature (of avro-core and of the extension) of the harnesses a 16 GiB runner cannot hold or that take
-# many minutes.
-# `-Z stubbing` lets the JSON number harnesses stand in for `core`'s float parsing.
-KANI_FLAGS := -Z stubbing
-kani:
-	cargo kani $(KANI_FLAGS) -p avro-core --features kani-heavy
-	cargo kani $(KANI_FLAGS) -p duckdb-ext-api
-	cargo kani $(KANI_FLAGS) -p duckdb-avro --features kani-heavy
+# The runner writes the files of __TEST_DIR__ into its test directory, so keep that out of test/sql.
+TEST_SCRATCH_DIR=duckdb_unittest_tempdir
+TEST_LIST=$(TEST_SCRATCH_DIR)/tests.txt
+TEST_RUNNER_BASE=rm -rf $(TEST_SCRATCH_DIR) && mkdir -p $(TEST_SCRATCH_DIR) && find test/sql -name '*.test' | sort > $(TEST_LIST) && \
+	$(TEST_RUNNER) --test-dir $(TEST_SCRATCH_DIR) --file-list $(TEST_LIST) $(EXTRA_EXTENSIONS_PARAM)
 
-# DuckDB-Wasm: the cargo `wasm` profile (Cargo.toml) on the emscripten target; rustc links through emcc, so emscripten
-# has to be on PATH. The same FOOTER_VERSION mechanism as the native build names the engine build the module is for.
-WASM_MODULE := target/wasm32-unknown-emscripten/wasm/avro.wasm
-wasm: wasm_eh
-wasm_eh: build/wasm_eh/avro.duckdb_extension.wasm
+configure: venv platform extension_version
 
-$(WASM_MODULE): $(RUST_SOURCES) .cargo/config.toml
-	@command -v emcc >/dev/null || (echo "emcc not on PATH: source <emsdk>/emsdk_env.sh (emscripten 6.0.9, the version extension-ci-tools uses)" && exit 1)
-	@rustup target list --installed 2>/dev/null | grep -q '^wasm32-unknown-emscripten$$' || (echo "rust target missing: rustup target add wasm32-unknown-emscripten" && exit 1)
-	cargo build --profile wasm --target wasm32-unknown-emscripten --lib -p duckdb-avro
+debug: build_extension_library_debug build_extension_with_metadata_debug
+release: build_extension_library_release build_extension_with_metadata_release
 
-build/wasm_eh/avro.duckdb_extension.wasm: $(WASM_MODULE)
-	@test -n "$(FOOTER_VERSION)" || (echo "no duckdb Python package in $(PYTHON): run make venv (or set PYTHON= / FOOTER_VERSION=)" && exit 1)
-	mkdir -p build/wasm_eh
-	cp $< $@
-	python3 -I scripts/append_extension_metadata.py --extension $@ --platform wasm_eh --abi-type C_STRUCT_UNSTABLE --version "$(FOOTER_VERSION)" --extension-version $(EXT_VERSION)
+test: test_debug
+test_debug: test_extension_debug
+test_release: test_extension_release
 
-clean:
-	cargo clean
-	$(RM) -r build
-
-.PHONY: all venv test unittest clippy kani wasm wasm_eh clean
+clean: clean_build clean_rust
+clean_all: clean_configure clean

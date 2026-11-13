@@ -6,10 +6,23 @@ require avro
 statement ok
 COPY (
 	select 42 a
-) TO '{TEST_DIR}/test3.avro' (
+) TO '__TEST_DIR__/test3.avro' (
 	METADATA {
 		'key': 'value',
 		'key2': 42
 	},
 	ROOT_NAME 'test'
 );
+
+# The format reserves the keys starting with 'avro.'
+statement error
+COPY (
+	select 42 a
+) TO '__TEST_DIR__/reserved_metadata.avro' (
+	METADATA {
+		'key': 'value',
+		'avro.codec': 'deflate'
+	}
+);
+----
+Invalid Input Error: Avro metadata key 'avro.codec' is reserved

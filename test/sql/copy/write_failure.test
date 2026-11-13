@@ -18,9 +18,9 @@ No space left on device
 endloop
 
 statement ok
-COPY (SELECT 42 a) TO '{TEST_DIR}/after_write_failure.avro' (FORMAT AVRO, CODEC 'deflate');
+COPY (SELECT 42 a) TO '__TEST_DIR__/after_write_failure.avro' (FORMAT AVRO, CODEC 'deflate');
 
 query I
-SELECT a FROM read_avro('{TEST_DIR}/after_write_failure.avro');
+SELECT a FROM read_avro('__TEST_DIR__/after_write_failure.avro');
 ----
 42

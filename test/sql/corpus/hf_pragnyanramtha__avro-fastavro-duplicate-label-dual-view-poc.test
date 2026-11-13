@@ -19,4 +19,4 @@ SET threads=1
 statement error
 SELECT count(*) FROM read_avro('test/corpus/hf_pragnyanramtha__avro-fastavro-duplicate-label-dual-view-poc/duplicate_label_dual_view.avro')
 ----
-duplicate field name 'label' in record 'TrainingLabelRow'
+Duplicate type parameter label for type "STRUCT"

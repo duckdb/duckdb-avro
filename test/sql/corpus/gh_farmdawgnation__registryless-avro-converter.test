@@ -34,14 +34,14 @@ SELECT * FROM read_avro('test/corpus/gh_farmdawgnation__registryless-avro-conver
 Beamer	Border Collie
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_farmdawgnation__registryless-avro-converter/beamer.avro')) TO '{TEST_DIR}/beamer.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_farmdawgnation__registryless-avro-converter/beamer.avro')) TO '__TEST_DIR__/beamer.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/beamer.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_farmdawgnation__registryless-avro-converter/beamer.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/beamer.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_farmdawgnation__registryless-avro-converter/beamer.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_farmdawgnation__registryless-avro-converter/beamer.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/beamer.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_farmdawgnation__registryless-avro-converter/beamer.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/beamer.avro'))
 ----
 0
