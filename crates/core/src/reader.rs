@@ -260,7 +260,7 @@ impl ScanState {
             while count < capacity && self.rows_read < block.object_count {
                 if let Err(error) = self.rows.read_row(&mut decoder) {
                     // Running out of data at a value boundary is what avro-c reports as the block ending early
-                    if decoder.is_empty() && error.message.ends_with("bytes from memory buffer") {
+                    if decoder.is_empty() && decoder.ran_out() {
                         return Err(invalid_input(
                             "Avro file block ended before its declared object count",
                         ));

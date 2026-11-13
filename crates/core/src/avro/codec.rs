@@ -5,8 +5,11 @@ use super::error::{AvroError, Result};
 const LZMA_DICT_SIZE: u32 = 8 << 20;
 const LZMA_PRESET: u32 = 6;
 const BZIP2_LEVEL: u32 = 9;
-const DEFLATE_LEVEL: u32 = 9;
+const DEFLATE_LEVEL: u32 = 6;
 const INITIAL_OUTPUT_SIZE: usize = 16 * 1024;
+
+/// The largest size a block may decompress to: the largest block Avro's Java implementation can hold.
+pub const MAX_BLOCK_SIZE: usize = i32::MAX as usize;
 
 /// A block compression codec of an object container file (`avro.codec`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,19 +70,50 @@ impl Codec {
     }
 
     /// Decompresses one block into `out` (cleared first) and returns it as a slice; `Null` may return `data` itself.
+    /// A block that decompresses to more than `MAX_BLOCK_SIZE` bytes is an error.
     pub fn decode<'a>(self, data: &'a [u8], out: &'a mut Vec<u8>) -> Result<&'a [u8]> {
+        self.decode_limited(data, out, MAX_BLOCK_SIZE)
+    }
+
+    fn decode_limited<'a>(
+        self,
+        data: &'a [u8],
+        out: &'a mut Vec<u8>,
+        limit: usize,
+    ) -> Result<&'a [u8]> {
         out.clear();
         match self {
             Codec::Null => return Ok(data),
-            Codec::Deflate => decode_deflate(data, out)?,
-            Codec::Snappy => decode_snappy(data, out)?,
-            Codec::Lzma => decode_lzma(data, out)?,
-            Codec::Zstandard => decode_zstandard(data, out)?,
-            Codec::Bzip2 => decode_bzip2(data, out)?,
-            Codec::Xz => decode_xz(data, out)?,
+            Codec::Deflate => decode_deflate(data, out, limit)?,
+            Codec::Snappy => decode_snappy(data, out, limit)?,
+            Codec::Lzma => decode_lzma(data, out, limit)?,
+            Codec::Zstandard => decode_zstandard(data, out, limit)?,
+            Codec::Bzip2 => decode_bzip2(data, out, limit)?,
+            Codec::Xz => decode_xz(data, out, limit)?,
         }
         Ok(out)
     }
+}
+
+fn too_large(limit: usize) -> AvroError {
+    AvroError::new(format!("Decompressed block exceeds {limit} bytes"))
+}
+
+fn read_limited(
+    reader: impl Read,
+    out: &mut Vec<u8>,
+    limit: usize,
+    error: impl FnOnce(std::io::Error) -> AvroError,
+) -> Result<()> {
+    // One byte past the limit is enough to tell that a block exceeds it
+    reader
+        .take((limit as u64).saturating_add(1))
+        .read_to_end(out)
+        .map_err(error)?;
+    if out.len() > limit {
+        return Err(too_large(limit));
+    }
+    Ok(())
 }
 
 fn encode_deflate(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
@@ -91,20 +125,29 @@ fn encode_deflate(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
         .map_err(|e| AvroError::new(format!("Error compressing block with deflate ({e})")))
 }
 
-fn decode_deflate(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
+fn decode_deflate(data: &[u8], out: &mut Vec<u8>, limit: usize) -> Result<()> {
     let data_error =
         || AvroError::new("Error decompressing block with deflate, possible data error");
     let mut inflater = flate2::Decompress::new(false);
-    out.reserve(INITIAL_OUTPUT_SIZE.max(data.len().saturating_mul(4)));
+    // One byte past the limit is enough to tell that a block exceeds it
+    let max_len = limit.saturating_add(1);
+    out.reserve(
+        INITIAL_OUTPUT_SIZE
+            .max(data.len().saturating_mul(4))
+            .min(max_len),
+    );
     loop {
         if out.len() == out.capacity() {
-            out.reserve(out.capacity());
+            out.reserve_exact(out.capacity().min(max_len - out.len()));
         }
         let consumed = inflater.total_in() as usize;
         let produced = out.len();
         let status = inflater
             .decompress_vec(&data[consumed..], out, flate2::FlushDecompress::None)
             .map_err(|_| data_error())?;
+        if out.len() > limit {
+            return Err(too_large(limit));
+        }
         if status == flate2::Status::StreamEnd {
             return Ok(());
         }
@@ -124,7 +167,7 @@ fn encode_snappy(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
     Ok(())
 }
 
-fn decode_snappy(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
+fn decode_snappy(data: &[u8], out: &mut Vec<u8>, limit: usize) -> Result<()> {
     let length_error = || AvroError::new("Uncompressed length error in snappy");
     let Some(split) = data.len().checked_sub(4) else {
         return Err(length_error());
@@ -134,6 +177,9 @@ fn decode_snappy(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
     // A snappy copy element of at least two bytes expands to at most 64, so this bounds what valid data decodes to
     if len > compressed.len().saturating_mul(32).saturating_add(64) {
         return Err(length_error());
+    }
+    if len > limit {
+        return Err(too_large(limit));
     }
     out.resize(len, 0);
     let written = snap::raw::Decoder::new()
@@ -158,11 +204,11 @@ fn encode_lzma(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
     Ok(())
 }
 
-fn decode_lzma(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
-    lzma_rust2::Lzma2Reader::new(data, LZMA_DICT_SIZE, None)
-        .read_to_end(out)
-        .map_err(|_| AvroError::new("Error in lzma decoder"))?;
-    Ok(())
+fn decode_lzma(data: &[u8], out: &mut Vec<u8>, limit: usize) -> Result<()> {
+    let reader = lzma_rust2::Lzma2Reader::new(data, LZMA_DICT_SIZE, None);
+    read_limited(reader, out, limit, |_| {
+        AvroError::new("Error in lzma decoder")
+    })
 }
 
 fn encode_xz(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
@@ -175,14 +221,14 @@ fn encode_xz(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
     Ok(())
 }
 
-fn decode_xz(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
-    lzma_rust2::XzReader::new(data, true)
-        .read_to_end(out)
-        .map_err(|e| AvroError::new(format!("Error uncompressing block with xz: {e}")))?;
-    Ok(())
+fn decode_xz(data: &[u8], out: &mut Vec<u8>, limit: usize) -> Result<()> {
+    let reader = lzma_rust2::XzReader::new(data, true);
+    read_limited(reader, out, limit, |e| {
+        AvroError::new(format!("Error uncompressing block with xz: {e}"))
+    })
 }
 
-fn decode_zstandard(mut data: &[u8], out: &mut Vec<u8>) -> Result<()> {
+fn decode_zstandard(mut data: &[u8], out: &mut Vec<u8>, limit: usize) -> Result<()> {
     use ruzstd::decoding::errors::{FrameDecoderError, ReadFrameHeaderError};
     use ruzstd::decoding::{BlockDecodingStrategy, FrameDecoder};
 
@@ -211,6 +257,9 @@ fn decode_zstandard(mut data: &[u8], out: &mut Vec<u8>) -> Result<()> {
             decoder
                 .collect_to_writer(&mut *out)
                 .map_err(|e| zstd_error(&e))?;
+            if out.len() > limit {
+                return Err(too_large(limit));
+            }
             if finished {
                 break;
             }
@@ -218,6 +267,9 @@ fn decode_zstandard(mut data: &[u8], out: &mut Vec<u8>) -> Result<()> {
         decoder
             .collect_to_writer(&mut *out)
             .map_err(|e| zstd_error(&e))?;
+        if out.len() > limit {
+            return Err(too_large(limit));
+        }
         if let Some(expected) = decoder.get_checksum_from_data()
             && decoder.get_calculated_checksum() != Some(expected)
         {
@@ -235,11 +287,11 @@ fn encode_bzip2(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
         .map_err(|e| AvroError::new(format!("Error compressing block with bzip2: {e}")))
 }
 
-fn decode_bzip2(data: &[u8], out: &mut Vec<u8>) -> Result<()> {
-    bzip2::read::BzDecoder::new(data)
-        .read_to_end(out)
-        .map_err(|e| AvroError::new(format!("Error uncompressing block with bzip2: {e}")))?;
-    Ok(())
+fn decode_bzip2(data: &[u8], out: &mut Vec<u8>, limit: usize) -> Result<()> {
+    let reader = bzip2::read::BzDecoder::new(data);
+    read_limited(reader, out, limit, |e| {
+        AvroError::new(format!("Error uncompressing block with bzip2: {e}"))
+    })
 }
 
 #[cfg(test)]
@@ -470,6 +522,41 @@ mod tests {
         let mut scratch = Vec::new();
         let decoded = Codec::Zstandard.decode(&block, &mut scratch).unwrap();
         assert!(decoded[..first.len()] == first[..] && decoded[first.len()..] == second[..]);
+    }
+
+    #[test]
+    fn decompressed_size_is_limited() {
+        let data = vec![7u8; 1 << 20];
+        let mut scratch = Vec::new();
+        for codec in ALL {
+            if codec == Codec::Null {
+                continue;
+            }
+            let mut block = Vec::new();
+            codec.encode(&data, &mut block).unwrap();
+            let decoded = codec
+                .decode_limited(&block, &mut scratch, data.len())
+                .unwrap();
+            assert!(decoded == data, "{codec:?} at the limit");
+            for limit in [data.len() - 1, 1000, 0] {
+                assert_eq!(
+                    codec
+                        .decode_limited(&block, &mut scratch, limit)
+                        .unwrap_err()
+                        .message,
+                    format!("Decompressed block exceeds {limit} bytes"),
+                    "{codec:?}"
+                );
+            }
+        }
+        // Deflate grows its output itself, and stops one byte past the limit
+        let mut block = Vec::new();
+        Codec::Deflate.encode(&data, &mut block).unwrap();
+        let mut out = Vec::new();
+        Codec::Deflate
+            .decode_limited(&block, &mut out, 100_000)
+            .unwrap_err();
+        assert!(out.capacity() <= 100_001, "{}", out.capacity());
     }
 
     #[test]

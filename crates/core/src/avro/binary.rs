@@ -7,11 +7,16 @@ const MAX_VARINT_BYTES: usize = 10;
 pub struct Decoder<'a> {
     data: &'a [u8],
     pos: usize,
+    ran_out: bool,
 }
 
 impl<'a> Decoder<'a> {
     pub fn new(data: &'a [u8]) -> Self {
-        Decoder { data, pos: 0 }
+        Decoder {
+            data,
+            pos: 0,
+            ran_out: false,
+        }
     }
 
     pub fn position(&self) -> usize {
@@ -24,6 +29,11 @@ impl<'a> Decoder<'a> {
 
     pub fn is_empty(&self) -> bool {
         self.remaining() == 0
+    }
+
+    /// Whether a read failed because it needed more bytes than were left.
+    pub fn ran_out(&self) -> bool {
+        self.ran_out
     }
 
     /// Reads a zigzag-encoded variable-length long.
@@ -53,6 +63,7 @@ impl<'a> Decoder<'a> {
             return AvroError::new("Varint too long");
         }
         self.pos += available;
+        self.ran_out = true;
         AvroError::new("Cannot read 1 bytes from memory buffer")
     }
 
@@ -88,6 +99,7 @@ impl<'a> Decoder<'a> {
 
     pub fn read_fixed(&mut self, size: usize) -> Result<&'a [u8]> {
         if self.remaining() < size {
+            self.ran_out = true;
             return Err(AvroError::new(format!(
                 "Cannot read {size} bytes from memory buffer"
             )));
@@ -299,5 +311,33 @@ mod tests {
         decoder.skip(3).unwrap();
         assert!(decoder.is_empty());
         assert!(decoder.read_fixed(0).unwrap().is_empty());
+    }
+
+    #[test]
+    fn ran_out_is_set_by_reads_past_the_end() {
+        let mut decoder = Decoder::new(&[0x02]);
+        decoder.read_long().unwrap();
+        assert!(!decoder.ran_out());
+        decoder.read_long().unwrap_err();
+        assert!(decoder.ran_out() && decoder.is_empty());
+
+        let mut decoder = Decoder::new(&[0x80, 0x80]);
+        decoder.read_long().unwrap_err();
+        assert!(decoder.ran_out() && decoder.is_empty());
+
+        let mut decoder = Decoder::new(&[0x06, b'a']);
+        decoder.read_bytes().unwrap_err();
+        assert!(decoder.ran_out() && !decoder.is_empty());
+
+        // Errors about the values themselves, and skips, leave it unset
+        let mut decoder = Decoder::new(&[0x80; 11]);
+        decoder.read_long().unwrap_err();
+        assert!(!decoder.ran_out());
+        let mut decoder = Decoder::new(&[0x01]);
+        decoder.read_bytes().unwrap_err();
+        assert!(!decoder.ran_out());
+        let mut decoder = Decoder::new(&[]);
+        decoder.skip(1).unwrap_err();
+        assert!(!decoder.ran_out());
     }
 }
