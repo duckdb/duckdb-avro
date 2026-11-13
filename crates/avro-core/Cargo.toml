@@ -1,0 +1,33 @@
+[package]
+name = "avro-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+description = "Pure-Rust Apache Avro core: JSON schema model, binary decoder/encoder and object container file reader/writer (no DuckDB dependency)"
+
+[lib]
+name = "avro_core"
+path = "src/lib.rs"
+
+[features]
+# the Kani proof harnesses (`make kani`, `#[cfg(kani)]`) that need more memory than a CI runner has; no code behind it
+# in a normal build
+kani-heavy = []
+
+[dependencies]
+# raw DEFLATE (the "deflate" codec: zlib with a -15 window, no zlib header)
+miniz_oxide = "0.9"
+# the "snappy" codec: raw snappy block followed by a big-endian CRC-32 of the uncompressed block
+snap = "1"
+# the "zstandard" codec; decoder plus the (level-1 class) frame compressor
+ruzstd = "0.9"
+# the "bzip2" codec on the pure-Rust libbz2-rs-sys backend (the default feature set, no C linked)
+bzip2 = "0.6"
+# the "xz" codec (xz container) and avro-c's "lzma" codec (raw LZMA2 chunks)
+lzma-rs = { version = "0.3", features = ["raw_decoder"] }
+
+[lints]
+workspace = true

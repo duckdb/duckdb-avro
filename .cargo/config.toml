@@ -1,0 +1,6 @@
+# DuckDB-Wasm loads an extension as an emscripten side module (-sSIDE_MODULE=2: only the entrypoint and the symbols the
+# dynamic linker needs are exported; the C API table and libc come from the engine's main module). rustc already links
+# the wasm32-unknown-emscripten target with `emcc -fwasm-exceptions -O<opt-level>`; the side-module flag and the
+# position-independent code it needs are the only additions. See `make wasm_eh`.
+[target.wasm32-unknown-emscripten]
+rustflags = ["-C", "relocation-model=pic", "-C", "link-arg=-sSIDE_MODULE=2"]

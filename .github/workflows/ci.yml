@@ -1,0 +1,77 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# a newer push supersedes the runs of the same branch
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # the toolchain of Cargo.toml's rust-version: rustfmt and clippy change their output between releases, so `stable`
+      # would turn a compiler release into a red lint job
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.99.0
+          components: clippy, rustfmt
+      - run: cargo fmt --check
+      - run: cargo clippy --release --all-targets --workspace -- -D warnings
+      - run: cargo test --release --workspace
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.99.0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pinned DuckDB (DUCKDB_PIN)
+        run: |
+          make venv
+          venv/bin/python -c "import duckdb; print(duckdb.__version__, duckdb.sql('SELECT library_version, source_id FROM pragma_version()').fetchall()[0])"
+
+      - name: Build the extension
+        run: make
+
+      - name: Smoke test
+        run: |
+          venv/bin/python -c "
+          import duckdb
+          con = duckdb.connect(config={'allow_unsigned_extensions': 'true'})
+          con.sql(\"LOAD 'build/avro.duckdb_extension'\")
+          rows = con.sql(\"SELECT extension_name, loaded FROM duckdb_extensions() WHERE extension_name = 'avro'\").fetchall()
+          print(rows)
+          assert rows == [('avro', True)], rows"
+
+      - name: Test
+        run: make test
+
+  # the Kani proof harnesses (make kani; README "Formal verification with Kani"): bounded model checking of avro-core's
+  # binary layer, codec names, JSON numbers and block framing, of duckdb-ext-api's vector layout helpers and of the
+  # extension's value conversions, type tables, schema rules and row decoder (four concrete record shapes at one row;
+  # the two-row bounds and the nullable and projection shapes sit behind kani-heavy). Independent of the other jobs; no DuckDB build involved. The
+  # action installs the pinned Kani release and its CBMC. Harnesses run in sequence (one CBMC at a time, up to 8 GB
+  # each on the 16 GiB runner); the harnesses that need more memory or many minutes sit behind the kani-heavy features,
+  # which only `make kani` enables. `-Z stubbing` lets the JSON harnesses stand in for core's float parsing.
+  kani:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: model-checking/kani-github-action@v1.1
+        with:
+          kani-version: "0.68.0"
+          args: -Z stubbing -p avro-core -p duckdb-ext-api -p duckdb-avro

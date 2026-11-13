@@ -1,0 +1,15 @@
+[package]
+name = "duckdb-ext-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+description = "The safe Rust extension API over the DuckDB C API v2 (functions, types, vectors, client layer)"
+
+[lints]
+workspace = true
+
+[dependencies]
+duckdb-capi-sys.workspace = true
