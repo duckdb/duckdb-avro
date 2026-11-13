@@ -9,7 +9,7 @@ edition = "2024"
 license = "MIT"
 
 [workspace.dependencies]
-duckdb-neo = { path = "../../duckdb-rs.element_rework/crates/duckdb-neo" }
+duckdb-neo = "=0.20000.2"
 avro_core = { path = "crates/core" }
 serde_json = "1"
 flate2 = "1"

@@ -54,10 +54,10 @@ impl TableFunctionCallbacks for AvroMetadata {
 
     fn init_global_state(
         &self,
-        path: &String,
         context: &Context,
+        path: &String,
         _column_data: InitColumnData<'_>,
-    ) -> Result<(Option<MetadataState>, Option<usize>)> {
+    ) -> Result<Option<MetadataState>> {
         let file = FileArgument {
             path: path.clone(),
             options: Vec::new(),
@@ -74,15 +74,15 @@ impl TableFunctionCallbacks for AvroMetadata {
             entries,
             offset: Mutex::new(0),
         };
-        Ok((Some(state), Some(1)))
+        Ok(Some(state))
     }
 
     fn exec(
         &self,
-        _path: &String,
-        global_state: Option<&MetadataState>,
-        _local_state: Option<&mut ()>,
         _context: &Context,
+        _path: &String,
+        _local_state: Option<&mut ()>,
+        global_state: Option<&MetadataState>,
         mut output: DataChunkRef<'_>,
         _column_info: ExecColumnInfo<'_>,
     ) -> Result<()> {

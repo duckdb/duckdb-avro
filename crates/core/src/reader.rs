@@ -5,6 +5,7 @@
 //! blocks holding at least a chunk of rows per batch, so
 //! a single file is read by several threads in parallel.
 
+use std::num::NonZeroUsize;
 use std::ops::Range;
 use std::sync::{
     Arc,
@@ -321,21 +322,28 @@ impl TableFunctionCallbacks for AvroScan {
 
     fn init_global_state(
         &self,
-        bind_data: &AvroFile,
         _context: &Context,
+        _bind_data: &AvroFile,
         _column_data: InitColumnData<'_>,
-    ) -> Result<(Option<AtomicUsize>, Option<usize>)> {
-        Ok((
-            Some(AtomicUsize::new(0)),
-            Some(bind_data.batch_count().max(1)),
-        ))
+    ) -> Result<Option<AtomicUsize>> {
+        Ok(Some(AtomicUsize::new(0)))
+    }
+
+    fn max_threads(
+        &self,
+        _context: &Context,
+        bind_data: &AvroFile,
+        _global_state: Option<&AtomicUsize>,
+        _column_data: InitColumnData<'_>,
+    ) -> Result<Option<NonZeroUsize>> {
+        Ok(NonZeroUsize::new(bind_data.batch_count().max(1)))
     }
 
     fn init_local_state(
         &self,
+        _context: &Context,
         bind_data: &AvroFile,
         _global_state: Option<&AtomicUsize>,
-        _context: &Context,
         column_data: InitColumnData<'_>,
     ) -> Result<Option<ScanState>> {
         let column_ids = (0..column_data.count()?)
@@ -353,10 +361,10 @@ impl TableFunctionCallbacks for AvroScan {
 
     fn exec(
         &self,
-        bind_data: &AvroFile,
-        _global_state: Option<&AtomicUsize>,
-        local_state: Option<&mut ScanState>,
         _context: &Context,
+        bind_data: &AvroFile,
+        local_state: Option<&mut ScanState>,
+        _global_state: Option<&AtomicUsize>,
         output: DataChunkRef<'_>,
         _column_info: ExecColumnInfo<'_>,
     ) -> Result<()> {
@@ -370,10 +378,10 @@ impl TableFunctionCallbacks for AvroScan {
 impl TableClaimBatchCallbacks for AvroScan {
     fn claim_batch(
         &self,
-        bind_data: &AvroFile,
-        global_state: Option<&AtomicUsize>,
-        local_state: Option<&mut ScanState>,
         _context: &Context,
+        bind_data: &AvroFile,
+        local_state: Option<&mut ScanState>,
+        global_state: Option<&AtomicUsize>,
     ) -> Result<bool> {
         let (Some(next_batch), Some(state)) = (global_state, local_state) else {
             return Ok(false);
@@ -417,8 +425,8 @@ impl TableGetBindInfoCallbacks for AvroScan {
     /// reader exposes as the metadata of the reader of the file.
     fn bind_info(
         &self,
-        bind_data: &AvroFile,
         context: &Context,
+        bind_data: &AvroFile,
         api: BindInfoApi<'_>,
     ) -> Result<()> {
         for (index, column) in bind_data.columns.iter().enumerate() {
