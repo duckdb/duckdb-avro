@@ -16,7 +16,7 @@ if (EMSCRIPTEN)
   # this solves by basically re-linking (at the moment the Wasm binary is actually produced)
   # avro-c is vendored (third_party/avro-c), not a vcpkg port: its archive has to be named here too, or the
   # side module is produced without it and imports every avro_* symbol from the host
-  set (DUCKDB_EXTENSION_AVRO_LINKED_LIBS "../../vcpkg_installed/wasm32-emscripten/lib/lib*.a" "$<TARGET_FILE:avro-static>")
+  set (DUCKDB_EXTENSION_AVRO_LINKED_LIBS "../../vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib/lib*.a" "$<TARGET_FILE:avro-static>")
 endif()
 
 # Disable avro-c examples, tests, docs

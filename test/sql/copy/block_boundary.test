@@ -1,0 +1,41 @@
+# name: test/sql/copy/block_boundary.test
+# description: COPY ... TO (FORMAT AVRO) keeps every row when a row does not fit in the rest of the block buffer
+# group: [copy]
+
+require avro
+
+statement ok
+SET threads = 1;
+
+statement ok
+COPY (SELECT repeat('x', 1) AS s FROM range(8192)) TO '{TEST_DIR}/block_boundary_1.avro' (FORMAT AVRO);
+
+query I
+SELECT count(*) FROM read_avro('{TEST_DIR}/block_boundary_1.avro');
+----
+8192
+
+statement ok
+COPY (SELECT repeat('x', 8) AS s FROM range(8192)) TO '{TEST_DIR}/block_boundary_8.avro' (FORMAT AVRO);
+
+query I
+SELECT count(*) FROM read_avro('{TEST_DIR}/block_boundary_8.avro');
+----
+8192
+
+statement ok
+COPY (SELECT repeat('x', 31) AS s FROM range(8192)) TO '{TEST_DIR}/block_boundary_31.avro' (FORMAT AVRO);
+
+query I
+SELECT count(*) FROM read_avro('{TEST_DIR}/block_boundary_31.avro');
+----
+8192
+
+# a partitioned write starts many small files, each crossing the same boundaries
+statement ok
+COPY (SELECT range AS id, md5(range::VARCHAR) AS s, range % 30 AS p FROM range(50000)) TO '{TEST_DIR}/block_boundary_partitioned' (FORMAT AVRO, PARTITION_BY (p));
+
+query II
+SELECT count(*), sum(id) FROM read_avro('{TEST_DIR}/block_boundary_partitioned/*/*');
+----
+50000	1249975000
