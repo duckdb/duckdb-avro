@@ -17,7 +17,7 @@ if (EMSCRIPTEN)
   # vcpkg libraries, avro-c itself and the C++ API shim all have to appear. Without the last two every avro_* and
   # duckdb::cxx::* symbol is imported from the host, no engine provides them, and the extension cannot be loaded.
   set (DUCKDB_EXTENSION_AVRO_LINKED_LIBS
-       "../../vcpkg_installed/wasm32-emscripten/lib/lib*.a $<TARGET_FILE:avro-static> $<TARGET_FILE:duckdb_cpp_api_loadable>")
+       "../../vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib/lib*.a $<TARGET_FILE:avro-static> $<TARGET_FILE:duckdb_cpp_api_loadable>")
 endif()
 
 # Disable avro-c examples, tests, docs
