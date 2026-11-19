@@ -83,6 +83,25 @@ target_link_libraries(${EXTENSION_NAME} duckdb_cpp_api avro-static)
 target_link_libraries(${LOADABLE_EXTENSION_NAME} duckdb_cpp_api_loadable
                       avro-static)
 
+# DuckDB does not limit what a C API loadable extension exports yet. Export only
+# the entrypoint, so the bundled avro-c/jansson symbols can't clash with (or be
+# bound to) same-named symbols of the host process, e.g. Postgres' json_object.
+set(AVRO_ENTRYPOINT ${TARGET_NAME}_init_c_api_v2)
+if(EMSCRIPTEN OR WIN32)
+  # Wasm exports only EXPORTED_FUNCTIONS, Windows DLLs only dllexport symbols
+elseif(APPLE)
+  target_link_options(${LOADABLE_EXTENSION_NAME} PRIVATE
+                      "LINKER:-exported_symbol,_${AVRO_ENTRYPOINT}")
+else()
+  set(AVRO_EXPORTS_MAP "${CMAKE_CURRENT_BINARY_DIR}/avro_loadable_exports.map")
+  file(WRITE "${AVRO_EXPORTS_MAP}"
+       "{ global: ${AVRO_ENTRYPOINT}; local: *; };\n")
+  target_link_options(${LOADABLE_EXTENSION_NAME} PRIVATE
+                      "LINKER:--version-script=${AVRO_EXPORTS_MAP}")
+  set_property(TARGET ${LOADABLE_EXTENSION_NAME} APPEND
+               PROPERTY LINK_DEPENDS "${AVRO_EXPORTS_MAP}")
+endif()
+
 option(AVRO_BUILD_WRITER_TESTS "Build the Avro writer fault-injection tests" OFF)
 if(AVRO_BUILD_WRITER_TESTS)
   add_executable(avro_writer_tests test/cpp/test_writer_cleanup.cpp)
