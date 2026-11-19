@@ -1,0 +1,95 @@
+# name: test/sql/copy/test_timestamp_ms.test
+# description: Copy millisecond timestamps to Avro
+# group: [copy]
+
+require avro
+
+# TIMESTAMP_MS stores milliseconds; the Avro field must be annotated as timestamp-millis
+# so that the stored value is interpreted in the right unit when read back.
+statement ok
+COPY (
+    FROM VALUES
+        (1, '1969-12-31 23:59:59.999'::TIMESTAMP_MS),
+        (2, '1970-01-01 00:00:00'::TIMESTAMP_MS),
+        (3, '1970-01-01 00:00:00.001'::TIMESTAMP_MS),
+        (4, '2000-01-01 00:00:00.123'::TIMESTAMP_MS),
+        (5, '2024-01-15 12:34:56.789'::TIMESTAMP_MS),
+        (6, NULL::TIMESTAMP_MS)
+    t(id, ts)
+) TO '{TEST_DIR}/timestamp_ms.avro' (FORMAT AVRO);
+
+query T
+SELECT regexp_extract(value, '"logicalType":"([^"]+)"', 1)
+FROM avro_metadata('{TEST_DIR}/timestamp_ms.avro')
+WHERE key = 'avro.schema';
+----
+timestamp-millis
+
+# Check epoch integers directly, independently of timestamp formatting.
+query I
+SELECT epoch_ms(ts) FROM read_avro('{TEST_DIR}/timestamp_ms.avro') ORDER BY id;
+----
+-1
+0
+1
+946684800123
+1705322096789
+NULL
+
+query T
+SELECT ts FROM read_avro('{TEST_DIR}/timestamp_ms.avro') ORDER BY id;
+----
+1969-12-31 23:59:59.999
+1970-01-01 00:00:00
+1970-01-01 00:00:00.001
+2000-01-01 00:00:00.123
+2024-01-15 12:34:56.789
+NULL
+
+# The values must survive a round trip through Avro unchanged.
+query I
+SELECT count(*) FROM (
+    SELECT ts::TIMESTAMP_MS FROM read_avro('{TEST_DIR}/timestamp_ms.avro')
+    EXCEPT ALL
+    FROM VALUES
+        ('1969-12-31 23:59:59.999'::TIMESTAMP_MS),
+        ('1970-01-01 00:00:00'::TIMESTAMP_MS),
+        ('1970-01-01 00:00:00.001'::TIMESTAMP_MS),
+        ('2000-01-01 00:00:00.123'::TIMESTAMP_MS),
+        ('2024-01-15 12:34:56.789'::TIMESTAMP_MS),
+        (NULL::TIMESTAMP_MS)
+    t(ts)
+);
+----
+0
+
+# Exercise the primitive schema without a nullable union wrapper.
+statement ok
+COPY (
+    SELECT '2000-01-01 00:00:00.123'::TIMESTAMP_MS AS ts
+) TO '{TEST_DIR}/timestamp_ms_required.avro' (
+    FORMAT AVRO,
+    FIELD_IDS {'ts': {'__duckdb_field_id': 1, '__duckdb_nullable': false}}
+);
+
+query T
+SELECT ts FROM read_avro('{TEST_DIR}/timestamp_ms_required.avro');
+----
+2000-01-01 00:00:00.123
+
+# Nested writers must use the same annotation.
+statement ok
+COPY (
+    FROM VALUES
+        (1, {'ts': '2000-01-01 00:00:00.123'::TIMESTAMP_MS},
+            ['1969-12-31 23:59:59.999'::TIMESTAMP_MS, NULL]),
+        (2, {'ts': NULL::TIMESTAMP_MS}, []::TIMESTAMP_MS[])
+    t(id, record_col, list_col)
+) TO '{TEST_DIR}/timestamp_ms_nested.avro' (FORMAT AVRO);
+
+query TII
+SELECT record_col.ts, epoch_ms(list_col[1]), epoch_ms(list_col[2])
+FROM read_avro('{TEST_DIR}/timestamp_ms_nested.avro') ORDER BY id;
+----
+2000-01-01 00:00:00.123	-1	NULL
+NULL	NULL	NULL

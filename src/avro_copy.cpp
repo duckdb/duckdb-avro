@@ -138,7 +138,7 @@ std::string ConvertTypeToAvro(const LogicalType &type) {
 	case LogicalTypeId::TIMESTAMP_NS:
 	case LogicalTypeId::TIMESTAMP_MS:
 		// captures
-		// timestamp-micros
+		// timestamp-micros / timestamp-nanos / timestamp-millis
 		return "long";
 	case LogicalTypeId::TIMESTAMP_TZ:
 	case LogicalTypeId::TIMESTAMP_TZ_NS:
@@ -182,9 +182,10 @@ std::string GetTemporalLogicalType(const LogicalType &type) {
 	case LogicalTypeId::TIME:
 		return "time-micros";
 	case LogicalTypeId::TIMESTAMP:
-	case LogicalTypeId::TIMESTAMP_MS:
 	case LogicalTypeId::TIMESTAMP_TZ:
 		return "timestamp-micros";
+	case LogicalTypeId::TIMESTAMP_MS:
+		return "timestamp-millis";
 	case LogicalTypeId::TIMESTAMP_NS:
 	case LogicalTypeId::TIMESTAMP_TZ_NS:
 		return "timestamp-nanos";
@@ -768,6 +769,8 @@ idx_t WriteTimeValue(avro_value_t *target, const cxx::dtime_t &value, uint8_t) {
 }
 
 idx_t WriteTimestampValue(avro_value_t *target, const cxx::timestamp_t &value, uint8_t) {
+	//! The stored value is written as-is; the unit is carried by the logical type annotation
+	//! (timestamp-micros for TIMESTAMP, timestamp-millis for TIMESTAMP_MS, timestamp-nanos for TIMESTAMP_NS)
 	avro_value_set_long(target, value.micros);
 	return sizeof(int64_t);
 }
