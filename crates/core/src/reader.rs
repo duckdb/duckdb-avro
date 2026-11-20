@@ -14,9 +14,9 @@ use std::sync::{
 
 use duckdb_neo::{
     Result, ToValue,
-    bind_arguments::BindArgument,
+    bind_arguments::BindArguments,
     connection::Context,
-    data_chunk::DataChunkRef,
+    data_chunk::DataChunk,
     logical_type::LogicalTypeID,
     multi_file::MultiFileFunctionBuilder,
     signature::{FunctionParameter, SignatureBuilder},
@@ -233,7 +233,7 @@ impl ScanState {
         Ok(BlockData::Scratch { size })
     }
 
-    fn scan(&mut self, file: &AvroFile, mut output: DataChunkRef<'_>) -> Result<()> {
+    fn scan(&mut self, file: &AvroFile, output: &mut DataChunk<'_>) -> Result<()> {
         self.rows.clear();
         let capacity = output.capacity()?;
         let mut count = 0;
@@ -300,20 +300,17 @@ impl TableFunctionCallbacks for AvroScan {
     fn bind(
         &self,
         context: &Context,
-        arguments: Vec<BindArgument>,
+        arguments: BindArguments<'_>,
         bind_handle: BindFunctionHandle<'_>,
     ) -> Result<AvroFile> {
         // The file is a path, or a file struct that also holds the options to open it with - e.g. its size, as
         // globbing a remote store reported it
-        let file = arguments
-            .first()
-            .and_then(|argument| argument.value.as_ref())
-            .ok_or_else(|| {
-                binder(format!(
-                    "{SINGLE_FILE_FUNCTION} requires a constant file argument"
-                ))
-            })?;
-        let file = AvroFile::open(context, &FileArgument::parse(file)?)?;
+        let file = arguments.arg(0)?.value()?.ok_or_else(|| {
+            binder(format!(
+                "{SINGLE_FILE_FUNCTION} requires a constant file argument"
+            ))
+        })?;
+        let file = AvroFile::open(context, &FileArgument::parse(&file)?)?;
         for column in &file.columns {
             bind_handle.add_result_column(&column.name, &column.logical_type)?;
         }
@@ -365,7 +362,7 @@ impl TableFunctionCallbacks for AvroScan {
         bind_data: &AvroFile,
         local_state: Option<&mut ScanState>,
         _global_state: Option<&AtomicUsize>,
-        output: DataChunkRef<'_>,
+        output: &mut DataChunk<'_>,
         _column_info: ExecColumnInfo<'_>,
     ) -> Result<()> {
         match local_state {

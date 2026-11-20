@@ -4,9 +4,9 @@ use std::sync::Mutex;
 
 use duckdb_neo::{
     Parameters, Result,
-    bind_arguments::BindArgument,
+    bind_arguments::BindArguments,
     connection::Context,
-    data_chunk::DataChunkRef,
+    data_chunk::DataChunk,
     logical_type::{LogicalType, LogicalTypeID},
     signature::{FunctionParameter, SignatureBuilder},
     table_function::{
@@ -36,7 +36,7 @@ impl TableFunctionCallbacks for AvroMetadata {
     fn bind(
         &self,
         context: &Context,
-        arguments: Vec<BindArgument>,
+        arguments: BindArguments<'_>,
         bind_handle: BindFunctionHandle<'_>,
     ) -> Result<String> {
         let varchar =
@@ -44,10 +44,8 @@ impl TableFunctionCallbacks for AvroMetadata {
         bind_handle.add_result_column("key", &varchar)?;
         bind_handle.add_result_column("value", &varchar)?;
         arguments
-            .first()
-            .and_then(|argument| argument.value.as_ref())
-            .map(|value| value.get::<String>())
-            .transpose()?
+            .arg(0)?
+            .resolved_value::<String>()?
             .flatten()
             .ok_or_else(|| binder("avro_metadata requires a constant path"))
     }
@@ -83,7 +81,7 @@ impl TableFunctionCallbacks for AvroMetadata {
         _path: &String,
         _local_state: Option<&mut ()>,
         global_state: Option<&MetadataState>,
-        mut output: DataChunkRef<'_>,
+        output: &mut DataChunk<'_>,
         _column_info: ExecColumnInfo<'_>,
     ) -> Result<()> {
         let Some(state) = global_state else {
