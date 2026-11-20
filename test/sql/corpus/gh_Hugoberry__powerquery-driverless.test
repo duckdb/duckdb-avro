@@ -43,15 +43,15 @@ by	BLOB
 maybe	VARCHAR
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/empty.avro')) TO '{TEST_DIR}/empty.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/empty.avro')) TO '__TEST_DIR__/empty.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/empty.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/empty.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/empty.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/empty.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/empty.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/empty.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/empty.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/empty.avro'))
 ----
 0
 
@@ -83,13 +83,13 @@ SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/eventhu
 104	6016	7/15/2026 1:45:33 PM	{}	{}	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/eventhubs.avro')) TO '{TEST_DIR}/eventhubs.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/eventhubs.avro')) TO '__TEST_DIR__/eventhubs.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/eventhubs.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/eventhubs.avro'))
 ----
 SequenceNumber	BIGINT
 Offset	VARCHAR
@@ -99,12 +99,12 @@ Properties	MAP(VARCHAR, UNION(u1 BIGINT, u2 DOUBLE, u3 VARCHAR, u4 BLOB))
 Body	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/eventhubs.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/eventhubs.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/eventhubs.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/eventhubs.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/eventhubs.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/eventhubs.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/eventhubs.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/eventhubs.avro'))
 ----
 0
 
@@ -135,15 +135,15 @@ SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/logical
 -0.01	1969-12-31	00:00:00	00:00:00.000001	1969-12-31 23:59:59	1970-01-01 00:00:00	ffffffff-ffff-ffff-ffff-ffffffffffff
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/logical.avro')) TO '{TEST_DIR}/logical.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/logical.avro')) TO '__TEST_DIR__/logical.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/logical.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/logical.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/logical.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/logical.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/logical.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/logical.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/logical.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/logical.avro'))
 ----
 0
 
@@ -169,15 +169,15 @@ id	BIGINT	0	199	201	99.5	57.879184513951124	50.0	100.0	150.0	200	0.00
 name	VARCHAR	row-0000	row-0199	200	NULL	NULL	NULL	NULL	NULL	200	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/multiblock.avro')) TO '{TEST_DIR}/multiblock.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/multiblock.avro')) TO '__TEST_DIR__/multiblock.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/multiblock.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/multiblock.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/multiblock.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/multiblock.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/multiblock.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/multiblock.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/multiblock.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/multiblock.avro'))
 ----
 0
 
@@ -209,15 +209,15 @@ SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars
 32 values hashing to 41e9c16b6925f1a8624a4f0cf886bcb4
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-deflate.avro')) TO '{TEST_DIR}/scalars-deflate.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-deflate.avro')) TO '__TEST_DIR__/scalars-deflate.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/scalars-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/scalars-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-deflate.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/scalars-deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/scalars-deflate.avro'))
 ----
 0
 
@@ -249,15 +249,15 @@ SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars
 32 values hashing to 41e9c16b6925f1a8624a4f0cf886bcb4
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-snappy.avro')) TO '{TEST_DIR}/scalars-snappy.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-snappy.avro')) TO '__TEST_DIR__/scalars-snappy.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/scalars-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/scalars-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-snappy.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/scalars-snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/scalars-snappy.avro'))
 ----
 0
 
@@ -289,15 +289,15 @@ SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars
 32 values hashing to 41e9c16b6925f1a8624a4f0cf886bcb4
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-zstandard.avro')) TO '{TEST_DIR}/scalars-zstandard.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-zstandard.avro')) TO '__TEST_DIR__/scalars-zstandard.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/scalars-zstandard.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-zstandard.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/scalars-zstandard.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-zstandard.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-zstandard.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/scalars-zstandard.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars-zstandard.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/scalars-zstandard.avro'))
 ----
 0
 
@@ -329,14 +329,14 @@ SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars
 32 values hashing to 41e9c16b6925f1a8624a4f0cf886bcb4
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars.avro')) TO '{TEST_DIR}/scalars.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars.avro')) TO '__TEST_DIR__/scalars.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/scalars.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/scalars.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/scalars.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_Hugoberry__powerquery-driverless/scalars.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/scalars.avro'))
 ----
 0

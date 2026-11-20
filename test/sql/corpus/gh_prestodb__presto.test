@@ -37,15 +37,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/075d9e7f-aa14-4276-8dde
 1	524225049904406961	NULL	NULL	{'content': 0, 'file_path': 'file://FILEPATH/data/00000-0-logical.parquet', 'file_format': PARQUET, 'partition': NULL, 'record_count': 10, 'file_size_in_bytes': 2980, 'column_sizes': {1=135, 2=397, 3=314, 5=325}, 'value_counts': {1=10, 2=10}, 'null_value_counts': {1=0, 2=1}, 'nan_value_counts': {}, 'lower_bounds': {1='\\x00\\x00\\x00\\x00', 2=GEOMETRYCOLLECTI}, 'upper_bounds': {1='\\x09\\x00\\x00\\x00', 2='POLYGON ((-10 -2'}, 'key_metadata': NULL, 'split_offsets': NULL, 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro')) TO '{TEST_DIR}/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro')) TO '__TEST_DIR__/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro'))
 ----
 0
 
@@ -73,15 +73,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/44b604fa-d28e-4fb0-a329
 1	7878848210344291129	NULL	NULL	{'content': 0, 'file_path': 'file://FILEPATH/data/00000-0-karney.parquet', 'file_format': PARQUET, 'partition': NULL, 'record_count': 2, 'file_size_in_bytes': 636, 'column_sizes': {1=49, 2=65}, 'value_counts': {1=2, 2=2}, 'null_value_counts': {1=0, 2=1}, 'nan_value_counts': {}, 'lower_bounds': {1='\\x00\\x00\\x00\\x00', 2='\\x01\\x01\\x00\\x00\\x00P\\xFC\\x18s\\xD7\\x9A^\\xC0\\xD0\\xD5V'}, 'upper_bounds': {1='\\x01\\x00\\x00\\x00', 2='\\x01\\x01\\x00\\x00\\x00P\\xFC\\x18s\\xD7\\x9A^\\xC0\\xD0\\xD5W'}, 'key_metadata': NULL, 'split_offsets': NULL, 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro')) TO '{TEST_DIR}/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro')) TO '__TEST_DIR__/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro'))
 ----
 0
 
@@ -109,15 +109,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/66622f27-bfd6-4986-b2de
 1	7474385516538037847	NULL	NULL	{'content': 0, 'file_path': 'file://FILEPATH/data/00000-0-crs.parquet', 'file_format': PARQUET, 'partition': NULL, 'record_count': 2, 'file_size_in_bytes': 1096, 'column_sizes': {1=96, 2=85}, 'value_counts': {1=2}, 'null_value_counts': {1=0}, 'nan_value_counts': {}, 'lower_bounds': {1='\\x00\\x00\\x00\\x00'}, 'upper_bounds': {1='\\x01\\x00\\x00\\x00'}, 'key_metadata': NULL, 'split_offsets': NULL, 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro')) TO '{TEST_DIR}/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro')) TO '__TEST_DIR__/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro'))
 ----
 0
 
@@ -145,15 +145,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/75435ef2-dd59-4757-94cd
 1	3810639655665484597	NULL	NULL	{'content': 0, 'file_path': FILEPATH/data/00000-0-3dd32217-d1e5-4d0a-9202-a0a45d3725e3-0-00001.parquet, 'file_format': PARQUET, 'partition': NULL, 'record_count': 3, 'file_size_in_bytes': 1135, 'column_sizes': {1=47}, 'value_counts': {1=3, 2=3}, 'null_value_counts': {1=0, 2=0}, 'nan_value_counts': {}, 'lower_bounds': {1='\\x01\\x00\\x00\\x00'}, 'upper_bounds': {1='\\x03\\x00\\x00\\x00'}, 'key_metadata': NULL, 'split_offsets': [4], 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro')) TO '{TEST_DIR}/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro')) TO '__TEST_DIR__/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro'))
 ----
 0
 
@@ -181,15 +181,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/78bcf481-335f-4cf3-9f0c
 1	1193466246516101610	NULL	NULL	{'content': 0, 'file_path': FILEPATH/data/00000-2-d9600a06-1214-4b26-8f5f-e03948c89034-0-00001.parquet, 'file_format': PARQUET, 'partition': NULL, 'record_count': 2, 'file_size_in_bytes': 780, 'column_sizes': {1=43}, 'value_counts': {1=2, 2=2}, 'null_value_counts': {1=0, 2=2}, 'nan_value_counts': {}, 'lower_bounds': {1='\\x09\\x00\\x00\\x00'}, 'upper_bounds': {1='\\x0A\\x00\\x00\\x00'}, 'key_metadata': NULL, 'split_offsets': [4], 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro')) TO '{TEST_DIR}/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro')) TO '__TEST_DIR__/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/78bcf481-335f-4cf3-9f0c-2570c4840700-m0.avro'))
 ----
 0
 
@@ -218,15 +218,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/7bbe99b5-1924-4c86-ae6d
 1	2198270688815011492	NULL	NULL	{'content': 0, 'file_path': 'file://FILEPATH/data/00001-0-null.parquet', 'file_format': PARQUET, 'partition': NULL, 'record_count': 3, 'file_size_in_bytes': 1971, 'column_sizes': {1=101, 2=60, 3=58, 5=64}, 'value_counts': {1=3, 2=3}, 'null_value_counts': {1=0, 2=3}, 'nan_value_counts': {}, 'lower_bounds': {1='\\x0A\\x00\\x00\\x00'}, 'upper_bounds': {1='\\x0C\\x00\\x00\\x00'}, 'key_metadata': NULL, 'split_offsets': NULL, 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro')) TO '{TEST_DIR}/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro')) TO '__TEST_DIR__/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro'))
 ----
 0
 
@@ -254,15 +254,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/8fee06a4-5a92-4682-8afb
 1	4184859368217847947	NULL	NULL	{'content': 0, 'file_path': 'file://FILEPATH/data/00000-0-plain.parquet', 'file_format': PARQUET, 'partition': NULL, 'record_count': 10, 'file_size_in_bytes': 3002, 'column_sizes': {1=135, 2=397, 3=414, 5=425}, 'value_counts': {1=10, 2=10, 3=10}, 'null_value_counts': {1=0, 2=1, 3=1}, 'nan_value_counts': {}, 'lower_bounds': {1='\\x00\\x00\\x00\\x00', 2=GEOMETRYCOLLECTI, 3='\\x01\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x80f@\\x00\\x00\\x00'}, 'upper_bounds': {1='\\x09\\x00\\x00\\x00', 2='POLYGON ((-10 -2', 3='\\x01\\x07\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x01\\x01\\x00\\x00\\x00\\x00\\x01'}, 'key_metadata': NULL, 'split_offsets': NULL, 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro')) TO '{TEST_DIR}/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro')) TO '__TEST_DIR__/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro'))
 ----
 0
 
@@ -290,15 +290,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/e1273754-6b16-481d-8f08
 1	6391853852338165597	NULL	NULL	{'content': 0, 'file_path': 'file://FILEPATH/data/00000-0-geometry.parquet', 'file_format': PARQUET, 'partition': NULL, 'record_count': 3, 'file_size_in_bytes': 1111, 'column_sizes': {1=101, 2=114}, 'value_counts': {1=3}, 'null_value_counts': {1=0}, 'nan_value_counts': {}, 'lower_bounds': {1='\\x00\\x00\\x00\\x00'}, 'upper_bounds': {1='\\x02\\x00\\x00\\x00'}, 'key_metadata': NULL, 'split_offsets': NULL, 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/e1273754-6b16-481d-8f08-67f40e115340-m0.avro')) TO '{TEST_DIR}/e1273754-6b16-481d-8f08-67f40e115340-m0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/e1273754-6b16-481d-8f08-67f40e115340-m0.avro')) TO '__TEST_DIR__/e1273754-6b16-481d-8f08-67f40e115340-m0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/e1273754-6b16-481d-8f08-67f40e115340-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/e1273754-6b16-481d-8f08-67f40e115340-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/e1273754-6b16-481d-8f08-67f40e115340-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/e1273754-6b16-481d-8f08-67f40e115340-m0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/e1273754-6b16-481d-8f08-67f40e115340-m0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/e1273754-6b16-481d-8f08-67f40e115340-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/e1273754-6b16-481d-8f08-67f40e115340-m0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/e1273754-6b16-481d-8f08-67f40e115340-m0.avro'))
 ----
 0
 
@@ -326,15 +326,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/fd3ba41b-bd63-4383-8b8c
 1	8812202138220635664	NULL	NULL	{'content': 0, 'file_path': FILEPATH/data/00000-1-dc8d99dd-13fa-4f0d-8f4e-e51ceca3c5cc-0-00001.parquet, 'file_format': PARQUET, 'partition': NULL, 'record_count': 5, 'file_size_in_bytes': 1254, 'column_sizes': {1=55}, 'value_counts': {1=5, 2=5}, 'null_value_counts': {1=0, 2=1}, 'nan_value_counts': {}, 'lower_bounds': {1='\\x04\\x00\\x00\\x00'}, 'upper_bounds': {1='\\x08\\x00\\x00\\x00'}, 'key_metadata': NULL, 'split_offsets': [4], 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro')) TO '{TEST_DIR}/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro')) TO '__TEST_DIR__/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro'))
 ----
 0
 
@@ -362,15 +362,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-2.avro')
 1	5103338628089250782	NULL	NULL	{'content': 0, 'file_path': 'file://FILEPATH/data/5b304339-4edb-46b6-94d7-550709a2fd24.parquet', 'file_format': PARQUET, 'partition': NULL, 'record_count': 6, 'file_size_in_bytes': 504, 'column_sizes': {1=196}, 'value_counts': {1=6}, 'null_value_counts': {1=0}, 'nan_value_counts': {}, 'lower_bounds': {1='\\x01\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00$@\\x00\\x00\\x00'}, 'upper_bounds': {1='\\x01\\x06\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x01\\x03\\x00\\x00\\x00\\x01\\x01'}, 'key_metadata': NULL, 'split_offsets': NULL, 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-2.avro')) TO '{TEST_DIR}/new-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-2.avro')) TO '__TEST_DIR__/new-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/new-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/new-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/new-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/new-2.avro'))
 ----
 0
 
@@ -398,15 +398,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-3.avro')
 1	4808384341822999608	NULL	NULL	{'content': 0, 'file_path': 'file://FILEPATH/data/2b0e2cf7-2841-47f7-b06d-92d0b65d9475.parquet', 'file_format': PARQUET, 'partition': NULL, 'record_count': 1, 'file_size_in_bytes': 699, 'column_sizes': {1=54, 3=65, 4=103}, 'value_counts': {1=1}, 'null_value_counts': {1=0}, 'nan_value_counts': {}, 'lower_bounds': {1=Property Alpha}, 'upper_bounds': {1=Property Alpha}, 'key_metadata': NULL, 'split_offsets': NULL, 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-3.avro')) TO '{TEST_DIR}/new-3.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-3.avro')) TO '__TEST_DIR__/new-3.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/new-3.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-3.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/new-3.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-3.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-3.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/new-3.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-3.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/new-3.avro'))
 ----
 0
 
@@ -434,15 +434,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-4.avro')
 1	2380371745138416374	NULL	NULL	{'content': 0, 'file_path': 'file://FILEPATH/data/751fc69d-0efa-4677-b7fd-ebf6dd68ef71.parquet', 'file_format': PARQUET, 'partition': NULL, 'record_count': 2, 'file_size_in_bytes': 981, 'column_sizes': {1=44, 2=65, 4=90, 5=91, 6=38}, 'value_counts': {1=2, 2=2, 4=2, 5=2, 6=2}, 'null_value_counts': {1=0, 2=0, 4=0, 5=0, 6=0}, 'nan_value_counts': {}, 'lower_bounds': {1='\\x01\\x00\\x00\\x00', 2=FirstPoint, 4='\\x01\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\xF0?\\x00\\x00\\x00', 5='\\x01\\x02\\x00\\x00\\x00\\x03\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00', 6='\\x00'}, 'upper_bounds': {1='\\x02\\x00\\x00\\x00', 2=SecondShape, 4='\\x01\\x03\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x05\\x00\\x00\\x00\\x00\\x00\\x01', 5='\\x01\\x04\\x00\\x00\\x00\\x03\\x00\\x00\\x00\\x01\\x01\\x00\\x00\\x00\\x00\\x01', 6='\\x01'}, 'key_metadata': NULL, 'split_offsets': NULL, 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-4.avro')) TO '{TEST_DIR}/new-4.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-4.avro')) TO '__TEST_DIR__/new-4.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/new-4.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-4.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/new-4.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-4.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-4.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/new-4.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new-4.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/new-4.avro'))
 ----
 0
 
@@ -470,15 +470,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new.avro')
 1	3129129978500355357	NULL	NULL	{'content': 0, 'file_path': 'file://FILEPATH/data/ba8627bf-2372-4214-8139-a9f9a060cb7a.parquet', 'file_format': PARQUET, 'partition': NULL, 'record_count': 2, 'file_size_in_bytes': 440, 'column_sizes': {2=192}, 'value_counts': {}, 'null_value_counts': {}, 'nan_value_counts': {}, 'lower_bounds': {}, 'upper_bounds': {}, 'key_metadata': NULL, 'split_offsets': NULL, 'equality_ids': NULL, 'sort_order_id': 0, 'first_row_id': NULL, 'referenced_data_file': NULL, 'content_offset': NULL, 'content_size_in_bytes': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new.avro')) TO '{TEST_DIR}/new.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new.avro')) TO '__TEST_DIR__/new.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/new.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/new.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/new.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/new.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/new.avro'))
 ----
 0
 
@@ -519,15 +519,15 @@ FILEPATH/metadata/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro	7843	0	0	2	2	8812
 FILEPATH/metadata/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro	7843	0	0	1	1	3810639655665484597	1	0	0	3	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro')) TO '{TEST_DIR}/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro')) TO '__TEST_DIR__/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-1193466246516101610-1-78bcf481-335f-4cf3-9f0c-2570c4840700.avro'))
 ----
 0
 
@@ -566,15 +566,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2.avro')
 file://FILEPATH/metadata/new.avro	7855	0	0	1	1	5103338628089250782	1	0	0	6	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2.avro')) TO '{TEST_DIR}/snap-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2.avro')) TO '__TEST_DIR__/snap-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-2.avro'))
 ----
 0
 
@@ -613,15 +613,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-219827068881501149
 file://FILEPATH/metadata/7bbe99b5-1924-4c86-ae6d-78922861dad5-m0.avro	8090	0	0	1	1	2198270688815011492	2	0	0	13	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro')) TO '{TEST_DIR}/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro')) TO '__TEST_DIR__/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-2198270688815011492-1-7bbe99b5-1924-4c86-ae6d-78922861dad5.avro'))
 ----
 0
 
@@ -660,15 +660,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3.avro')
 file://FILEPATH/metadata/new.avro	8000	0	0	1	1	4808384341822999608	1	0	0	1	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3.avro')) TO '{TEST_DIR}/snap-3.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3.avro')) TO '__TEST_DIR__/snap-3.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-3.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-3.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-3.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-3.avro'))
 ----
 0
 
@@ -707,15 +707,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-381063965566548459
 FILEPATH/metadata/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro	7843	0	0	1	1	3810639655665484597	1	0	0	3	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro')) TO '{TEST_DIR}/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro')) TO '__TEST_DIR__/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-3810639655665484597-1-75435ef2-dd59-4757-94cd-b576262ce31c.avro'))
 ----
 0
 
@@ -754,15 +754,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4.avro')
 file://FILEPATH/metadata/new.avro	8232	0	0	1	1	2380371745138416374	1	0	0	2	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4.avro')) TO '{TEST_DIR}/snap-4.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4.avro')) TO '__TEST_DIR__/snap-4.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-4.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-4.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-4.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-4.avro'))
 ----
 0
 
@@ -801,15 +801,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-418485936821784794
 file://FILEPATH/metadata/8fee06a4-5a92-4682-8afb-dde8f84495c2-m0.avro	8054	0	0	1	1	4184859368217847947	1	0	0	10	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro')) TO '{TEST_DIR}/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro')) TO '__TEST_DIR__/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-4184859368217847947-1-8fee06a4-5a92-4682-8afb-dde8f84495c2.avro'))
 ----
 0
 
@@ -848,15 +848,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-524225049904406961
 file://FILEPATH/metadata/075d9e7f-aa14-4276-8dde-fc735a6b1f14-m0.avro	8034	0	0	1	1	524225049904406961	1	0	0	10	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro')) TO '{TEST_DIR}/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro')) TO '__TEST_DIR__/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-524225049904406961-1-075d9e7f-aa14-4276-8dde-fc735a6b1f14.avro'))
 ----
 0
 
@@ -895,15 +895,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-639185385233816559
 file://FILEPATH/metadata/e1273754-6b16-481d-8f08-67f40e115340-m0.avro	7792	0	0	1	1	6391853852338165597	1	0	0	3	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro')) TO '{TEST_DIR}/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro')) TO '__TEST_DIR__/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-6391853852338165597-1-e1273754-6b16-481d-8f08-67f40e115340.avro'))
 ----
 0
 
@@ -942,15 +942,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-747438551653803784
 file://FILEPATH/metadata/66622f27-bfd6-4986-b2de-8c5027dd78e6-m0.avro	7810	0	0	1	1	7474385516538037847	1	0	0	2	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro')) TO '{TEST_DIR}/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro')) TO '__TEST_DIR__/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-7474385516538037847-1-66622f27-bfd6-4986-b2de-8c5027dd78e6.avro'))
 ----
 0
 
@@ -989,15 +989,15 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-787884821034429112
 file://FILEPATH/metadata/44b604fa-d28e-4fb0-a329-531a3b4ad4a8-m0.avro	7844	0	0	1	1	7878848210344291129	1	0	0	2	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro')) TO '{TEST_DIR}/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro')) TO '__TEST_DIR__/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-7878848210344291129-1-44b604fa-d28e-4fb0-a329-531a3b4ad4a8.avro'))
 ----
 0
 
@@ -1037,15 +1037,15 @@ FILEPATH/metadata/fd3ba41b-bd63-4383-8b8c-5603ca29581a-m0.avro	7843	0	0	2	2	8812
 FILEPATH/metadata/75435ef2-dd59-4757-94cd-b576262ce31c-m0.avro	7843	0	0	1	1	3810639655665484597	1	0	0	3	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro')) TO '{TEST_DIR}/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro')) TO '__TEST_DIR__/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap-8812202138220635664-1-fd3ba41b-bd63-4383-8b8c-5603ca29581a.avro'))
 ----
 0
 
@@ -1084,14 +1084,14 @@ SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap.avro')
 file://FILEPATH/metadata/new.avro	7895	0	0	1	1	3129129978500355357	1	0	0	2	0	0	[]	NULL	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap.avro')) TO '{TEST_DIR}/snap.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap.avro')) TO '__TEST_DIR__/snap.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snap.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snap.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snap.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_prestodb__presto/snap.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snap.avro'))
 ----
 0

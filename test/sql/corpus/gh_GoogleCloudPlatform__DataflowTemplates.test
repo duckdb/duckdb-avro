@@ -36,15 +36,15 @@ def	2
 ghi	3
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/1.avro')) TO '{TEST_DIR}/1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/1.avro')) TO '__TEST_DIR__/1.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/1.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/1.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/1.avro'))
 ----
 0
 
@@ -79,13 +79,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/A
 8519441e-52cd-4eb0-8b50-28f800000010	2024-05-15 06:44:21.759	2024-05-15 06:44:21	l1_Authors	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	50a01b655f7f0fab2a357dfeaff3854467e66807	[1715755461000, , 0]	{'table': Authors, 'database': l1, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 3, 'name': Douglas Adams}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors.avro')) TO '{TEST_DIR}/Authors.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors.avro')) TO '__TEST_DIR__/Authors.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Authors.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Authors.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -99,12 +99,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Authors.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Authors.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Authors.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Authors.avro'))
 ----
 0
 
@@ -137,13 +137,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/A
 98ea7e8b-5838-41b3-99d9-bbdb00000000	2024-11-08 09:14:30.512	2024-11-08 09:14:10	e2e-it_Authors	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/books-it	92475d8438aa79ee043789b989b8571210bdc2fd	[1731057250000, mysql-bin.000459, 4413]	{'table': Authors, 'database': e2e-it, 'primary_keys': [author_id], 'log_file': mysql-bin.000459, 'log_position': 4413, 'change_type': INSERT, 'is_deleted': false}	{'author_id': 4, 'name': Stephen King, 'last_update': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_1.avro')) TO '{TEST_DIR}/Authors_1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_1.avro')) TO '__TEST_DIR__/Authors_1.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Authors_1.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Authors_1.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -157,12 +157,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(author_id INTEGER, "name" VARCHAR, last_update TIMESTAMP)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Authors_1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Authors_1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Authors_1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Authors_1.avro'))
 ----
 0
 
@@ -197,13 +197,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/A
 28758c2d-56f3-42e1-865d-385200000010	2024-11-08 09:06:15.024	2024-11-08 09:06:14	e2e-it_Authors	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/books-it	92475d8438aa79ee043789b989b8571210bdc2fd	[1731056774000, , 0]	{'table': Authors, 'database': e2e-it, 'primary_keys': [author_id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'author_id': 3, 'name': Leo Tolstoy, 'last_update': NULL}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_2.avro')) TO '{TEST_DIR}/Authors_2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_2.avro')) TO '__TEST_DIR__/Authors_2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Authors_2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Authors_2.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -217,12 +217,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(author_id INTEGER, "name" VARCHAR, last_update TIMESTAMP)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Authors_2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Authors_2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Authors_2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Authors_2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Authors_2.avro'))
 ----
 0
 
@@ -257,13 +257,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/B
 9e4a51a7-98d2-4a0a-91fc-9e7500000010	2024-11-08 09:13:19.807	2024-11-08 09:13:08	e2e-it_Books	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/books-it	63f8c122dfe05b0c042f55b95292c2e0381e2981	[1731057188000, mysql-bin.000459, 4106]	{'table': Books, 'database': e2e-it, 'primary_keys': [], 'log_file': mysql-bin.000459, 'log_position': 4106, 'change_type': INSERT, 'is_deleted': false}	{'id': 3, 'title': War and Peace, 'author_id': 3}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-2.avro')) TO '{TEST_DIR}/Books-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-2.avro')) TO '__TEST_DIR__/Books-2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Books-2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Books-2.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -277,12 +277,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, title VARCHAR, author_id INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Books-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Books-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Books-2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Books-2.avro'))
 ----
 0
 
@@ -317,13 +317,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/B
 8098ec32-024a-49f9-a7e1-126100000010	2024-05-15 06:42:45.853	2024-05-15 06:42:45	l1_Books	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	c364fe251e74d435383570b64702428eeb677fd6	[1715755365000, , 0]	{'table': Books, 'database': l1, 'primary_keys': [], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 3, 'title': The Hitchhikers Guide to the Galaxy, 'author_id': 3}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-3.avro')) TO '{TEST_DIR}/Books-3.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-3.avro')) TO '__TEST_DIR__/Books-3.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Books-3.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Books-3.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -337,12 +337,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, title VARCHAR, author_id INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Books-3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-3.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Books-3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-3.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Books-3.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books-3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Books-3.avro'))
 ----
 0
 
@@ -377,13 +377,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/B
 6a31cf26-1346-44c5-a2de-976300000010	2024-05-15 06:44:21.759	2024-05-15 06:44:21	l1_Books	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	50a01b655f7f0fab2a357dfeaff3854467e66807	[1715755461000, , 0]	{'table': Books, 'database': l1, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 3, 'title': 'The Hitchhiker\'s Guide to the Galaxy'}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books.avro')) TO '{TEST_DIR}/Books.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books.avro')) TO '__TEST_DIR__/Books.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Books.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Books.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -397,12 +397,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, title VARCHAR)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Books.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Books.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Books.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Books.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Books.avro'))
 ----
 0
 
@@ -436,13 +436,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/C
 49c74fbf-bd0c-48a9-ae58-f07d00000001	2024-06-03 13:20:41.377	2024-06-03 13:20:41	S1L1_Customers	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/test-stream	1efa7d1035c86c6076dcad319592e8834ac63dbc	[1717420841000, , 0]	{'table': Customers, 'database': S1L1, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 2, 'first_name': first2, 'last_name': last2}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard1.avro')) TO '{TEST_DIR}/Customers-shard1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard1.avro')) TO '__TEST_DIR__/Customers-shard1.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Customers-shard1.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Customers-shard1.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -456,12 +456,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, first_name VARCHAR, last_name VARCHAR)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Customers-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Customers-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Customers-shard1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Customers-shard1.avro'))
 ----
 0
 
@@ -495,13 +495,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/C
 6b5546d8-28e2-4a8d-86fa-511000000001	2024-06-03 13:20:41.556	2024-06-03 13:20:41	S1L2_Customers	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/test-stream	4a0a879e0f2fde508750e84116b6dd61dfa915fa	[1717420841000, , 0]	{'table': Customers, 'database': S1L2, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 2, 'first_name': first2, 'last_name': last2}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard2.avro')) TO '{TEST_DIR}/Customers-shard2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard2.avro')) TO '__TEST_DIR__/Customers-shard2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Customers-shard2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Customers-shard2.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -515,12 +515,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, first_name VARCHAR, last_name VARCHAR)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Customers-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Customers-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Customers-shard2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Customers-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Customers-shard2.avro'))
 ----
 0
 
@@ -554,13 +554,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/D
 3506b35a-2ec4-43c9-8989-931400000001	2024-05-14 10:13:05.187	2024-05-14 10:12:37	l1_DatatypeColumnsReducedSizes	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	17c3ef02e2dd4959119fffd406fc7cf8e50a8480	[1715681557000, mysql-bin.000014, 99202]	{'table': DatatypeColumnsReducedSizes, 'database': l1, 'primary_keys': [varchar_column], 'log_file': mysql-bin.000014, 'log_position': 99202, 'change_type': INSERT, 'is_deleted': false}	{'varchar_column': value2, 'float_column': 12.34, 'decimal_column': 123.45, 'char_column': char_2, 'bool_column': 1, 'binary_column': 62696e6172795f646174615f3200000000000000, 'varbinary_column': 76617262696e6172795f646174615f32, 'bit_column': 25}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsReducedSizes-backfill.avro')) TO '{TEST_DIR}/DatatypeColumnsReducedSizes-backfill.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsReducedSizes-backfill.avro')) TO '__TEST_DIR__/DatatypeColumnsReducedSizes-backfill.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/DatatypeColumnsReducedSizes-backfill.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/DatatypeColumnsReducedSizes-backfill.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -574,12 +574,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(varchar_column VARCHAR, float_column FLOAT, decimal_column DECIMAL(10,2), char_column VARCHAR, bool_column INTEGER, binary_column VARCHAR, varbinary_column VARCHAR, bit_column BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/DatatypeColumnsReducedSizes-backfill.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsReducedSizes-backfill.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/DatatypeColumnsReducedSizes-backfill.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsReducedSizes-backfill.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsReducedSizes-backfill.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/DatatypeColumnsReducedSizes-backfill.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsReducedSizes-backfill.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/DatatypeColumnsReducedSizes-backfill.avro'))
 ----
 0
 
@@ -613,13 +613,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/D
 7ce1f115-e8a6-40b6-9542-97b000000001	2024-05-14 07:59:56.86	2024-05-14 07:59:56	l1_DatatypeColumnsWithSizes	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	3538c6cda3b55602a1172afc3848535b01d3fe06	[1715673596000, , 0]	{'table': DatatypeColumnsWithSizes, 'database': l1, 'primary_keys': [varchar_column], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'varchar_column': value2, 'float_column': 12.34, 'decimal_column': 123.45, 'char_column': char_2, 'bool_column': 1, 'binary_column': 62696e6172795f646174615f3200000000000000, 'varbinary_column': 76617262696e6172795f646174615f32, 'bit_column': 25}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsWithSizes-backfill.avro')) TO '{TEST_DIR}/DatatypeColumnsWithSizes-backfill.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsWithSizes-backfill.avro')) TO '__TEST_DIR__/DatatypeColumnsWithSizes-backfill.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/DatatypeColumnsWithSizes-backfill.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/DatatypeColumnsWithSizes-backfill.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -633,12 +633,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(varchar_column VARCHAR, float_column FLOAT, decimal_column DECIMAL(10,2), char_column VARCHAR, bool_column INTEGER, binary_column VARCHAR, varbinary_column VARCHAR, bit_column BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/DatatypeColumnsWithSizes-backfill.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsWithSizes-backfill.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/DatatypeColumnsWithSizes-backfill.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsWithSizes-backfill.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsWithSizes-backfill.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/DatatypeColumnsWithSizes-backfill.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DatatypeColumnsWithSizes-backfill.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/DatatypeColumnsWithSizes-backfill.avro'))
 ----
 0
 
@@ -672,13 +672,13 @@ af1ae0ba-2a42-4626-a8ca-53d700000000	2025-11-19 20:20:48.933	2025-11-19 20:20:48
 af1ae0ba-2a42-4626-a8ca-53d700000001	2025-11-19 20:20:48.933	2025-11-19 20:20:48	test_DateData	mysql-backfill-fulldump	projects/695420044509/locations/us-east1/streams/smt-timezone-test	d19bb8e3fe9cb86c9f93bbca686f304a4209433b	[1763583648000, 0, 0]	{'table': DateData, 'database': test, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 2, 'timestamp_column': '2024-02-02 10:00:00', 'datetime_column': '2024-02-02 20:00:00'}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DateData.avro')) TO '{TEST_DIR}/DateData.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DateData.avro')) TO '__TEST_DIR__/DateData.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/DateData.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/DateData.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -692,12 +692,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id BIGINT, timestamp_column TIMESTAMP, datetime_column TIMESTAMP)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/DateData.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DateData.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/DateData.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DateData.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DateData.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/DateData.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/DateData.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/DateData.avro'))
 ----
 0
 
@@ -716,15 +716,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 id	BIGINT
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable-2.avro')) TO '{TEST_DIR}/EmptyTable-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable-2.avro')) TO '__TEST_DIR__/EmptyTable-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/EmptyTable-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/EmptyTable-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/EmptyTable-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/EmptyTable-2.avro'))
 ----
 0
 
@@ -743,15 +743,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 id	BIGINT
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable.avro')) TO '{TEST_DIR}/EmptyTable.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable.avro')) TO '__TEST_DIR__/EmptyTable.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/EmptyTable.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/EmptyTable.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/EmptyTable.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/EmptyTable.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/EmptyTable.avro'))
 ----
 0
 
@@ -784,15 +784,15 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/F
 9	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Float32Table.avro')) TO '{TEST_DIR}/Float32Table.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Float32Table.avro')) TO '__TEST_DIR__/Float32Table.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/Float32Table.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Float32Table.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/Float32Table.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Float32Table.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Float32Table.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/Float32Table.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Float32Table.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/Float32Table.avro'))
 ----
 0
 
@@ -827,13 +827,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/G
 98a74139-0d92-41f5-b227-087200000010	2024-11-08 09:06:14.41	2024-11-08 09:06:14	e2e-it_Genre	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/books-it	374ab67c42eb0cb7dba424f1686fb8aac6358754	[1731056774000, , 0]	{'table': Genre, 'database': e2e-it, 'primary_keys': [genre_id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'name': Horror, 'genre_id': 3}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Genre.avro')) TO '{TEST_DIR}/Genre.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Genre.avro')) TO '__TEST_DIR__/Genre.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Genre.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Genre.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -847,12 +847,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT("name" VARCHAR, genre_id INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Genre.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Genre.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Genre.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Genre.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Genre.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Genre.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Genre.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Genre.avro'))
 ----
 0
 
@@ -873,15 +873,15 @@ nonkeyidcol1	BIGINT
 nonkeyidcol2	BIGINT
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity-2.avro')) TO '{TEST_DIR}/Identity-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity-2.avro')) TO '__TEST_DIR__/Identity-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/Identity-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/Identity-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/Identity-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/Identity-2.avro'))
 ----
 0
 
@@ -902,15 +902,15 @@ NonKeyIdCol1	BIGINT
 NonKeyIdCol2	BIGINT
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity.avro')) TO '{TEST_DIR}/Identity.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity.avro')) TO '__TEST_DIR__/Identity.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/Identity.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/Identity.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/Identity.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Identity.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/Identity.avro'))
 ----
 0
 
@@ -930,15 +930,15 @@ Input	STRUCT("content" VARCHAR)
 Output	STRUCT(embeddings STRUCT("statistics" STRUCT(truncated BOOLEAN, token_count DOUBLE), "values" DOUBLE[]))
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/ModelStruct.avro')) TO '{TEST_DIR}/ModelStruct.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/ModelStruct.avro')) TO '__TEST_DIR__/ModelStruct.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/ModelStruct.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/ModelStruct.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/ModelStruct.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/ModelStruct.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/ModelStruct.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/ModelStruct.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/ModelStruct.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/ModelStruct.avro'))
 ----
 0
 
@@ -976,13 +976,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/M
 844a50ec-d0b8-46d4-8581-567500000101	2024-05-10 08:30:54.839	2024-05-10 08:29:57	S1L1_Movie	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	a64df32fd8cf9187cb386a2900e15e307fd17923	[1715329797000, mysql-bin.000014, 89828]	{'table': Movie, 'database': S1L1, 'primary_keys': [id1, id2], 'log_file': mysql-bin.000014, 'log_position': 89828, 'change_type': DELETE, 'is_deleted': true}	{'id1': 6, 'id2': 8, 'name': Mov973, 'actor': 15}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard1.avro')) TO '{TEST_DIR}/Movie-shard1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard1.avro')) TO '__TEST_DIR__/Movie-shard1.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Movie-shard1.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Movie-shard1.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -996,12 +996,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id1 INTEGER, id2 INTEGER, "name" VARCHAR, actor INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Movie-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Movie-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Movie-shard1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Movie-shard1.avro'))
 ----
 0
 
@@ -1036,13 +1036,13 @@ a4d211e2-d5af-4f6e-8a25-e3a800000001	2024-05-10 08:34:28.521	2024-05-10 08:34:28
 a4d211e2-d5af-4f6e-8a25-e3a800000010	2024-05-10 08:34:28.521	2024-05-10 08:34:28	S1L2_Movie	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	50c8d29dc2422957141cab034b654b115fda33f9	[1715330068000, , 0]	{'table': Movie, 'database': S1L2, 'primary_keys': [id1, id2], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id1': 26, 'id2': 12, 'name': Mov764, 'actor': 8}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard2.avro')) TO '{TEST_DIR}/Movie-shard2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard2.avro')) TO '__TEST_DIR__/Movie-shard2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Movie-shard2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Movie-shard2.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1056,12 +1056,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id1 INTEGER, id2 INTEGER, "name" VARCHAR, actor INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Movie-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Movie-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Movie-shard2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Movie-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Movie-shard2.avro'))
 ----
 0
 
@@ -1080,15 +1080,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 Sequence1	"NULL"
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1-2.avro')) TO '{TEST_DIR}/Sequence1-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1-2.avro')) TO '__TEST_DIR__/Sequence1-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/Sequence1-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/Sequence1-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/Sequence1-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/Sequence1-2.avro'))
 ----
 0
 
@@ -1107,15 +1107,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 Sequence1	"NULL"
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1.avro')) TO '{TEST_DIR}/Sequence1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1.avro')) TO '__TEST_DIR__/Sequence1.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/Sequence1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/Sequence1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/Sequence1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence1.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/Sequence1.avro'))
 ----
 0
 
@@ -1134,15 +1134,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 Sequence2	"NULL"
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2-2.avro')) TO '{TEST_DIR}/Sequence2-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2-2.avro')) TO '__TEST_DIR__/Sequence2-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/Sequence2-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/Sequence2-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/Sequence2-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/Sequence2-2.avro'))
 ----
 0
 
@@ -1161,15 +1161,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 Sequence2	"NULL"
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2.avro')) TO '{TEST_DIR}/Sequence2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2.avro')) TO '__TEST_DIR__/Sequence2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/Sequence2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/Sequence2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/Sequence2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Sequence2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/Sequence2.avro'))
 ----
 0
 
@@ -1198,15 +1198,15 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/S
 4	Richard	Wright
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-2.avro')) TO '{TEST_DIR}/Singers-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-2.avro')) TO '__TEST_DIR__/Singers-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/Singers-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/Singers-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/Singers-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/Singers-2.avro'))
 ----
 0
 
@@ -1240,13 +1240,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/S
 8e58ecc0-216a-46bd-b751-1fc500000001	2024-10-24 10:25:35.7	2024-10-24 10:25:35	seq_it_Singers	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/seqit	1637717c4e82eabd52f59e5e257cfcb0dcec87f1	[1729765535000, , 0]	{'table': Singers, 'database': seq_it, 'primary_keys': [singer_id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'singer_id': 2, 'first_name': David, 'last_name': Bowie}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-3.avro')) TO '{TEST_DIR}/Singers-3.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-3.avro')) TO '__TEST_DIR__/Singers-3.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Singers-3.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Singers-3.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1260,12 +1260,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(singer_id INTEGER, first_name VARCHAR, last_name VARCHAR)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Singers-3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-3.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Singers-3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-3.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Singers-3.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers-3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Singers-3.avro'))
 ----
 0
 
@@ -1294,15 +1294,15 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/S
 4	Richard	Wright
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers.avro')) TO '{TEST_DIR}/Singers.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers.avro')) TO '__TEST_DIR__/Singers.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/Singers.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/Singers.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/Singers.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Singers.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/Singers.avro'))
 ----
 0
 
@@ -1321,15 +1321,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 UdfSchema_Remote	"NULL"
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.Remote.avro')) TO '{TEST_DIR}/UdfSchema.Remote.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.Remote.avro')) TO '__TEST_DIR__/UdfSchema.Remote.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/UdfSchema.Remote.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.Remote.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/UdfSchema.Remote.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.Remote.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.Remote.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/UdfSchema.Remote.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.Remote.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/UdfSchema.Remote.avro'))
 ----
 0
 
@@ -1348,15 +1348,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 UdfSchema	"NULL"
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.avro')) TO '{TEST_DIR}/UdfSchema.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.avro')) TO '__TEST_DIR__/UdfSchema.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/UdfSchema.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/UdfSchema.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/UdfSchema.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UdfSchema.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/UdfSchema.avro'))
 ----
 0
 
@@ -1391,13 +1391,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 58fca5ca-c3d8-4bff-a4b7-765e00000010	2024-09-08 11:49:02.732	2024-09-08 11:49:02	S1L1_Users	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeit	fb57c3235f48c2f937c1652c56d3d961cdb20c1a	[1725796142000, , 0]	{'table': Users, 'database': S1L1, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 3, 'name': Tester3, 'age': 103}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1-2.avro')) TO '{TEST_DIR}/Users-backfill-logical-shard1-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1-2.avro')) TO '__TEST_DIR__/Users-backfill-logical-shard1-2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard1-2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard1-2.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1411,12 +1411,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard1-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1-2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard1-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard1-2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard1-2.avro'))
 ----
 0
 
@@ -1451,13 +1451,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 5fcb0760-a9bc-40af-808e-921700000010	2024-05-10 05:27:36.06	2024-05-10 05:27:36	S1L1_Users	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	fb57c3235f48c2f937c1652c56d3d961cdb20c1a	[1715318856000, , 0]	{'table': Users, 'database': S1L1, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 3, 'name': Tester3, 'age': 103}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1.avro')) TO '{TEST_DIR}/Users-backfill-logical-shard1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1.avro')) TO '__TEST_DIR__/Users-backfill-logical-shard1.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard1.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard1.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1471,12 +1471,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard1.avro'))
 ----
 0
 
@@ -1511,13 +1511,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 10681c76-1bf5-4f78-b959-1c0900000010	2024-09-08 11:49:02.427	2024-09-08 11:49:02	S1L2_Users	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeit	13975412a0becf3862a77ff073f06f6ea9ed484e	[1725796142000, , 0]	{'table': Users, 'database': S1L2, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 6, 'name': Tester6, 'age': 106}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2-2.avro')) TO '{TEST_DIR}/Users-backfill-logical-shard2-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2-2.avro')) TO '__TEST_DIR__/Users-backfill-logical-shard2-2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard2-2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard2-2.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1531,12 +1531,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard2-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2-2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard2-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard2-2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard2-2.avro'))
 ----
 0
 
@@ -1571,13 +1571,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 3ab70d56-6c08-40dd-bdbc-5d5900000010	2024-05-10 05:27:35.243	2024-05-10 05:27:35	S1L2_Users	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	13975412a0becf3862a77ff073f06f6ea9ed484e	[1715318855000, , 0]	{'table': Users, 'database': S1L2, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 6, 'name': Tester6, 'age': 106}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2.avro')) TO '{TEST_DIR}/Users-backfill-logical-shard2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2.avro')) TO '__TEST_DIR__/Users-backfill-logical-shard2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard2.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1591,12 +1591,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard2.avro'))
 ----
 0
 
@@ -1631,13 +1631,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 8ae40b4c-4485-40c5-b6be-1ce100000010	2024-05-10 05:27:35.587	2024-05-10 05:27:35	S2L1_Users	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	0bbf67ee21c003b35317d1759a865323a4a2d2cc	[1715318855000, , 0]	{'table': Users, 'database': S2L1, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 9, 'name': Tester9, 'age': 109}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard3.avro')) TO '{TEST_DIR}/Users-backfill-logical-shard3.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard3.avro')) TO '__TEST_DIR__/Users-backfill-logical-shard3.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard3.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard3.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1651,12 +1651,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard3.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard3.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard3.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard3.avro'))
 ----
 0
 
@@ -1691,13 +1691,13 @@ f0dfc816-8424-4b3b-9629-8d6e00000001	2024-05-10 05:27:35.518	2024-05-10 05:27:35
 f0dfc816-8424-4b3b-9629-8d6e00000010	2024-05-10 05:27:35.518	2024-05-10 05:27:35	S2L2_Users	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	28072440e6e327bb20c726f7b475fdaf6f867e07	[1715318855000, , 0]	{'table': Users, 'database': S2L2, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 12, 'name': Tester12, 'age': 112}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard4.avro')) TO '{TEST_DIR}/Users-backfill-logical-shard4.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard4.avro')) TO '__TEST_DIR__/Users-backfill-logical-shard4.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard4.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard4.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1711,12 +1711,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard4.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard4.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard4.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard4.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard4.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-backfill-logical-shard4.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-backfill-logical-shard4.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-backfill-logical-shard4.avro'))
 ----
 0
 
@@ -1751,13 +1751,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 984a1f2b-aacb-4141-bd89-2c9700000101	2024-09-08 12:00:58.02	2024-09-08 12:00:50	S1L1_Users	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeit	fb57c3235f48c2f937c1652c56d3d961cdb20c1a	[1725796850000, mysql-bin.000032, 31328]	{'table': Users, 'database': S1L1, 'primary_keys': [id], 'log_file': mysql-bin.000032, 'log_position': 31328, 'change_type': DELETE, 'is_deleted': true}	{'id': 2, 'name': Tester2, 'age': 102}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1-2.avro')) TO '{TEST_DIR}/Users-cdc-logical-shard1-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1-2.avro')) TO '__TEST_DIR__/Users-cdc-logical-shard1-2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard1-2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard1-2.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1771,12 +1771,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard1-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1-2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard1-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard1-2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1-2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard1-2.avro'))
 ----
 0
 
@@ -1811,13 +1811,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 0b0f4fb9-72bf-458b-ad52-57e000000010	2024-05-10 05:36:59.578	2024-05-10 05:36:01	S1L1_Users	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	fb57c3235f48c2f937c1652c56d3d961cdb20c1a	[1715319361000, mysql-bin.000014, 81756]	{'table': Users, 'database': S1L1, 'primary_keys': [id], 'log_file': mysql-bin.000014, 'log_position': 81756, 'change_type': DELETE, 'is_deleted': true}	{'id': 2, 'name': Tester2, 'age': 102}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1.avro')) TO '{TEST_DIR}/Users-cdc-logical-shard1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1.avro')) TO '__TEST_DIR__/Users-cdc-logical-shard1.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard1.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard1.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1831,12 +1831,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard1.avro'))
 ----
 0
 
@@ -1871,13 +1871,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 53745543-cbb3-487f-92fd-279b00000010	2024-05-10 05:55:48.906	2024-05-10 05:54:59	S1L2_Users	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	13975412a0becf3862a77ff073f06f6ea9ed484e	[1715320499000, mysql-bin.000014, 85961]	{'table': Users, 'database': S1L2, 'primary_keys': [id], 'log_file': mysql-bin.000014, 'log_position': 85961, 'change_type': DELETE, 'is_deleted': true}	{'id': 5, 'name': Tester5, 'age': 105}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard2.avro')) TO '{TEST_DIR}/Users-cdc-logical-shard2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard2.avro')) TO '__TEST_DIR__/Users-cdc-logical-shard2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard2.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1891,12 +1891,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard2.avro'))
 ----
 0
 
@@ -1931,13 +1931,13 @@ e6c69aeb-220a-47ff-9ab8-64e900000001	2024-05-10 05:58:10.331	2024-05-10 05:58:09
 e6c69aeb-220a-47ff-9ab8-64e900000010	2024-05-10 05:58:10.331	2024-05-10 05:58:09	S2L1_Users	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	0bbf67ee21c003b35317d1759a865323a4a2d2cc	[1715320689000, mysql-bin.000014, 87982]	{'table': Users, 'database': S2L1, 'primary_keys': [id], 'log_file': mysql-bin.000014, 'log_position': 87982, 'change_type': DELETE, 'is_deleted': true}	{'id': 8, 'name': Tester8, 'age': 108}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard3.avro')) TO '{TEST_DIR}/Users-cdc-logical-shard3.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard3.avro')) TO '__TEST_DIR__/Users-cdc-logical-shard3.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard3.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard3.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -1951,12 +1951,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard3.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard3.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard3.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard3.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard3.avro'))
 ----
 0
 
@@ -1991,13 +1991,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 0b0f4fb9-72bf-458b-ad52-57e000001001	2024-05-10 05:36:59.578	2024-05-10 05:36:28	S2L2_Users	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	28072440e6e327bb20c726f7b475fdaf6f867e07	[1715319388000, mysql-bin.000014, 83940]	{'table': Users, 'database': S2L2, 'primary_keys': [id], 'log_file': mysql-bin.000014, 'log_position': 83940, 'change_type': DELETE, 'is_deleted': true}	{'id': 11, 'name': Tester11, 'age': 111}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard4.avro')) TO '{TEST_DIR}/Users-cdc-logical-shard4.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard4.avro')) TO '__TEST_DIR__/Users-cdc-logical-shard4.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard4.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard4.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2011,12 +2011,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard4.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard4.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard4.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard4.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard4.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users-cdc-logical-shard4.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users-cdc-logical-shard4.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users-cdc-logical-shard4.avro'))
 ----
 0
 
@@ -2051,13 +2051,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 349a2024-a454-4140-8d0b-2d9000000010	2024-05-14 11:00:37.827	2024-05-14 11:00:37	l1_Users	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	375c963f45b8840b156017a15ed6164fd03b3b94	[1715684437000, , 0]	{'table': Users, 'database': l1, 'primary_keys': [user_id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'user_id': 9, 'first_name': James, 'last_name': Dove, 'age': 22}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users.avro')) TO '{TEST_DIR}/Users.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users.avro')) TO '__TEST_DIR__/Users.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/Users.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/Users.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2071,12 +2071,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(user_id INTEGER, first_name VARCHAR, last_name VARCHAR, age INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/Users.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/Users.avro'))
 ----
 0
 
@@ -2106,15 +2106,15 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 ffffffff-ffff-ffff-ffff-ffffffffffff	NULL	3	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable-2.avro')) TO '{TEST_DIR}/UuidTable-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable-2.avro')) TO '__TEST_DIR__/UuidTable-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/UuidTable-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/UuidTable-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/UuidTable-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/UuidTable-2.avro'))
 ----
 0
 
@@ -2144,15 +2144,15 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/U
 ffffffff-ffff-ffff-ffff-ffffffffffff	NULL	3	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable.avro')) TO '{TEST_DIR}/UuidTable.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable.avro')) TO '__TEST_DIR__/UuidTable.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/UuidTable.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/UuidTable.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/UuidTable.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/UuidTable.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/UuidTable.avro'))
 ----
 0
 
@@ -2187,13 +2187,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/a
 093d65cc-6c4f-494a-afc4-8e1e00000010	2025-01-21 11:31:47.777	2025-01-21 11:31:16	ea-main_alltypes	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/smt-stream-ea-mai-9318-947b	e74a6df1b24bb4f5a7f7c4985cc54781dd4243fb	[1737459076000, mysql-bin.000131, 4222]	{'table': alltypes, 'database': ea-main, 'primary_keys': [bool_field, bytes_field, date_field, float64_field, int64_field, numeric_field, string_field, timestamp_field], 'log_file': mysql-bin.000131, 'log_position': 4222, 'change_type': INSERT, 'is_deleted': false}	{'bool_field': 1, 'int64_field': 3, 'float64_field': 3.14159265359, 'string_field': This is a test string for MySQL., 'bytes_field': 5468697320697320736f6d652062696e6172792064617461, 'timestamp_field': '2024-12-20 10:30:00', 'date_field': '2024-12-20 00:00:00', 'numeric_field': 12345.123400000, 'val': 10}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-3-inserts.avro')) TO '{TEST_DIR}/alltypes-test-3-inserts.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-3-inserts.avro')) TO '__TEST_DIR__/alltypes-test-3-inserts.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/alltypes-test-3-inserts.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/alltypes-test-3-inserts.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2207,12 +2207,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(bool_field INTEGER, int64_field BIGINT, float64_field DOUBLE, string_field VARCHAR, bytes_field VARCHAR, timestamp_field TIMESTAMP, date_field TIMESTAMP, numeric_field DECIMAL(38,9), val INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/alltypes-test-3-inserts.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-3-inserts.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/alltypes-test-3-inserts.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-3-inserts.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-3-inserts.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/alltypes-test-3-inserts.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-3-inserts.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/alltypes-test-3-inserts.avro'))
 ----
 0
 
@@ -2246,13 +2246,13 @@ bfa411c6-5168-47f2-8bc8-836d00000000	2025-01-21 11:38:52.873	2025-01-21 11:38:49
 bfa411c6-5168-47f2-8bc8-836d00000001	2025-01-21 11:38:52.873	2025-01-21 11:38:50	ea-main_alltypes	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/smt-stream-ea-mai-9318-947b	e74a6df1b24bb4f5a7f7c4985cc54781dd4243fb	[1737459530000, mysql-bin.000131, 5700]	{'table': alltypes, 'database': ea-main, 'primary_keys': [bool_field, bytes_field, date_field, float64_field, int64_field, numeric_field, string_field, timestamp_field], 'log_file': mysql-bin.000131, 'log_position': 5700, 'change_type': UPDATE-INSERT, 'is_deleted': false}	{'bool_field': 1, 'int64_field': 10, 'float64_field': 3.14159265359, 'string_field': This is a test string for MySQL., 'bytes_field': 5468697320697320736f6d652062696e6172792064617461, 'timestamp_field': '2024-12-20 10:30:00', 'date_field': '2024-12-20 00:00:00', 'numeric_field': 12345.123400000, 'val': 10}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-pk-update.avro')) TO '{TEST_DIR}/alltypes-test-pk-update.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-pk-update.avro')) TO '__TEST_DIR__/alltypes-test-pk-update.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/alltypes-test-pk-update.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/alltypes-test-pk-update.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2266,12 +2266,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(bool_field INTEGER, int64_field BIGINT, float64_field DOUBLE, string_field VARCHAR, bytes_field VARCHAR, timestamp_field TIMESTAMP, date_field TIMESTAMP, numeric_field DECIMAL(38,9), val INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/alltypes-test-pk-update.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-pk-update.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/alltypes-test-pk-update.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-pk-update.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-pk-update.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/alltypes-test-pk-update.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-pk-update.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/alltypes-test-pk-update.avro'))
 ----
 0
 
@@ -2305,13 +2305,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/a
 9ab08913-b5d5-42ba-8423-8c7700000001	2025-01-21 11:36:31.808	2025-01-21 11:36:29	ea-main_alltypes	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/smt-stream-ea-mai-9318-947b	e74a6df1b24bb4f5a7f7c4985cc54781dd4243fb	[1737459389000, mysql-bin.000131, 5167]	{'table': alltypes, 'database': ea-main, 'primary_keys': [bool_field, bytes_field, date_field, float64_field, int64_field, numeric_field, string_field, timestamp_field], 'log_file': mysql-bin.000131, 'log_position': 5167, 'change_type': UPDATE-INSERT, 'is_deleted': false}	{'bool_field': 1, 'int64_field': 2, 'float64_field': 3.14159265359, 'string_field': This is a test string for MySQL., 'bytes_field': 5468697320697320736f6d652062696e6172792064617461, 'timestamp_field': '2024-12-20 10:30:00', 'date_field': '2024-12-20 00:00:00', 'numeric_field': 12345.123400000, 'val': 20}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-update-delete.avro')) TO '{TEST_DIR}/alltypes-test-update-delete.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-update-delete.avro')) TO '__TEST_DIR__/alltypes-test-update-delete.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/alltypes-test-update-delete.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/alltypes-test-update-delete.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2325,12 +2325,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(bool_field INTEGER, int64_field BIGINT, float64_field DOUBLE, string_field VARCHAR, bytes_field VARCHAR, timestamp_field TIMESTAMP, date_field TIMESTAMP, numeric_field DECIMAL(38,9), val INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/alltypes-test-update-delete.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-update-delete.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/alltypes-test-update-delete.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-update-delete.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-update-delete.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/alltypes-test-update-delete.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/alltypes-test-update-delete.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/alltypes-test-update-delete.avro'))
 ----
 0
 
@@ -2383,15 +2383,15 @@ projects/596161805475/locations/us-central1/streams/dylan-stream-20200810test2	o
 projects/596161805475/locations/us-central1/streams/dylan-stream-20200810test2	oracle_dump	HR_LOCATIONS	1d7442aa-578a-4c13-9727-4df300010110	1597101230388	1597101230365	{'schema': HR, 'table': LOCATIONS, 'database': XE, 'row_id': AAAEALAAEAAAACdAAW}	{'LOCATION_ID': 3200.0, 'STREET_ADDRESS': {'value': Mariano Escobedo 9991, 'length': 40}, 'POSTAL_CODE': {'value': 11932, 'length': 12}, 'CITY': {'value': Mexico City, 'length': 30}, 'STATE_PROVINCE': {'value': 'Distrito Federal,', 'length': 25}, 'COUNTRY_ID': {'value': MX, 'length': 2}, 'timestamp_with_tz': {'timestamp': '2022-10-13 14:30:00.000056', 'offset': '01:00:00'}, 'update_timestamp_micros': 1705320821122571751, 'update_timestamp_millis': 1705320821122571751, 'update_time_micros': 1705320821122571751, 'update_time_millis': 1705320821122571751}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/avro_file_ut.avro')) TO '{TEST_DIR}/avro_file_ut.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/avro_file_ut.avro')) TO '__TEST_DIR__/avro_file_ut.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/avro_file_ut.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/avro_file_ut.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/avro_file_ut.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/avro_file_ut.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/avro_file_ut.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/avro_file_ut.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/avro_file_ut.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/avro_file_ut.avro'))
 ----
 0
 
@@ -2418,15 +2418,15 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/b
 \xAE\x8C7	[{'family': family2, 'qualifier': column2, 'timestamp': 1234567000, 'value': value3}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/bigtable-to-avro-file_test.avro')) TO '{TEST_DIR}/bigtable-to-avro-file_test.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/bigtable-to-avro-file_test.avro')) TO '__TEST_DIR__/bigtable-to-avro-file_test.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/bigtable-to-avro-file_test.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/bigtable-to-avro-file_test.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/bigtable-to-avro-file_test.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/bigtable-to-avro-file_test.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/bigtable-to-avro-file_test.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/bigtable-to-avro-file_test.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/bigtable-to-avro-file_test.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/bigtable-to-avro-file_test.avro'))
 ----
 0
 
@@ -2469,13 +2469,13 @@ e716e35e-5e86-4db7-b5a3-365f00000001	2025-01-21 11:02:17.57	2025-01-21 11:01:22	
 e716e35e-5e86-4db7-b5a3-365f00000010	2025-01-21 11:02:17.57	2025-01-21 11:01:22	ea-main_my_table	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/smt-stream-ea-mai-9318-947b	491139293433ac07c1895612433c0d61c5265fdb	[1737457282000, mysql-bin.000131, 1642]	{'table': my_table, 'database': ea-main, 'primary_keys': [id], 'log_file': mysql-bin.000131, 'log_position': 1642, 'change_type': INSERT, 'is_deleted': false}	{'id': 3, 'val': 10}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-3-inserts.avro')) TO '{TEST_DIR}/my_table-simpleTest-3-inserts.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-3-inserts.avro')) TO '__TEST_DIR__/my_table-simpleTest-3-inserts.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/my_table-simpleTest-3-inserts.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/my_table-simpleTest-3-inserts.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2489,12 +2489,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, val INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/my_table-simpleTest-3-inserts.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-3-inserts.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/my_table-simpleTest-3-inserts.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-3-inserts.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-3-inserts.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/my_table-simpleTest-3-inserts.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-3-inserts.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/my_table-simpleTest-3-inserts.avro'))
 ----
 0
 
@@ -2528,13 +2528,13 @@ ee7534b0-71d8-4164-8ad8-1eaf00000000	2025-01-21 11:09:21.898	2025-01-21 11:08:15
 ee7534b0-71d8-4164-8ad8-1eaf00000001	2025-01-21 11:09:21.898	2025-01-21 11:08:16	ea-main_my_table	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/smt-stream-ea-mai-9318-947b	491139293433ac07c1895612433c0d61c5265fdb	[1737457696000, mysql-bin.000131, 2550]	{'table': my_table, 'database': ea-main, 'primary_keys': [id], 'log_file': mysql-bin.000131, 'log_position': 2550, 'change_type': UPDATE-INSERT, 'is_deleted': false}	{'id': 10, 'val': 10}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-pk-update.avro')) TO '{TEST_DIR}/my_table-simpleTest-pk-update.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-pk-update.avro')) TO '__TEST_DIR__/my_table-simpleTest-pk-update.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/my_table-simpleTest-pk-update.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/my_table-simpleTest-pk-update.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2548,12 +2548,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, val INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/my_table-simpleTest-pk-update.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-pk-update.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/my_table-simpleTest-pk-update.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-pk-update.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-pk-update.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/my_table-simpleTest-pk-update.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-pk-update.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/my_table-simpleTest-pk-update.avro'))
 ----
 0
 
@@ -2587,13 +2587,13 @@ fca124c0-b702-4a37-8b17-e75f00000000	2025-01-21 11:05:49.744	2025-01-21 11:05:06
 fca124c0-b702-4a37-8b17-e75f00000001	2025-01-21 11:05:49.744	2025-01-21 11:05:06	ea-main_my_table	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/smt-stream-ea-mai-9318-947b	491139293433ac07c1895612433c0d61c5265fdb	[1737457506000, mysql-bin.000131, 2241]	{'table': my_table, 'database': ea-main, 'primary_keys': [id], 'log_file': mysql-bin.000131, 'log_position': 2241, 'change_type': UPDATE-INSERT, 'is_deleted': false}	{'id': 2, 'val': 20}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-update-delete.avro')) TO '{TEST_DIR}/my_table-simpleTest-update-delete.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-update-delete.avro')) TO '__TEST_DIR__/my_table-simpleTest-update-delete.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/my_table-simpleTest-update-delete.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/my_table-simpleTest-update-delete.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2607,12 +2607,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, val INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/my_table-simpleTest-update-delete.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-update-delete.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/my_table-simpleTest-update-delete.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-update-delete.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-update-delete.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/my_table-simpleTest-update-delete.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/my_table-simpleTest-update-delete.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/my_table-simpleTest-update-delete.avro'))
 ----
 0
 
@@ -2648,13 +2648,13 @@ b2bf6349-dfe8-4ed8-9cfb-5e3000000110	2024-05-09 07:10:44.66	2024-05-09 07:10:08	
 b2bf6349-dfe8-4ed8-9cfb-5e3000000111	2024-05-09 07:10:44.66	2024-05-09 07:10:08	l1_Articles	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	20864723011039d7b91dd8e8679fcdb368d88ec8	[1715238608000, mysql-bin.000014, 65189]	{'table': Articles, 'database': l1, 'primary_keys': [id], 'log_file': mysql-bin.000014, 'log_position': 65189, 'change_type': INSERT, 'is_deleted': false}	{'id': 4, 'name': Article005, 'published_date': '2024-01-01 00:00:00', 'author_id': 3}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Articles.avro')) TO '{TEST_DIR}/mysql-Articles.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Articles.avro')) TO '__TEST_DIR__/mysql-Articles.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-Articles.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-Articles.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2668,12 +2668,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, published_date TIMESTAMP, author_id INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-Articles.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Articles.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-Articles.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Articles.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Articles.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-Articles.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Articles.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-Articles.avro'))
 ----
 0
 
@@ -2709,13 +2709,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/m
 086eb8dd-c11f-4e20-a1cd-686400000011	2024-05-09 07:15:56.699	2024-05-09 07:15:56	l1_Authors	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	bb1cc955ea204b11cd6f53f0847101e9292a6f33	[1715238956000, , 0]	{'table': Authors, 'database': l1, 'primary_keys': [author_id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'author_id': 4, 'name': a4}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Authors.avro')) TO '{TEST_DIR}/mysql-Authors.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Authors.avro')) TO '__TEST_DIR__/mysql-Authors.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-Authors.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-Authors.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2729,12 +2729,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(author_id INTEGER, "name" VARCHAR)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-Authors.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Authors.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-Authors.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Authors.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Authors.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-Authors.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Authors.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-Authors.avro'))
 ----
 0
 
@@ -2770,13 +2770,13 @@ b2bf6349-dfe8-4ed8-9cfb-5e3000001010	2024-05-09 07:10:44.66	2024-05-09 07:10:12	
 b2bf6349-dfe8-4ed8-9cfb-5e3000001011	2024-05-09 07:10:44.66	2024-05-09 07:10:13	l1_Books	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	4cda5b83974b8ce04146852b3ff3348da50717b3	[1715238613000, mysql-bin.000014, 66365]	{'table': Books, 'database': l1, 'primary_keys': [id], 'log_file': mysql-bin.000014, 'log_position': 66365, 'change_type': INSERT, 'is_deleted': false}	{'id': 4, 'title': Book005, 'author_id': 2}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Books.avro')) TO '{TEST_DIR}/mysql-Books.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Books.avro')) TO '__TEST_DIR__/mysql-Books.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-Books.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-Books.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2790,12 +2790,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, title VARCHAR, author_id INTEGER)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-Books.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Books.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-Books.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Books.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Books.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-Books.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-Books.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-Books.avro'))
 ----
 0
 
@@ -2829,13 +2829,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/m
 20 values hashing to ed64b56b7d9d7732596d21407aafd612
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns.avro')) TO '{TEST_DIR}/mysql-backfill-AllDatatypeColumns.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns.avro')) TO '__TEST_DIR__/mysql-backfill-AllDatatypeColumns.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-backfill-AllDatatypeColumns.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-backfill-AllDatatypeColumns.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2849,12 +2849,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(varchar_column VARCHAR, tinyint_column INTEGER, text_column VARCHAR, date_column TIMESTAMP, smallint_column INTEGER, mediumint_column INTEGER, int_column INTEGER, bigint_column BIGINT, float_column FLOAT, double_column DOUBLE, decimal_column DECIMAL(10,2), datetime_column TIMESTAMP, timestamp_column TIMESTAMP, time_column BIGINT, year_column INTEGER, char_column VARCHAR, tinyblob_column VARCHAR, tinytext_column VARCHAR, blob_column VARCHAR, mediumblob_column VARCHAR, mediumtext_column VARCHAR, longblob_column VARCHAR, longtext_column VARCHAR, enum_column VARCHAR, bool_column INTEGER, other_bool_column INTEGER, binary_column VARCHAR, varbinary_column VARCHAR, bit_column BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-AllDatatypeColumns.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-AllDatatypeColumns.avro'))
 ----
 0
 
@@ -2888,13 +2888,13 @@ c4a6ea8d-bc4c-445b-b969-b27f00000000	2024-05-06 12:11:49.057	2024-05-06 12:11:49
 c4a6ea8d-bc4c-445b-b969-b27f00000001	2024-05-06 12:11:49.057	2024-05-06 12:11:49	l1_AllDatatypeColumns2	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	aae4ae8eee57c1dc78c32166c668c2f8a5bcd9f9	[1714997509000, , 0]	{'table': AllDatatypeColumns2, 'database': l1, 'primary_keys': [varchar_column], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'varchar_column': value2, 'tinyint_column': 5, 'text_column': text2, 'date_column': '2024-02-09 00:00:00', 'smallint_column': 25, 'mediumint_column': 500, 'int_column': 25000, 'bigint_column': 987654, 'float_column': 12.34, 'double_column': 56.789, 'decimal_column': 123.45, 'datetime_column': '2024-02-09 15:30:45', 'timestamp_column': '2024-02-09 15:30:45', 'time_column': 55845000000, 'year_column': 2023, 'char_column': char_2, 'tinyblob_column': 74696e79626c6f625f646174615f32, 'tinytext_column': tinytext_data_2, 'blob_column': 626c6f625f646174615f32, 'mediumblob_column': 6d656469756d626c6f625f646174615f32, 'mediumtext_column': mediumtext_data_2, 'longblob_column': 6c6f6e67626c6f625f646174615f32, 'longtext_column': longtext_data_2, 'enum_column': 3, 'bool_column': 1, 'binary_column': 62696e6172795f646174615f3200000000000000, 'varbinary_column': 76617262696e6172795f646174615f32, 'bit_column': 25}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns2.avro')) TO '{TEST_DIR}/mysql-backfill-AllDatatypeColumns2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns2.avro')) TO '__TEST_DIR__/mysql-backfill-AllDatatypeColumns2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-backfill-AllDatatypeColumns2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-backfill-AllDatatypeColumns2.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2908,12 +2908,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(varchar_column VARCHAR, tinyint_column INTEGER, text_column VARCHAR, date_column TIMESTAMP, smallint_column INTEGER, mediumint_column INTEGER, int_column INTEGER, bigint_column BIGINT, float_column FLOAT, double_column DOUBLE, decimal_column DECIMAL(10,2), datetime_column TIMESTAMP, timestamp_column TIMESTAMP, time_column BIGINT, year_column INTEGER, char_column VARCHAR, tinyblob_column VARCHAR, tinytext_column VARCHAR, blob_column VARCHAR, mediumblob_column VARCHAR, mediumtext_column VARCHAR, longblob_column VARCHAR, longtext_column VARCHAR, enum_column VARCHAR, bool_column INTEGER, binary_column VARCHAR, varbinary_column VARCHAR, bit_column BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-AllDatatypeColumns2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-AllDatatypeColumns2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-AllDatatypeColumns2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeColumns2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-AllDatatypeColumns2.avro'))
 ----
 0
 
@@ -2949,13 +2949,13 @@ fa46e18d-bd65-49d0-bef1-240800000010	2024-06-05 07:36:28.692	2024-06-05 07:36:28
 fa46e18d-bd65-49d0-bef1-240800000011	2024-06-05 07:36:28.692	2024-06-05 07:36:28	it_test_AllDatatypeTransformation	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/test-stream2	684b064ba0a45878d9e5faa12387d616dcbf689e	[1717572988000, , 0]	{'table': AllDatatypeTransformation, 'database': it_test, 'primary_keys': [varchar_column], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'varchar_column': example4, 'tinyint_column': 40, 'text_column': Some text 4, 'date_column': '2021-11-11 00:00:00', 'int_column': 400, 'bigint_column': 223344, 'float_column': 45.67, 'double_column': 456.789, 'decimal_column': 45678.90, 'datetime_column': '2021-11-11 11:11:11', 'timestamp_column': '2021-11-11 11:11:11', 'time_column': 40271000000, 'year_column': 2021, 'blob_column': 416e6f7468657220626c6f62, 'enum_column': 1, 'bool_column': 0, 'binary_column': ffeeddccbbaa99887766554433221100aabbccdd, 'bit_column': 127}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeTransformation.avro')) TO '{TEST_DIR}/mysql-backfill-AllDatatypeTransformation.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeTransformation.avro')) TO '__TEST_DIR__/mysql-backfill-AllDatatypeTransformation.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-backfill-AllDatatypeTransformation.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-backfill-AllDatatypeTransformation.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -2969,12 +2969,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(varchar_column VARCHAR, tinyint_column INTEGER, text_column VARCHAR, date_column TIMESTAMP, int_column INTEGER, bigint_column BIGINT, float_column FLOAT, double_column DOUBLE, decimal_column DECIMAL(10,2), datetime_column TIMESTAMP, timestamp_column TIMESTAMP, time_column BIGINT, year_column INTEGER, blob_column VARCHAR, enum_column VARCHAR, bool_column INTEGER, binary_column VARCHAR, bit_column BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-AllDatatypeTransformation.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeTransformation.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-AllDatatypeTransformation.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeTransformation.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeTransformation.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-AllDatatypeTransformation.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-AllDatatypeTransformation.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-AllDatatypeTransformation.avro'))
 ----
 0
 
@@ -3008,13 +3008,13 @@ f69772a2-1bb6-48c5-a9ad-fb0700000000	2024-05-09 09:52:48.019	2024-05-09 09:52:47
 f69772a2-1bb6-48c5-a9ad-fb0700000001	2024-05-09 09:52:48.019	2024-05-09 09:52:47	l1_Category	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	df6b4c7c55535e16bd72848d108c8a87cd4eb5db	[1715248367000, , 0]	{'table': Category, 'database': l1, 'primary_keys': [category_id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'category_id': 2, 'name': abc, 'last_update': '2024-02-06 12:19:47'}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Category.avro')) TO '{TEST_DIR}/mysql-backfill-Category.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Category.avro')) TO '__TEST_DIR__/mysql-backfill-Category.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-backfill-Category.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-backfill-Category.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -3028,12 +3028,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(category_id INTEGER, "name" VARCHAR, last_update TIMESTAMP)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-Category.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Category.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-Category.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Category.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Category.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-Category.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Category.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-Category.avro'))
 ----
 0
 
@@ -3067,13 +3067,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/m
 8ba579fd-7882-4a7a-83c6-080000000001	2024-05-09 07:02:31.586	2024-05-09 07:01:38	l1_Movie	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	6cc560026ee90f8112e33c86ec56c8186c1c8568	[1715238098000, mysql-bin.000014, 61253]	{'table': Movie, 'database': l1, 'primary_keys': [id], 'log_file': mysql-bin.000014, 'log_position': 61253, 'change_type': INSERT, 'is_deleted': false}	{'id': 2, 'name': movie2, 'actor': '-\\xEDV\\x92\\xEA(r\\x95\\xDB/l\\x00\\x00\\x00', 'startTime': '2023-11-25 17:10:12'}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Movie.avro')) TO '{TEST_DIR}/mysql-backfill-Movie.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Movie.avro')) TO '__TEST_DIR__/mysql-backfill-Movie.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-backfill-Movie.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-backfill-Movie.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -3087,12 +3087,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, actor BLOB, startTime TIMESTAMP)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-Movie.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Movie.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-Movie.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Movie.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Movie.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-Movie.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Movie.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-Movie.avro'))
 ----
 0
 
@@ -3126,13 +3126,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/m
 4a3dbb94-accd-462f-8e5b-6dd500000001	2024-05-09 05:11:39.333	2024-05-09 05:11:39	l1_Users	mysql-backfill-fulldump	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	1d2ab1bcde3e861022798fbded72121b56007c52	[1715231499000, , 0]	{'table': Users, 'database': l1, 'primary_keys': [id], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'id': 2, 'name': Tester Yadav, 'age': 33, 'subscribed': 1, 'plan': B, 'startDate': '2024-01-01 00:00:00'}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Users.avro')) TO '{TEST_DIR}/mysql-backfill-Users.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Users.avro')) TO '__TEST_DIR__/mysql-backfill-Users.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-backfill-Users.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-backfill-Users.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -3146,12 +3146,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT, subscribed BIGINT, plan VARCHAR, startDate TIMESTAMP)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Users.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Users.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-backfill-Users.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-backfill-Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-backfill-Users.avro'))
 ----
 0
 
@@ -3185,13 +3185,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/m
 45571982-0622-47a1-9f1d-33f300000001	2024-05-06 12:17:02.946	2024-05-06 12:16:34	l1_AllDatatypeColumns2	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	aae4ae8eee57c1dc78c32166c668c2f8a5bcd9f9	[1714997794000, mysql-bin.000014, 51888]	{'table': AllDatatypeColumns2, 'database': l1, 'primary_keys': [varchar_column], 'log_file': mysql-bin.000014, 'log_position': 51888, 'change_type': DELETE, 'is_deleted': true}	{'varchar_column': value2, 'tinyint_column': 5, 'text_column': text2, 'date_column': '2024-02-09 00:00:00', 'smallint_column': 25, 'mediumint_column': 500, 'int_column': 25000, 'bigint_column': 987654, 'float_column': 12.34, 'double_column': 56.789, 'decimal_column': 123.45, 'datetime_column': '2024-02-09 15:30:45', 'timestamp_column': '2024-02-09 15:30:45', 'time_column': 55845000000, 'year_column': 2023, 'char_column': char_2, 'tinyblob_column': 74696e79626c6f625f646174615f32, 'tinytext_column': tinytext_data_2, 'blob_column': 626c6f625f646174615f32, 'mediumblob_column': 6d656469756d626c6f625f646174615f32, 'mediumtext_column': mediumtext_data_2, 'longblob_column': 6c6f6e67626c6f625f646174615f32, 'longtext_column': longtext_data_2, 'enum_column': 3, 'bool_column': 1, 'binary_column': 62696e6172795f646174615f3200000000000000, 'varbinary_column': 76617262696e6172795f646174615f32, 'bit_column': 25}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeColumns2.avro')) TO '{TEST_DIR}/mysql-cdc-AllDatatypeColumns2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeColumns2.avro')) TO '__TEST_DIR__/mysql-cdc-AllDatatypeColumns2.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-cdc-AllDatatypeColumns2.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-cdc-AllDatatypeColumns2.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -3205,12 +3205,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(varchar_column VARCHAR, tinyint_column INTEGER, text_column VARCHAR, date_column TIMESTAMP, smallint_column INTEGER, mediumint_column INTEGER, int_column INTEGER, bigint_column BIGINT, float_column FLOAT, double_column DOUBLE, decimal_column DECIMAL(10,2), datetime_column TIMESTAMP, timestamp_column TIMESTAMP, time_column BIGINT, year_column INTEGER, char_column VARCHAR, tinyblob_column VARCHAR, tinytext_column VARCHAR, blob_column VARCHAR, mediumblob_column VARCHAR, mediumtext_column VARCHAR, longblob_column VARCHAR, longtext_column VARCHAR, enum_column VARCHAR, bool_column INTEGER, binary_column VARCHAR, varbinary_column VARCHAR, bit_column BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc-AllDatatypeColumns2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeColumns2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc-AllDatatypeColumns2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeColumns2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeColumns2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc-AllDatatypeColumns2.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeColumns2.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc-AllDatatypeColumns2.avro'))
 ----
 0
 
@@ -3245,13 +3245,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/m
 12de3bba-93db-47ee-b267-f79f00000000	2024-06-05 08:18:52.663	2024-06-05 08:18:20	it_test_AllDatatypeTransformation	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/test-stream2	684b064ba0a45878d9e5faa12387d616dcbf689e	[1717575500000, mysql-bin.000031, 221884]	{'table': AllDatatypeTransformation, 'database': it_test, 'primary_keys': [varchar_column], 'log_file': mysql-bin.000031, 'log_position': 221884, 'change_type': UPDATE-INSERT, 'is_deleted': false}	{'varchar_column': example2, 'tinyint_column': 25, 'text_column': Updated text 2, 'date_column': '2023-01-01 00:00:00', 'int_column': 250, 'bigint_column': 56789, 'float_column': 25.45, 'double_column': 345.678, 'decimal_column': 23456.79, 'datetime_column': '2023-01-01 12:00:00', 'timestamp_column': '2023-01-01 12:00:00', 'time_column': 43200000000, 'year_column': 2023, 'blob_column': 1234567890abcdef, 'enum_column': 3, 'bool_column': 1, 'binary_column': 1234567890abcdef1234567890abcdef12345678, 'bit_column': 127}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeTransformation.avro')) TO '{TEST_DIR}/mysql-cdc-AllDatatypeTransformation.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeTransformation.avro')) TO '__TEST_DIR__/mysql-cdc-AllDatatypeTransformation.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-cdc-AllDatatypeTransformation.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-cdc-AllDatatypeTransformation.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -3265,12 +3265,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(varchar_column VARCHAR, tinyint_column INTEGER, text_column VARCHAR, date_column TIMESTAMP, int_column INTEGER, bigint_column BIGINT, float_column FLOAT, double_column DOUBLE, decimal_column DECIMAL(10,2), datetime_column TIMESTAMP, timestamp_column TIMESTAMP, time_column BIGINT, year_column INTEGER, blob_column VARCHAR, enum_column VARCHAR, bool_column INTEGER, binary_column VARCHAR, bit_column BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc-AllDatatypeTransformation.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeTransformation.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc-AllDatatypeTransformation.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeTransformation.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeTransformation.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc-AllDatatypeTransformation.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-AllDatatypeTransformation.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc-AllDatatypeTransformation.avro'))
 ----
 0
 
@@ -3306,13 +3306,13 @@ bdca10cd-68b2-475a-bea7-884300000010	2024-05-09 10:07:54.397	2024-05-09 10:07:28
 bdca10cd-68b2-475a-bea7-884300000011	2024-05-09 10:07:54.397	2024-05-09 10:07:28	l1_Category	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	df6b4c7c55535e16bd72848d108c8a87cd4eb5db	[1715249248000, mysql-bin.000014, 71806]	{'table': Category, 'database': l1, 'primary_keys': [category_id], 'log_file': mysql-bin.000014, 'log_position': 71806, 'change_type': UPDATE-INSERT, 'is_deleted': false}	{'category_id': 2, 'name': abc1, 'last_update': '2024-02-06 12:19:47'}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Category.avro')) TO '{TEST_DIR}/mysql-cdc-Category.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Category.avro')) TO '__TEST_DIR__/mysql-cdc-Category.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-cdc-Category.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-cdc-Category.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -3326,12 +3326,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(category_id INTEGER, "name" VARCHAR, last_update TIMESTAMP)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc-Category.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Category.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc-Category.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Category.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Category.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc-Category.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Category.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc-Category.avro'))
 ----
 0
 
@@ -3367,13 +3367,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/m
 3c0ffaeb-b16e-4c8c-91d4-815500000011	2024-05-09 06:57:49.833	2024-05-09 06:56:54	l1_Users	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/jsonavrodatatypeitupdate	1d2ab1bcde3e861022798fbded72121b56007c52	[1715237814000, mysql-bin.000014, 60409]	{'table': Users, 'database': l1, 'primary_keys': [id], 'log_file': mysql-bin.000014, 'log_position': 60409, 'change_type': UPDATE-INSERT, 'is_deleted': false}	{'id': 3, 'name': Tester Gupta, 'age': 50, 'subscribed': 0, 'plan': Z, 'startDate': '2023-06-07 00:00:00'}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Users.avro')) TO '{TEST_DIR}/mysql-cdc-Users.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Users.avro')) TO '__TEST_DIR__/mysql-cdc-Users.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-cdc-Users.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-cdc-Users.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -3387,12 +3387,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, "name" VARCHAR, age BIGINT, subscribed BIGINT, plan VARCHAR, startDate TIMESTAMP)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc-Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Users.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc-Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Users.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc-Users.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-Users.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc-Users.avro'))
 ----
 0
 
@@ -3426,13 +3426,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/m
 551dfa0f-546c-4265-a121-382d00000001	2024-10-03 08:38:53.907	2024-10-03 08:38:53	db11_person1	mysql-backfill-fulldump	projects/545418958905/locations/asia-south2/streams/test	d54dda68b3905676452cfb68e813fdf57fd81b80	[1727944733000, , 0]	{'table': person1, 'database': db11, 'primary_keys': [ID], 'log_file': '', 'log_position': 0, 'change_type': INSERT, 'is_deleted': false}	{'first_name1': Alice, 'last_name1': Johnson, 'first_name2': Bob, 'last_name2': Williams, 'first_name3': NULL, 'last_name3': NULL, 'ID': 2}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-person1.avro')) TO '{TEST_DIR}/mysql-cdc-person1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-person1.avro')) TO '__TEST_DIR__/mysql-cdc-person1.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-cdc-person1.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-cdc-person1.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -3446,12 +3446,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(first_name1 VARCHAR, last_name1 VARCHAR, first_name2 VARCHAR, last_name2 VARCHAR, first_name3 VARCHAR, last_name3 VARCHAR, ID BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc-person1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-person1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc-person1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-person1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-person1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc-person1.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc-person1.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc-person1.avro'))
 ----
 0
 
@@ -3485,13 +3485,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/m
 10 values hashing to 4d8e22a2859216614ca87a57a6f42d9c
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc1-AllDatatypeColumns.avro')) TO '{TEST_DIR}/mysql-cdc1-AllDatatypeColumns.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc1-AllDatatypeColumns.avro')) TO '__TEST_DIR__/mysql-cdc1-AllDatatypeColumns.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-cdc1-AllDatatypeColumns.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-cdc1-AllDatatypeColumns.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -3505,12 +3505,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(varchar_column VARCHAR, tinyint_column INTEGER, text_column VARCHAR, date_column TIMESTAMP, smallint_column INTEGER, mediumint_column INTEGER, int_column INTEGER, bigint_column BIGINT, float_column FLOAT, double_column DOUBLE, decimal_column DECIMAL(10,2), datetime_column TIMESTAMP, timestamp_column TIMESTAMP, time_column BIGINT, year_column INTEGER, char_column VARCHAR, tinyblob_column VARCHAR, tinytext_column VARCHAR, blob_column VARCHAR, mediumblob_column VARCHAR, mediumtext_column VARCHAR, longblob_column VARCHAR, longtext_column VARCHAR, enum_column VARCHAR, bool_column INTEGER, other_bool_column INTEGER, binary_column VARCHAR, varbinary_column VARCHAR, bit_column BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc1-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc1-AllDatatypeColumns.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc1-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc1-AllDatatypeColumns.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc1-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc1-AllDatatypeColumns.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc1-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc1-AllDatatypeColumns.avro'))
 ----
 0
 
@@ -3544,13 +3544,13 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/m
 10 values hashing to a2a584b844cdfd106dd3ef7bed2a9edc
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc2-AllDatatypeColumns.avro')) TO '{TEST_DIR}/mysql-cdc2-AllDatatypeColumns.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc2-AllDatatypeColumns.avro')) TO '__TEST_DIR__/mysql-cdc2-AllDatatypeColumns.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql-cdc2-AllDatatypeColumns.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql-cdc2-AllDatatypeColumns.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -3564,12 +3564,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(varchar_column VARCHAR, tinyint_column INTEGER, text_column VARCHAR, date_column TIMESTAMP, smallint_column INTEGER, mediumint_column INTEGER, int_column INTEGER, bigint_column BIGINT, float_column FLOAT, double_column DOUBLE, decimal_column DECIMAL(10,2), datetime_column TIMESTAMP, timestamp_column TIMESTAMP, time_column BIGINT, year_column INTEGER, char_column VARCHAR, tinyblob_column VARCHAR, tinytext_column VARCHAR, blob_column VARCHAR, mediumblob_column VARCHAR, mediumtext_column VARCHAR, longblob_column VARCHAR, longtext_column VARCHAR, enum_column VARCHAR, bool_column INTEGER, other_bool_column INTEGER, binary_column VARCHAR, varbinary_column VARCHAR, bit_column BIGINT)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc2-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc2-AllDatatypeColumns.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc2-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc2-AllDatatypeColumns.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc2-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql-cdc2-AllDatatypeColumns.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql-cdc2-AllDatatypeColumns.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql-cdc2-AllDatatypeColumns.avro'))
 ----
 0
 
@@ -3603,13 +3603,13 @@ c31eabd1-199a-4bfd-bb39-65ba00000000	2021-08-05 17:35:10	2021-08-05 17:35:10	use
 c31eabd1-199a-4bfd-bb39-65ba00000001	2021-08-05 17:35:13	2021-08-05 17:35:13	user1_numbers	mysql-cdc-binlog	projects/545418958905/locations/us-central1/streams/stream31	1baf840ada1df164d807a1f630dbdd9ecd2db369	[1628184913000, mysql-bin.000025, 78443804]	{'table': numbers, 'database': user1, 'primary_keys': [id], 'log_file': mysql-bin.000025, 'log_position': 78443804, 'change_type': INSERT, 'is_deleted': false}	{'id': 2, 'bitty': 0, 'booly': 0, 'tiny': -1, 'small': -1, 'medium': -1, 'inty': -1, 'big': -1, 'floater': 1.2, 'doubler': 1.3, 'decimaler': 11.22, 'tinyu': 255, 'smallu': 65535, 'mediumu': 16777215, 'intyu': 4294967295, 'bigu': 0}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_numbers_test.avro')) TO '{TEST_DIR}/mysql_numbers_test.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_numbers_test.avro')) TO '__TEST_DIR__/mysql_numbers_test.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/mysql_numbers_test.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/mysql_numbers_test.avro'))
 ----
 uuid	VARCHAR
 read_timestamp	TIMESTAMP
@@ -3623,12 +3623,12 @@ source_metadata	STRUCT("table" VARCHAR, "database" VARCHAR, primary_keys VARCHAR
 payload	STRUCT(id INTEGER, bitty BIGINT, booly INTEGER, tiny INTEGER, small INTEGER, medium INTEGER, inty INTEGER, big BIGINT, floater FLOAT, doubler DOUBLE, decimaler DECIMAL(10,2), tinyu INTEGER, smallu INTEGER, mediumu INTEGER, intyu BIGINT, bigu VARCHAR)
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql_numbers_test.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_numbers_test.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql_numbers_test.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_numbers_test.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_numbers_test.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/mysql_numbers_test.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_numbers_test.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/mysql_numbers_test.avro'))
 ----
 0
 
@@ -3660,15 +3660,15 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/m
 c65a65a7-25ae-4ada-892e-941900000000	2021-06-12 00:52:41.204	2021-06-12 00:52:40	test_people	mysql-backfill-fulldump	projects/269744978479/locations/us-central1/streams/datastream-test-fbefaf33	8fed94b6b2dfa4f593c1ee4448134cc9994f72af	{'table': people, 'database': test, 'primary_keys': [id], 'log_file': NULL, 'log_position': NULL, 'change_type': INSERT, 'is_deleted': false}	{'id': 1, 'email': dylan@email.com, 'first_name': Dylan, 'last_name': Person, 'gender': M, 'birth_date': '2020-01-01 00:00:00', 'created_at': '2020-02-12 00:00:00', 'datetime_at': '2020-02-12 00:00:00', '_0col': 1, 'timestamp_with_tz': {'timestamp': '2020-10-13 14:30:00.056483', 'offset': '01:00:00'}}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_people_test.avro')) TO '{TEST_DIR}/mysql_people_test.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_people_test.avro')) TO '__TEST_DIR__/mysql_people_test.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/mysql_people_test.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_people_test.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/mysql_people_test.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_people_test.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_people_test.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/mysql_people_test.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/mysql_people_test.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/mysql_people_test.avro'))
 ----
 0
 
@@ -3687,15 +3687,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 UdfSchema_pg_add	"NULL"
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_add.avro')) TO '{TEST_DIR}/pg_add.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_add.avro')) TO '__TEST_DIR__/pg_add.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/pg_add.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_add.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/pg_add.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_add.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_add.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/pg_add.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_add.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/pg_add.avro'))
 ----
 0
 
@@ -3714,15 +3714,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 UdfSchema_pg_multiply	"NULL"
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_multiply.avro')) TO '{TEST_DIR}/pg_multiply.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_multiply.avro')) TO '__TEST_DIR__/pg_multiply.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/pg_multiply.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_multiply.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/pg_multiply.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_multiply.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_multiply.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/pg_multiply.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/pg_multiply.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/pg_multiply.avro'))
 ----
 0
 
@@ -3748,14 +3748,14 @@ SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/t
 007	CA	26.23
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/test_avro_file.avro')) TO '{TEST_DIR}/test_avro_file.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/test_avro_file.avro')) TO '__TEST_DIR__/test_avro_file.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test_avro_file.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/test_avro_file.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test_avro_file.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/test_avro_file.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/test_avro_file.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test_avro_file.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_GoogleCloudPlatform__DataflowTemplates/test_avro_file.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test_avro_file.avro'))
 ----
 0

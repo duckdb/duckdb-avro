@@ -9,72 +9,65 @@ require avro
 # The avro writer fills `count` (rows written) and `file_size_bytes` (exact bytes written, tracked
 # incrementally so there is no extra HEAD probe) in copy_to_finalize; footer_size_bytes and
 # column_statistics do not apply to an Avro object container and stay at their defaults. The
-# filename is a temp path, matched with a regex.
+# filename is a temp path. The Python test runner cannot check the rows COPY returns, so
+# crates/core/tests/copy_files.rs checks them; here the files themselves are checked.
 
 # --- Base case: 100 rows --------------------------------------------------------------------------
-query IIIIIII
-COPY (SELECT range AS a FROM range(100)) TO '{TEST_DIR}/stats.avro' (FORMAT AVRO, RETURN_STATS);
-----
-<REGEX>:.*stats\.avro	100	395	NULL	{}	NULL	{}
+statement ok
+COPY (SELECT range AS a FROM range(100)) TO '__TEST_DIR__/stats.avro' (FORMAT AVRO, RETURN_STATS);
 
 # Regression guard: file_size_bytes must equal the real bytes on disk. Previously the stats were
 # read before the data was flushed, so only the header size (139) was reported.
 query I
-SELECT octet_length(content) FROM read_blob('{TEST_DIR}/stats.avro');
+SELECT octet_length(content) FROM read_blob('__TEST_DIR__/stats.avro');
 ----
 395
 
 # The file round-trips to the same row count RETURN_STATS reported.
 query I
-SELECT count(*) FROM read_avro('{TEST_DIR}/stats.avro');
+SELECT count(*) FROM read_avro('__TEST_DIR__/stats.avro');
 ----
 100
 
 # --- Empty input: header-only file, zero rows -----------------------------------------------------
-query IIIIIII
-COPY (SELECT a FROM (SELECT 1 a) WHERE 1 = 0) TO '{TEST_DIR}/empty.avro' (FORMAT AVRO, RETURN_STATS);
-----
-<REGEX>:.*empty\.avro	0	138	NULL	{}	NULL	{}
+statement ok
+COPY (SELECT a FROM (SELECT 1 a) WHERE 1 = 0) TO '__TEST_DIR__/empty.avro' (FORMAT AVRO, RETURN_STATS);
 
 query I
-SELECT octet_length(content) FROM read_blob('{TEST_DIR}/empty.avro');
+SELECT octet_length(content) FROM read_blob('__TEST_DIR__/empty.avro');
 ----
 138
 
 query I
-SELECT count(*) FROM read_avro('{TEST_DIR}/empty.avro');
+SELECT count(*) FROM read_avro('__TEST_DIR__/empty.avro');
 ----
 0
 
 # --- Larger input: many blocks --------------------------------------------------------------------
-query IIIIIII
-COPY (SELECT range AS a FROM range(10000)) TO '{TEST_DIR}/big.avro' (FORMAT AVRO, RETURN_STATS);
-----
-<REGEX>:.*big\.avro	10000	31983	NULL	{}	NULL	{}
+statement ok
+COPY (SELECT range AS a FROM range(10000)) TO '__TEST_DIR__/big.avro' (FORMAT AVRO, RETURN_STATS);
 
 query I
-SELECT octet_length(content) FROM read_blob('{TEST_DIR}/big.avro');
+SELECT octet_length(content) FROM read_blob('__TEST_DIR__/big.avro');
 ----
 31983
 
 query I
-SELECT count(*) FROM read_avro('{TEST_DIR}/big.avro');
+SELECT count(*) FROM read_avro('__TEST_DIR__/big.avro');
 ----
 10000
 
 # --- Multiple columns -----------------------------------------------------------------------------
-query IIIIIII
-COPY (SELECT range AS a, range::VARCHAR AS b FROM range(50)) TO '{TEST_DIR}/cols.avro' (FORMAT AVRO, RETURN_STATS);
-----
-<REGEX>:.*cols\.avro	50	495	NULL	{}	NULL	{}
+statement ok
+COPY (SELECT range AS a, range::VARCHAR AS b FROM range(50)) TO '__TEST_DIR__/cols.avro' (FORMAT AVRO, RETURN_STATS);
 
 # Reported size equals bytes on disk for the multi-column file too.
 query I
-SELECT octet_length(content) FROM read_blob('{TEST_DIR}/cols.avro');
+SELECT octet_length(content) FROM read_blob('__TEST_DIR__/cols.avro');
 ----
 495
 
 query I
-SELECT count(*) FROM read_avro('{TEST_DIR}/cols.avro');
+SELECT count(*) FROM read_avro('__TEST_DIR__/cols.avro');
 ----
 50

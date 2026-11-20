@@ -33,14 +33,14 @@ SELECT * FROM read_avro('test/corpus/gh_apache__avro-rs/bigdec.avro')
 \x04\x00\xE0\x04
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__avro-rs/bigdec.avro')) TO '{TEST_DIR}/bigdec.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__avro-rs/bigdec.avro')) TO '__TEST_DIR__/bigdec.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/bigdec.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__avro-rs/bigdec.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/bigdec.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__avro-rs/bigdec.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__avro-rs/bigdec.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/bigdec.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__avro-rs/bigdec.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/bigdec.avro'))
 ----
 0

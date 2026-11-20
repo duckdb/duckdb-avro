@@ -34,15 +34,15 @@ SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/a_triple_pair.avro')
 {'subject': John, 'relation': SYMMETRIC, 'object': Jane}	{'subject': John, 'relation': DIRECTED, 'object': Fido}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/a_triple_pair.avro')) TO '{TEST_DIR}/a_triple_pair.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/a_triple_pair.avro')) TO '__TEST_DIR__/a_triple_pair.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/a_triple_pair.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/a_triple_pair.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/a_triple_pair.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/a_triple_pair.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/a_triple_pair.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/a_triple_pair.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/a_triple_pair.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/a_triple_pair.avro'))
 ----
 0
 
@@ -66,15 +66,15 @@ SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/bool.avro')
 true
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/bool.avro')) TO '{TEST_DIR}/bool.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/bool.avro')) TO '__TEST_DIR__/bool.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/bool.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/bool.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/bool.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/bool.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/bool.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/bool.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/bool.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/bool.avro'))
 ----
 0
 
@@ -107,15 +107,15 @@ vD\x00M\x12OL\xD4\xBETZ\x8A9\xAB\xD1y\xA2\xE2\x1BC:\xEF\xA3E$\xC13/y\xCBi\xE6\xF
 \xB4b\xAD+\x9Ew\xD8\xAE\xB7\xA3A|i\x9AKy\xE9\x00=\x14\xBFRV\xDEz\xCBc\xC8\x10K\x98\xA9Z\x8B\xA0\xDB\x9B\x0F\xEAN6\xA5\x7F\x11\xBA\x14\x7FN\xB6=\x06\xD6\xE9\x9A\x02\xC3514Q\x1AU\x86\x19#\x16\xC5\x03\xF3,\xA9e\xC1~\x16\xA1\xF5o\x81,0\xF4;\x12\xE3\xEELc\x95\x8Aa3K\xC7\xD9m\xB7\x15\x80\xBA\xE4\xC5\xD3n\x8F\x99m\xEEO\x8F\xED\xB9-\xCB\xEE\x18\xC2!\xE4R\xCCZ\x8F\x7Fa\xF7\x84\x17\x80\xB7\x0B\x22\xF3M7q\xDA\xEFO\x8A\xE7\x15j\x90H\x09\xC4\x93\x27\xF4K\xC26\xAEz\xE8\x17z\xC1%\xA9w\x0F\xF4M\xCF\xF4V\xDF\x9A\x94G\xBA\xE4,hX\xB1\xFC\xFFD\xAF\xB0\x7FJ$\xCF0F\xC7\xB9\x02\x00\xB2\xF3\xF9\x17\xF8U=\xA4F\x02\x93S\xD9)(k\xFE^\xC9]\x84RGB\xC8h\x11\x18\xF49\xB6\x97\x8Em\x06\xCDG\x1C\x13\x0F\x1E\xD31\xC2q8_\x89\x82\xA1\xAE\xDD}\xF7\xDB\x0Bs\x16\xEC\xA5o1\xA4\xF3\xC7&\xA3\x8At\xB3\x04\xEA\xCA\xD4\x1F\x7F\xABf\x8B\xFA,$\x1D\xB88!sc>\xF9\xE4R\xE8\x02L\xAB\xB0\x92\xA3\xBD\xB5G\xAF\xC4\xD8\x8C\xDC\x9B\xFE!i\xF8\xF91O\xFF\x13\x9B\xD6\xD8w\x9C\xEB\xE0\x08\xAA\xDDF;\xBAX\xC5e\xDD\xCE7\xD1u\xE9\xD9d\x89d\xE2\x00l:\x98\xEE<-~~jT\xB7bR\x0C\xEA\xA0x\xE8\xDD\x8C\xF0\xCC \x8A\xCB\x05G\xDFY\x7F\x80P\xFD\xE5\x83\x1Cw\xF9\xBD\x1E\xF2a\xEF/\xBD\xC1Q\x18\xA1:\xE3\xD4\x0C\xC04\x1Fe\xAA\xD3\x08\xFDY\xCB#\xDF\x93@\xF8#\xBB\xD9\xDD}H\x8DS\x17\x0C\x87(\xA5\x06w\x5C\xE6`\x8B3\x22BS\x22>\xB8\xC1\xE8\xE6O\xCE\x9B\x0B\xC9\x95\xBAq<w\x1E\xA8\xE7\xF0\x05\x1C}\xFA\xF4\x7FX\x88\xD8l\xA2\x8B3\x13%\xC1\xA0\xFBW\xC09\xBA\xCB\x89\xE6\x09\xF1\xA9X\xE5F\x1B\x8E\xC3\x0E\xD8<\xBE\x90\xB4\xAE@3\xA5\xA0\x18\x0F\xED\x10\xFB\xDD\xE7\xA5n\x9C\xEF\xE0\x1C\x1A\x0F
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/deflate.avro')) TO '{TEST_DIR}/deflate.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/deflate.avro')) TO '__TEST_DIR__/deflate.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/deflate.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/deflate.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/deflate.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/deflate.avro'))
 ----
 0
 
@@ -140,15 +140,15 @@ SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/double_float.avro')
 2.0	1.0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/double_float.avro')) TO '{TEST_DIR}/double_float.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/double_float.avro')) TO '__TEST_DIR__/double_float.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/double_float.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/double_float.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/double_float.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/double_float.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/double_float.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/double_float.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/double_float.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/double_float.avro'))
 ----
 0
 
@@ -172,15 +172,15 @@ SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/error-type.avro')
 error message
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/error-type.avro')) TO '{TEST_DIR}/error-type.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/error-type.avro')) TO '__TEST_DIR__/error-type.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/error-type.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/error-type.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/error-type.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/error-type.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/error-type.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/error-type.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/error-type.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/error-type.avro'))
 ----
 0
 
@@ -206,15 +206,15 @@ name	VARCHAR	Test Instance 0	Test Instance 99	153	NULL	NULL	NULL	NULL	NULL	151	0
 id	UUID	04807666-fb27-41ec-b6a1-81369b68dc2c	feac8396-6c5a-4dac-ab69-6ee0180e1d1f	154	NULL	NULL	NULL	NULL	NULL	151	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/java-generated-uuid.avro')) TO '{TEST_DIR}/java-generated-uuid.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/java-generated-uuid.avro')) TO '__TEST_DIR__/java-generated-uuid.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/java-generated-uuid.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/java-generated-uuid.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/java-generated-uuid.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/java-generated-uuid.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/java-generated-uuid.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/java-generated-uuid.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/java-generated-uuid.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/java-generated-uuid.avro'))
 ----
 0
 
@@ -240,15 +240,15 @@ the cow jumps over the moon
 the rain in spain falls mainly on the plains
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/lines.avro')) TO '{TEST_DIR}/lines.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/lines.avro')) TO '__TEST_DIR__/lines.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/lines.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/lines.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/lines.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/lines.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/lines.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/lines.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/lines.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/lines.avro'))
 ----
 0
 
@@ -272,15 +272,15 @@ SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/m.avro')
 Move™ offers advertisers the opportunity to deliver messages to consumers at a time when consumers are making the biggest purchases of their lives—or remodeling, redecorating and maintaining their most important assets.
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/m.avro')) TO '{TEST_DIR}/m.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/m.avro')) TO '__TEST_DIR__/m.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/m.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/m.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/m.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/m.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/m.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/m.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/m.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/m.avro'))
 ----
 0
 
@@ -304,15 +304,15 @@ SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/no-fields.avro')
 NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/no-fields.avro')) TO '{TEST_DIR}/no-fields.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/no-fields.avro')) TO '__TEST_DIR__/no-fields.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/no-fields.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/no-fields.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/no-fields.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/no-fields.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/no-fields.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/no-fields.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/no-fields.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/no-fields.avro'))
 ----
 0
 
@@ -345,15 +345,15 @@ vD\x00M\x12OL\xD4\xBETZ\x8A9\xAB\xD1y\xA2\xE2\x1BC:\xEF\xA3E$\xC13/y\xCBi\xE6\xF
 \xB4b\xAD+\x9Ew\xD8\xAE\xB7\xA3A|i\x9AKy\xE9\x00=\x14\xBFRV\xDEz\xCBc\xC8\x10K\x98\xA9Z\x8B\xA0\xDB\x9B\x0F\xEAN6\xA5\x7F\x11\xBA\x14\x7FN\xB6=\x06\xD6\xE9\x9A\x02\xC3514Q\x1AU\x86\x19#\x16\xC5\x03\xF3,\xA9e\xC1~\x16\xA1\xF5o\x81,0\xF4;\x12\xE3\xEELc\x95\x8Aa3K\xC7\xD9m\xB7\x15\x80\xBA\xE4\xC5\xD3n\x8F\x99m\xEEO\x8F\xED\xB9-\xCB\xEE\x18\xC2!\xE4R\xCCZ\x8F\x7Fa\xF7\x84\x17\x80\xB7\x0B\x22\xF3M7q\xDA\xEFO\x8A\xE7\x15j\x90H\x09\xC4\x93\x27\xF4K\xC26\xAEz\xE8\x17z\xC1%\xA9w\x0F\xF4M\xCF\xF4V\xDF\x9A\x94G\xBA\xE4,hX\xB1\xFC\xFFD\xAF\xB0\x7FJ$\xCF0F\xC7\xB9\x02\x00\xB2\xF3\xF9\x17\xF8U=\xA4F\x02\x93S\xD9)(k\xFE^\xC9]\x84RGB\xC8h\x11\x18\xF49\xB6\x97\x8Em\x06\xCDG\x1C\x13\x0F\x1E\xD31\xC2q8_\x89\x82\xA1\xAE\xDD}\xF7\xDB\x0Bs\x16\xEC\xA5o1\xA4\xF3\xC7&\xA3\x8At\xB3\x04\xEA\xCA\xD4\x1F\x7F\xABf\x8B\xFA,$\x1D\xB88!sc>\xF9\xE4R\xE8\x02L\xAB\xB0\x92\xA3\xBD\xB5G\xAF\xC4\xD8\x8C\xDC\x9B\xFE!i\xF8\xF91O\xFF\x13\x9B\xD6\xD8w\x9C\xEB\xE0\x08\xAA\xDDF;\xBAX\xC5e\xDD\xCE7\xD1u\xE9\xD9d\x89d\xE2\x00l:\x98\xEE<-~~jT\xB7bR\x0C\xEA\xA0x\xE8\xDD\x8C\xF0\xCC \x8A\xCB\x05G\xDFY\x7F\x80P\xFD\xE5\x83\x1Cw\xF9\xBD\x1E\xF2a\xEF/\xBD\xC1Q\x18\xA1:\xE3\xD4\x0C\xC04\x1Fe\xAA\xD3\x08\xFDY\xCB#\xDF\x93@\xF8#\xBB\xD9\xDD}H\x8DS\x17\x0C\x87(\xA5\x06w\x5C\xE6`\x8B3\x22BS\x22>\xB8\xC1\xE8\xE6O\xCE\x9B\x0B\xC9\x95\xBAq<w\x1E\xA8\xE7\xF0\x05\x1C}\xFA\xF4\x7FX\x88\xD8l\xA2\x8B3\x13%\xC1\xA0\xFBW\xC09\xBA\xCB\x89\xE6\x09\xF1\xA9X\xE5F\x1B\x8E\xC3\x0E\xD8<\xBE\x90\xB4\xAE@3\xA5\xA0\x18\x0F\xED\x10\xFB\xDD\xE7\xA5n\x9C\xEF\xE0\x1C\x1A\x0F
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/null.avro')) TO '{TEST_DIR}/null.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/null.avro')) TO '__TEST_DIR__/null.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/null.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/null.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/null.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/null.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/null.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/null.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/null.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/null.avro'))
 ----
 0
 
@@ -386,15 +386,15 @@ SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/org.apache.avro.tool.
 9
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/org.apache.avro.tool.TestDataFileTools.avro')) TO '{TEST_DIR}/org.apache.avro.tool.TestDataFileTools.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/org.apache.avro.tool.TestDataFileTools.avro')) TO '__TEST_DIR__/org.apache.avro.tool.TestDataFileTools.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/org.apache.avro.tool.TestDataFileTools.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/org.apache.avro.tool.TestDataFileTools.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/org.apache.avro.tool.TestDataFileTools.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/org.apache.avro.tool.TestDataFileTools.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/org.apache.avro.tool.TestDataFileTools.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/org.apache.avro.tool.TestDataFileTools.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/org.apache.avro.tool.TestDataFileTools.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/org.apache.avro.tool.TestDataFileTools.avro'))
 ----
 0
 
@@ -435,15 +435,15 @@ spain	1
 the	6
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/part-00000.avro')) TO '{TEST_DIR}/part-00000.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/part-00000.avro')) TO '__TEST_DIR__/part-00000.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/part-00000.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/part-00000.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/part-00000.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/part-00000.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/part-00000.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/part-00000.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/part-00000.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/part-00000.avro'))
 ----
 0
 
@@ -484,15 +484,15 @@ vD\x00M\x12OL\xD4\xBETZ\x8A9\xAB\xD1y\xA2\xE2\x1BC:\xEF\xA3E$\xC13/y\xCBi\xE6\xF
 \xB4b\xAD+\x9Ew\xD8\xAE\xB7\xA3A|i\x9AKy\xE9\x00=\x14\xBFRV\xDEz\xCBc\xC8\x10K\x98\xA9Z\x8B\xA0\xDB\x9B\x0F\xEAN6\xA5\x7F\x11\xBA\x14\x7FN\xB6=\x06\xD6\xE9\x9A\x02\xC3514Q\x1AU\x86\x19#\x16\xC5\x03\xF3,\xA9e\xC1~\x16\xA1\xF5o\x81,0\xF4;\x12\xE3\xEELc\x95\x8Aa3K\xC7\xD9m\xB7\x15\x80\xBA\xE4\xC5\xD3n\x8F\x99m\xEEO\x8F\xED\xB9-\xCB\xEE\x18\xC2!\xE4R\xCCZ\x8F\x7Fa\xF7\x84\x17\x80\xB7\x0B\x22\xF3M7q\xDA\xEFO\x8A\xE7\x15j\x90H\x09\xC4\x93\x27\xF4K\xC26\xAEz\xE8\x17z\xC1%\xA9w\x0F\xF4M\xCF\xF4V\xDF\x9A\x94G\xBA\xE4,hX\xB1\xFC\xFFD\xAF\xB0\x7FJ$\xCF0F\xC7\xB9\x02\x00\xB2\xF3\xF9\x17\xF8U=\xA4F\x02\x93S\xD9)(k\xFE^\xC9]\x84RGB\xC8h\x11\x18\xF49\xB6\x97\x8Em\x06\xCDG\x1C\x13\x0F\x1E\xD31\xC2q8_\x89\x82\xA1\xAE\xDD}\xF7\xDB\x0Bs\x16\xEC\xA5o1\xA4\xF3\xC7&\xA3\x8At\xB3\x04\xEA\xCA\xD4\x1F\x7F\xABf\x8B\xFA,$\x1D\xB88!sc>\xF9\xE4R\xE8\x02L\xAB\xB0\x92\xA3\xBD\xB5G\xAF\xC4\xD8\x8C\xDC\x9B\xFE!i\xF8\xF91O\xFF\x13\x9B\xD6\xD8w\x9C\xEB\xE0\x08\xAA\xDDF;\xBAX\xC5e\xDD\xCE7\xD1u\xE9\xD9d\x89d\xE2\x00l:\x98\xEE<-~~jT\xB7bR\x0C\xEA\xA0x\xE8\xDD\x8C\xF0\xCC \x8A\xCB\x05G\xDFY\x7F\x80P\xFD\xE5\x83\x1Cw\xF9\xBD\x1E\xF2a\xEF/\xBD\xC1Q\x18\xA1:\xE3\xD4\x0C\xC04\x1Fe\xAA\xD3\x08\xFDY\xCB#\xDF\x93@\xF8#\xBB\xD9\xDD}H\x8DS\x17\x0C\x87(\xA5\x06w\x5C\xE6`\x8B3\x22BS\x22>\xB8\xC1\xE8\xE6O\xCE\x9B\x0B\xC9\x95\xBAq<w\x1E\xA8\xE7\xF0\x05\x1C}\xFA\xF4\x7FX\x88\xD8l\xA2\x8B3\x13%\xC1\xA0\xFBW\xC09\xBA\xCB\x89\xE6\x09\xF1\xA9X\xE5F\x1B\x8E\xC3\x0E\xD8<\xBE\x90\xB4\xAE@3\xA5\xA0\x18\x0F\xED\x10\xFB\xDD\xE7\xA5n\x9C\xEF\xE0\x1C\x1A\x0F
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/snappy.avro')) TO '{TEST_DIR}/snappy.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/snappy.avro')) TO '__TEST_DIR__/snappy.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/snappy.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/snappy.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/snappy.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/snappy.avro'))
 ----
 0
 
@@ -518,15 +518,15 @@ stringField	VARCHAR	(empty)	yymfohycqho	397	NULL	NULL	NULL	NULL	NULL	400	0.00
 longField	BIGINT	-9207922122821645430	9152653186720054361	405	2.5790964465653904e+16	5.247867839506038e+18	-4.2794590600154634e+18	-1.3892707388817621e+17	4.4418751989308324e+18	400	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-0.avro')) TO '{TEST_DIR}/test-deflate-0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-0.avro')) TO '__TEST_DIR__/test-deflate-0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test-deflate-0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test-deflate-0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test-deflate-0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test-deflate-0.avro'))
 ----
 0
 
@@ -552,15 +552,15 @@ stringField	VARCHAR	(empty)	yyeqjahfaqihylfkpnnojlu	394	NULL	NULL	NULL	NULL	NULL
 longField	BIGINT	-9211805677585458178	9198015310945101937	402	1.5351606662433677e+17	5.254937240015302e+18	-4.5410644618403994e+18	3.868027949664484e+17	4.3991613915365714e+18	400	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1-A.avro')) TO '{TEST_DIR}/test-deflate-1-A.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1-A.avro')) TO '__TEST_DIR__/test-deflate-1-A.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test-deflate-1-A.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1-A.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test-deflate-1-A.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1-A.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1-A.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test-deflate-1-A.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1-A.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test-deflate-1-A.avro'))
 ----
 0
 
@@ -586,15 +586,15 @@ stringField	VARCHAR	(empty)	yymfohycqho	397	NULL	NULL	NULL	NULL	NULL	400	0.00
 longField	BIGINT	-9207922122821645430	9152653186720054361	405	2.5790964465653904e+16	5.247867839506038e+18	-4.2794590600154634e+18	-1.3892707388817621e+17	4.4418751989308324e+18	400	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1.avro')) TO '{TEST_DIR}/test-deflate-1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1.avro')) TO '__TEST_DIR__/test-deflate-1.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test-deflate-1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test-deflate-1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test-deflate-1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-1.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test-deflate-1.avro'))
 ----
 0
 
@@ -620,15 +620,15 @@ stringField	VARCHAR	(empty)	yyeqjahfaqihylfkpnnojlu	394	NULL	NULL	NULL	NULL	NULL
 longField	BIGINT	-9211805677585458178	9198015310945101937	402	1.5351606662433677e+17	5.254937240015302e+18	-4.5410644618403994e+18	3.868027949664484e+17	4.3991613915365714e+18	400	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-3-A.avro')) TO '{TEST_DIR}/test-deflate-3-A.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-3-A.avro')) TO '__TEST_DIR__/test-deflate-3-A.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test-deflate-3-A.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-3-A.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test-deflate-3-A.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-3-A.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-3-A.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test-deflate-3-A.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-3-A.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test-deflate-3-A.avro'))
 ----
 0
 
@@ -654,15 +654,15 @@ stringField	VARCHAR	(empty)	yyeqjahfaqihylfkpnnojlu	196	NULL	NULL	NULL	NULL	NULL
 longField	BIGINT	-9049989129791369099	9198015310945101937	204	2.1854459917191114e+17	5.237775906171141e+18	-4.2460083266124247e+18	2.950628811882386e+17	4.6077915016640343e+18	200	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-6-B.avro')) TO '{TEST_DIR}/test-deflate-6-B.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-6-B.avro')) TO '__TEST_DIR__/test-deflate-6-B.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test-deflate-6-B.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-6-B.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test-deflate-6-B.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-6-B.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-6-B.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test-deflate-6-B.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-6-B.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test-deflate-6-B.avro'))
 ----
 0
 
@@ -688,15 +688,15 @@ stringField	VARCHAR	(empty)	yymfohycqho	397	NULL	NULL	NULL	NULL	NULL	400	0.00
 longField	BIGINT	-9207922122821645430	9152653186720054361	405	2.5790964465653904e+16	5.247867839506038e+18	-4.2794590600154634e+18	-1.3892707388817621e+17	4.4418751989308324e+18	400	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-9.avro')) TO '{TEST_DIR}/test-deflate-9.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-9.avro')) TO '__TEST_DIR__/test-deflate-9.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test-deflate-9.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-9.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test-deflate-9.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-9.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-9.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test-deflate-9.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-deflate-9.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test-deflate-9.avro'))
 ----
 0
 
@@ -722,15 +722,15 @@ stringField	VARCHAR	(empty)	yyeqjahfaqihylfkpnnojlu	196	NULL	NULL	NULL	NULL	NULL
 longField	BIGINT	-9049989129791369099	9198015310945101937	204	2.1854459917191114e+17	5.237775906171141e+18	-4.2460083266124247e+18	2.950628811882386e+17	4.6077915016640343e+18	200	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null-B.avro')) TO '{TEST_DIR}/test-null-B.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null-B.avro')) TO '__TEST_DIR__/test-null-B.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test-null-B.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null-B.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test-null-B.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null-B.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null-B.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test-null-B.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null-B.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test-null-B.avro'))
 ----
 0
 
@@ -756,15 +756,15 @@ stringField	VARCHAR	(empty)	yymfohycqho	397	NULL	NULL	NULL	NULL	NULL	400	0.00
 longField	BIGINT	-9207922122821645430	9152653186720054361	405	2.5790964465653904e+16	5.247867839506038e+18	-4.2794590600154634e+18	-1.3892707388817621e+17	4.4418751989308324e+18	400	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null.avro')) TO '{TEST_DIR}/test-null.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null.avro')) TO '__TEST_DIR__/test-null.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test-null.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test-null.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test-null.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-null.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test-null.avro'))
 ----
 0
 
@@ -790,15 +790,15 @@ stringField	VARCHAR	(empty)	yymfohycqho	397	NULL	NULL	NULL	NULL	NULL	400	0.00
 longField	BIGINT	-9207922122821645430	9152653186720054361	405	2.5790964465653904e+16	5.247867839506038e+18	-4.2794590600154634e+18	-1.3892707388817621e+17	4.4418751989308324e+18	400	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-snappy.avro')) TO '{TEST_DIR}/test-snappy.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-snappy.avro')) TO '__TEST_DIR__/test-snappy.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-snappy.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test-snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test-snappy.avro'))
 ----
 0
 
@@ -823,15 +823,15 @@ SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test.avro')
 20
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test.avro')) TO '{TEST_DIR}/test.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test.avro')) TO '__TEST_DIR__/test.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/test.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/test.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/test.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/test.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/test.avro'))
 ----
 0
 
@@ -850,15 +850,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 avro_schema	"NULL"
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/testDataFileMeta.avro')) TO '{TEST_DIR}/testDataFileMeta.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/testDataFileMeta.avro')) TO '__TEST_DIR__/testDataFileMeta.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/testDataFileMeta.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/testDataFileMeta.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/testDataFileMeta.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/testDataFileMeta.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/testDataFileMeta.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/testDataFileMeta.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/testDataFileMeta.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/testDataFileMeta.avro'))
 ----
 0
 
@@ -888,15 +888,15 @@ SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-genera
 012650-99999	1433275478	111	[]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-generated.avro')) TO '{TEST_DIR}/weather-legacy-generated.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-generated.avro')) TO '__TEST_DIR__/weather-legacy-generated.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/weather-legacy-generated.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-generated.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/weather-legacy-generated.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-generated.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-generated.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/weather-legacy-generated.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-generated.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/weather-legacy-generated.avro'))
 ----
 0
 
@@ -926,14 +926,14 @@ SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-with-n
 011990-99999	1433273379	-11	{'station': {'station_id': NULL}}	{'station': {'station_id': NULL}}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-with-names.avro')) TO '{TEST_DIR}/weather-legacy-with-names.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-with-names.avro')) TO '__TEST_DIR__/weather-legacy-with-names.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/weather-legacy-with-names.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-with-names.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/weather-legacy-with-names.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-with-names.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-with-names.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/weather-legacy-with-names.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_fastavro__fastavro/weather-legacy-with-names.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/weather-legacy-with-names.avro'))
 ----
 0

@@ -19,7 +19,7 @@ SET threads=1
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_linkedin__goavro/blockCountExceedsMaxBlockCount.avro')
 ----
-Avro block truncated while reading a varint at offset 55
+Cannot index file block size: Cannot read 1 bytes from memory buffer
 
 
 # ---- gh_linkedin__goavro/blockSizeExceedsMaxBlockSize.avro: fixtures/blockSizeExceedsMaxBlockSize.avro (linkedin/goavro @ c69e26ce46, Apache-2.0)
@@ -27,7 +27,7 @@ Avro block truncated while reading a varint at offset 55
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_linkedin__goavro/blockSizeExceedsMaxBlockSize.avro')
 ----
-block size 2147483648 exceeds the file
+Avro file block exceeds memory buffer
 
 
 # ---- gh_linkedin__goavro/blockSizeNotGreaterThanZero.avro: fixtures/blockSizeNotGreaterThanZero.avro (linkedin/goavro @ c69e26ce46, Apache-2.0)
@@ -35,7 +35,7 @@ block size 2147483648 exceeds the file
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_linkedin__goavro/blockSizeNotGreaterThanZero.avro')
 ----
-block size 0 exceeds the file
+Cannot index file block sync: Cannot read 16 bytes from memory buffer
 
 
 # ---- gh_linkedin__goavro/cannotDiscardBlockBytes.avro: fixtures/cannotDiscardBlockBytes.avro (linkedin/goavro @ c69e26ce46, Apache-2.0)
@@ -43,7 +43,7 @@ block size 0 exceeds the file
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_linkedin__goavro/cannotDiscardBlockBytes.avro')
 ----
-block size 2 exceeds the file
+Avro file block exceeds memory buffer
 
 
 # ---- gh_linkedin__goavro/cannotReadBlockSize.avro: fixtures/cannotReadBlockSize.avro (linkedin/goavro @ c69e26ce46, Apache-2.0)
@@ -51,7 +51,7 @@ block size 2 exceeds the file
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_linkedin__goavro/cannotReadBlockSize.avro')
 ----
-Avro block truncated while reading a varint at offset 51
+Cannot index file block size: Cannot read 1 bytes from memory buffer
 
 
 # ---- gh_linkedin__goavro/cannotReadSyncMarker.avro: fixtures/cannotReadSyncMarker.avro (linkedin/goavro @ c69e26ce46, Apache-2.0)
@@ -59,7 +59,7 @@ Avro block truncated while reading a varint at offset 51
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_linkedin__goavro/cannotReadSyncMarker.avro')
 ----
-block size 2 exceeds the file
+Cannot index file block sync: Cannot read 16 bytes from memory buffer
 
 
 # ---- gh_linkedin__goavro/firstBlockCountNotGreaterThanZero.avro: fixtures/firstBlockCountNotGreaterThanZero.avro (linkedin/goavro @ c69e26ce46, Apache-2.0)
@@ -67,7 +67,7 @@ block size 2 exceeds the file
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_linkedin__goavro/firstBlockCountNotGreaterThanZero.avro')
 ----
-Avro block truncated while reading a varint at offset 51
+Cannot index file block size: Cannot read 1 bytes from memory buffer
 
 
 # ---- gh_linkedin__goavro/quickstop-deflate.avro: fixtures/quickstop-deflate.avro (linkedin/goavro @ c69e26ce46, Apache-2.0)
@@ -97,15 +97,15 @@ Phone	VARCHAR	(0)	123456	950	NULL	NULL	NULL	NULL	NULL	6001	0.00
 Age	INTEGER	26	32	7	28.66705549075154	1.9722566123826073	27.0	29.0	30.0	6001	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-deflate.avro')) TO '{TEST_DIR}/quickstop-deflate.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-deflate.avro')) TO '__TEST_DIR__/quickstop-deflate.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/quickstop-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/quickstop-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-deflate.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/quickstop-deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/quickstop-deflate.avro'))
 ----
 0
 
@@ -137,15 +137,15 @@ Phone	VARCHAR	(0)	123456	950	NULL	NULL	NULL	NULL	NULL	6001	0.00
 Age	INTEGER	26	32	7	28.66705549075154	1.9722566123826073	27.0	29.0	30.0	6001	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-snappy.avro')) TO '{TEST_DIR}/quickstop-snappy.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-snappy.avro')) TO '__TEST_DIR__/quickstop-snappy.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/quickstop-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/quickstop-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-snappy.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/quickstop-snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/quickstop-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/quickstop-snappy.avro'))
 ----
 0
 
@@ -155,7 +155,7 @@ SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/q
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_linkedin__goavro/secondBlockCountZero.avro')
 ----
-Avro block truncated while reading a varint at offset 71
+Cannot index file block size: Cannot read 1 bytes from memory buffer
 
 
 # ---- gh_linkedin__goavro/syncMarkerMismatch.avro: fixtures/syncMarkerMismatch.avro (linkedin/goavro @ c69e26ce46, Apache-2.0)
@@ -163,7 +163,7 @@ Avro block truncated while reading a varint at offset 71
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_linkedin__goavro/syncMarkerMismatch.avro')
 ----
-sync marker mismatch
+Incorrect sync bytes
 
 
 # ---- gh_linkedin__goavro/temp1.avro: fixtures/temp1.avro (linkedin/goavro @ c69e26ce46, Apache-2.0)
@@ -171,7 +171,7 @@ sync marker mismatch
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_linkedin__goavro/temp1.avro')
 ----
-Avro block failed to decompress with deflate: FailedCannotMakeProgress
+Cannot decode Avro file block: Error decompressing block with deflate, possible data error
 
 
 # ---- gh_linkedin__goavro/temp2.avro: fixtures/temp2.avro (linkedin/goavro @ c69e26ce46, Apache-2.0)
@@ -188,15 +188,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 avro_schema	BIGINT
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp2.avro')) TO '{TEST_DIR}/temp2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp2.avro')) TO '__TEST_DIR__/temp2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/temp2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/temp2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/temp2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/temp2.avro'))
 ----
 0
 
@@ -221,15 +221,15 @@ SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp3.avro')
 42
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp3.avro')) TO '{TEST_DIR}/temp3.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp3.avro')) TO '__TEST_DIR__/temp3.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/temp3.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp3.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/temp3.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp3.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp3.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/temp3.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp3.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/temp3.avro'))
 ----
 0
 
@@ -256,14 +256,14 @@ SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp4.avro')
 -100
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp4.avro')) TO '{TEST_DIR}/temp4.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp4.avro')) TO '__TEST_DIR__/temp4.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/temp4.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp4.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/temp4.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp4.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp4.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/temp4.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_linkedin__goavro/temp4.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/temp4.avro'))
 ----
 0

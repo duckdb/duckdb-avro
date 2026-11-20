@@ -48,14 +48,14 @@ s3://warehouse/wh/db/logs/metadata/d0a470ec-1c03-429b-bd84-34a66a122316-m0.avro	
 s3://warehouse/wh/db/logs/metadata/66408406-2504-44e1-977a-ac12b4b7ccaa-m0.avro	2599	0	1	2	2	226306597092543916	1	0	0	10	0	0	NULL	100
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-go/duckdb_v3_manifest_list.avro')) TO '{TEST_DIR}/duckdb_v3_manifest_list.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-go/duckdb_v3_manifest_list.avro')) TO '__TEST_DIR__/duckdb_v3_manifest_list.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/duckdb_v3_manifest_list.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-go/duckdb_v3_manifest_list.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/duckdb_v3_manifest_list.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-go/duckdb_v3_manifest_list.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-go/duckdb_v3_manifest_list.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/duckdb_v3_manifest_list.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__iceberg-go/duckdb_v3_manifest_list.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/duckdb_v3_manifest_list.avro'))
 ----
 0

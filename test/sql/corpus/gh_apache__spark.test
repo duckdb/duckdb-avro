@@ -33,15 +33,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_5.av
 1001-01-07
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_5.avro')) TO '{TEST_DIR}/before_1582_date_v2_4_5.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_5.avro')) TO '__TEST_DIR__/before_1582_date_v2_4_5.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/before_1582_date_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_5.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/before_1582_date_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_5.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/before_1582_date_v2_4_5.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/before_1582_date_v2_4_5.avro'))
 ----
 0
 
@@ -65,15 +65,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_6.av
 1001-01-07
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_6.avro')) TO '{TEST_DIR}/before_1582_date_v2_4_6.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_6.avro')) TO '__TEST_DIR__/before_1582_date_v2_4_6.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/before_1582_date_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_6.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/before_1582_date_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_6.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/before_1582_date_v2_4_6.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/before_1582_date_v2_4_6.avro'))
 ----
 0
 
@@ -97,15 +97,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v3_2_0.av
 1001-01-07
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v3_2_0.avro')) TO '{TEST_DIR}/before_1582_date_v3_2_0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v3_2_0.avro')) TO '__TEST_DIR__/before_1582_date_v3_2_0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/before_1582_date_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v3_2_0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/before_1582_date_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v3_2_0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/before_1582_date_v3_2_0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_date_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/before_1582_date_v3_2_0.avro'))
 ----
 0
 
@@ -129,15 +129,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micr
 1001-01-07 09:02:03.123456
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_5.avro')) TO '{TEST_DIR}/before_1582_timestamp_micros_v2_4_5.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_5.avro')) TO '__TEST_DIR__/before_1582_timestamp_micros_v2_4_5.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_micros_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_5.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_micros_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_5.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_micros_v2_4_5.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_micros_v2_4_5.avro'))
 ----
 0
 
@@ -161,15 +161,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micr
 1001-01-07 09:02:03.123456
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_6.avro')) TO '{TEST_DIR}/before_1582_timestamp_micros_v2_4_6.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_6.avro')) TO '__TEST_DIR__/before_1582_timestamp_micros_v2_4_6.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_micros_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_6.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_micros_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_6.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_micros_v2_4_6.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_micros_v2_4_6.avro'))
 ----
 0
 
@@ -193,15 +193,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micr
 1001-01-07 09:02:03.123456
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v3_2_0.avro')) TO '{TEST_DIR}/before_1582_timestamp_micros_v3_2_0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v3_2_0.avro')) TO '__TEST_DIR__/before_1582_timestamp_micros_v3_2_0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_micros_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v3_2_0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_micros_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v3_2_0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_micros_v3_2_0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_micros_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_micros_v3_2_0.avro'))
 ----
 0
 
@@ -225,15 +225,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_mill
 1001-01-07 09:02:03.123
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_5.avro')) TO '{TEST_DIR}/before_1582_timestamp_millis_v2_4_5.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_5.avro')) TO '__TEST_DIR__/before_1582_timestamp_millis_v2_4_5.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_millis_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_5.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_millis_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_5.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_millis_v2_4_5.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_5.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_millis_v2_4_5.avro'))
 ----
 0
 
@@ -257,15 +257,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_mill
 1001-01-07 09:02:03.123
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_6.avro')) TO '{TEST_DIR}/before_1582_timestamp_millis_v2_4_6.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_6.avro')) TO '__TEST_DIR__/before_1582_timestamp_millis_v2_4_6.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_millis_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_6.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_millis_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_6.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_millis_v2_4_6.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v2_4_6.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_millis_v2_4_6.avro'))
 ----
 0
 
@@ -289,15 +289,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_mill
 1001-01-07 09:02:03.123
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v3_2_0.avro')) TO '{TEST_DIR}/before_1582_timestamp_millis_v3_2_0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v3_2_0.avro')) TO '__TEST_DIR__/before_1582_timestamp_millis_v3_2_0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_millis_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v3_2_0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_millis_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v3_2_0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/before_1582_timestamp_millis_v3_2_0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/before_1582_timestamp_millis_v3_2_0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/before_1582_timestamp_millis_v3_2_0.avro'))
 ----
 0
 
@@ -321,15 +321,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/decimal.avro')
 1.30
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/decimal.avro')) TO '{TEST_DIR}/decimal.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/decimal.avro')) TO '__TEST_DIR__/decimal.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/decimal.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/decimal.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/decimal.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/decimal.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/decimal.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/decimal.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/decimal.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/decimal.avro'))
 ----
 0
 
@@ -365,15 +365,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/doctors.avro')
 10	David	Tennant
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/doctors.avro')) TO '{TEST_DIR}/doctors.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/doctors.avro')) TO '__TEST_DIR__/doctors.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/doctors.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/doctors.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/doctors.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/doctors.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/doctors.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/doctors.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/doctors.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/doctors.avro'))
 ----
 0
 
@@ -475,15 +475,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__spark/empty_blocks.avro')
 0	40137575744	0	false	0	v_25___________	e1	v_25___________	e1	v_1_____	v_1_____	2023-11-07 13:45:29.335018	ba:bb:1e:91:00:01	20:7c:14:a2:f9:cd	192.168.145.1	192.168.145.226	55497	1771	19311	3932882	6	40
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/empty_blocks.avro')) TO '{TEST_DIR}/empty_blocks.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/empty_blocks.avro')) TO '__TEST_DIR__/empty_blocks.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/empty_blocks.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/empty_blocks.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/empty_blocks.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/empty_blocks.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/empty_blocks.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/empty_blocks.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/empty_blocks.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/empty_blocks.avro'))
 ----
 0
 
@@ -507,13 +507,13 @@ Properties	MAP(VARCHAR, UNION(u0 BIGINT, u1 DOUBLE, u2 VARCHAR, u3 BLOB))
 Body	BLOB
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/empty_file.avro')) TO '{TEST_DIR}/empty_file.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/empty_file.avro')) TO '__TEST_DIR__/empty_file.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/empty_file.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/empty_file.avro'))
 ----
 SequenceNumber	BIGINT
 Offset	VARCHAR
@@ -523,12 +523,12 @@ Properties	MAP(VARCHAR, UNION(u1 BIGINT, u2 DOUBLE, u3 VARCHAR, u4 BLOB))
 Body	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/empty_file.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/empty_file.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/empty_file.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/empty_file.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/empty_file.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/empty_file.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/empty_file.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/empty_file.avro'))
 ----
 0
 
@@ -561,15 +561,15 @@ The Power of the Daleks	5 November 1966	2
 Castrolava	4 January 1982	5
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/episodes.avro')) TO '{TEST_DIR}/episodes.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/episodes.avro')) TO '__TEST_DIR__/episodes.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/episodes.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/episodes.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/episodes.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/episodes.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/episodes.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/episodes.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/episodes.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/episodes.avro'))
 ----
 0
 
@@ -606,13 +606,13 @@ t	{''=-332981594, jyvelhu=230632792, ljnesixqyl=661805807}	{''={vvsmulfvdfapo=al
 ment	{''=-309538949, w=-1670749872, xmkeemm=778696326, mjkhsb=-523035174}	{ajiedkusoytle={xdvdkrmniykotebrytabxwtrvqxyiyfaxlsbvnvxyvakqnygpilauvicprgrilxqakxuyvphwretxljfhdqlqrmvtlvlyjrluqseaiiiayydmdehfmfpijofaeodjxajpquxbwdwtuyvvlaeikjxskch=rori, oirfywgatr=cyes}, tuntclpcaeuoq={''=hrj, uovdcjsbblvwb=fankuucrb, y=vviyvnuegoji, ingbhedfv=nmuvvltxaoqsagi}, jbhddcibvmjua={ohbofibkgcsc=em}, ydqwpceslpqxsxrcplfacvy={nfvxqhuufbd=bhlncjvupbehvglwwsqefbricplrtcxctpdslckftqovuoqfajstdwskjtkpwhtrpbsdkyochumwfhvppmwcesgmfxdlafnyhevaaxtgavmmwidxetfphfgbjhueedypclyfkpgymobbekpgrwgmxldrdpxcojdictfwxuwsawmfyjqfmgmcglttcuvfhehghiqsjcgguurjx, uabgjsgvkvqlfq=jnankepkjxggniwrngitoqecelwejknolwskstnwfjbepilqanifaamogqtmdjlfqnqolcjvspimkfbwvvmpnjkbkedqpvvkguaebvbbakxxwobhxynygpssppgjqbvmrrjhifslelbgaoiumixgdmscyibdhiqoeloydrmctcesaignvbeipbhcjuqhuyuhulkkxvenvu}}	kqubawr	NULL	0.2206412867770886	$E+	\x7F\xA1	SPADES	{'value_field': mewjkmlrib}	[true, true, false, false, true]	}\xCB\xD3\xFF\xB9\xB3H\xBFq3:
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00001.avro')) TO '{TEST_DIR}/part-r-00001.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00001.avro')) TO '__TEST_DIR__/part-r-00001.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/part-r-00001.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/part-r-00001.avro'))
 ----
 string	VARCHAR
 simple_map	MAP(VARCHAR, INTEGER)
@@ -628,12 +628,12 @@ array_of_boolean	BOOLEAN[]
 bytes	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00001.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00001.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00001.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00001.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00001.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00001.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00001.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00001.avro'))
 ----
 0
 
@@ -670,13 +670,13 @@ ndcabnfx	{''=-1950438947, qeqjexaiymcjrk=1299819393, xwcibglbxj=210527233, pwywk
 vimkhrktcanp	{rnrchijom=-920748670}	{vaucuay={dcfkiainvkejfyjperhxblswrisjoihtottfcdebqbtsxgcrfuswcbokapmswjqqtanqvdqnjoixigleokstmkptqjtoursbmbdwlpsygnvwuyjlnisulbooxcxkjlponbbqeqrogebtybcnfsrfojfesyslkalcvojvqasepsxjsvsrplflaudgydpqdm=oarkqc, sogmbbrhoqlsxv=kqbreetsc}, bfniyycegi={pemtjprh=touivvxkagifvwr, gem=jtsyx}, ctkpoxc={}}	bnlbsgtypf	395763218	0.75684774	Kj\x05	\x0E\x22	DIAMONDS	{'value_field': xkk}	[true, true, true, false, false]	\xDD\xBD\x1E\xEC
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00002.avro')) TO '{TEST_DIR}/part-r-00002.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00002.avro')) TO '__TEST_DIR__/part-r-00002.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/part-r-00002.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/part-r-00002.avro'))
 ----
 string	VARCHAR
 simple_map	MAP(VARCHAR, INTEGER)
@@ -692,12 +692,12 @@ array_of_boolean	BOOLEAN[]
 bytes	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00002.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00002.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00002.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00002.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00002.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00002.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00002.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00002.avro'))
 ----
 0
 
@@ -734,13 +734,13 @@ rbwivbuhhwudkn	{de=-1281279315, owvco=-1943404287, ky=310299378, nxfuyjxpvqgo=-8
 (empty)	{om=79550560, xpdbreifrtuaaxk=666723137, peqkvqg=-1743187072, vyyugo=-1815228645, pwsitxhuobv=-1560283772}	{omanuyxmshske={cuympkstucrahb='', ctkgfrgqopyrppd=qexksqfhuhdibm, aed=myvcv}, lpvaxem={jcvgo=qfuschjalvxrt}, pkhhuyavsanho={iccrvrbqem=hihdykvnqedxwch, sgaobevhitu=twm, jumedmtfe=sbxpot}, cqhlml={cbruys=vqttqepr, pgdvvlhs=nteatiqcbvtnncvyrutnfrcnvxixiljwofbxwmtrbbfnaluvcfgqdqmajnvvbmwbpisvljqyiyhuxrxscuwegawdomysaaao, ilpl=wneniyg}, cvshkgcgqjahqj={''=oauvmjbw, uepedjuicfi=adiqotbybsix}}	NULL	NULL	0.010290325	qqR	\xB2\x5C	SPADES	{'value_field': cadihxyhsvaiyvp}	[false, false, false]	\x90Jt\x1Cc\x96?\xC0\xE0\xFE]h0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00003.avro')) TO '{TEST_DIR}/part-r-00003.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00003.avro')) TO '__TEST_DIR__/part-r-00003.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/part-r-00003.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/part-r-00003.avro'))
 ----
 string	VARCHAR
 simple_map	MAP(VARCHAR, INTEGER)
@@ -756,12 +756,12 @@ array_of_boolean	BOOLEAN[]
 bytes	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00003.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00003.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00003.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00003.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00003.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00003.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00003.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00003.avro'))
 ----
 0
 
@@ -798,13 +798,13 @@ nejurkvjubmxuk	{li=1076284802, ltbhghehehqj=-699448963, txcagn=898706271}	{yidrf
 uoxvtgtyli	{kgoebgq=386164917, hiviypjv=-328396239, jihktmbfmxautgwktlundihytfpmppikrvrnbbcogeoljtlvbhhiqtaqkudhwxakvarofp=1186996067}	{kvxytilavdxikdjihnhcoxivcfgwuabevxtlcyphmpadrgnatpyiydtgjrophyyaceiwtekbkuonlwbssddxywxidpcpbbnfyfhsdjwysghmpieweguimfvcibcokisxqurmiatrvjkkkhpnaewibpsuctrddxgqtdlshwtttujyddemjhoswbrfvwohnrxoteagdftfimvbuysevxbgbiljugkglwbobswsccgyvwagrlwvwaldkymrqdrsaaqcvtrqsufgihdsajcrelgyqiraarimrndafrkskmebrfaansejtecxcsrbeuqhiamtoousrxmnoilpmwqkakclbjvuwbuliwxxdqnywhdabdtthhfodvadfkrooqnlimjeggpqyhqydvcdkwgyerlrrvjaupeuylbtrvkcgmwdmpbrivoubdlkeplqqmurbftrnjckubgbcfsjjljejpnuynslxhlkwdtratlgbhtnduwlwmgaclqhqaflloyjgvkqjhrajwmtepaadosbyfeegaawvrbsecpjfwctrvsglbltluufuekgwfrheurrheoqwvhnqqpvvkxipnptuvwhpijwbhkodcqpuaqnjuwnwhpdosdjlhbqjffkjqgmmeqaodjhrhewisthewujhyvurwbnqiuqyvinmwagitotnjechdkayccadrsblteiatnwryrjvpvboalkbmtwebblkqtjxkumxfeutkhgaewdicfklipsthtywupjnbvfgehotvwhahvxyjdbqdbmgpsoxfhmyxgpwpumvjsxarogbohgokaeidxnwckmqlcnpxgfdmqytsncvhocidpqmiyhohmiphvsgkyvylktirubvryrcqfnhqvukcildewahoyldopbussldxggjxscaamxgisjgrnxcuxfelviqkbhebxwaxwiahmqevegyynrqfegkkleqmmekwbctdpwkaekabjrfotqbpyeirdncsldihnfggmcmqqejfkwjnfmdbvbxxxbklubrpvwlouwglilxmuxdpvcscwagmdxmtlkjrqtlxjtaswgpvcfkdnqmvxvvqtklaloalhsdmskxxebubvcjuidjrbvxptjtlkwuwmnhfpsjsyicqhyoplabtqxdfndioixkgtlxaqgvcoqmokbtunpwbcnptlorxrrgounysomcrktsvvauerjtkcywodjdilxgnqxtuysevjsvehhmyglogeuadxcypdodoxiwpabouysegltelxkbtsdcufigxrutfiwbqsggakwpgwygejxhhifrnymchbssclfcjwwuhghwrcyayoyuqornwrpmtephcdyikqrkymjbkjkaqtibktktcjehhxlkcfnrqbmfpirburvgquykgyeqkebelfpifqnbgeddrcfgncvuimufxxtrsejoiffbhwtlmjbjjvdjwdayfnjsjeuryrxjpgqgssjqwkpcrsvktqhgoicukrcvjfyraeluscvlxhfawmhwjdkqfhltqhmijvvfevsoydsvnujcmvcwnucwaltkwracoytvmjgwxtxibspjjiwkrggovyvfhiqbttvsuvsuigirjkqhqgwdexsgqbgwbonvdbgccdupdsvayfvpxkenemmfejhehdaiafqvalcjjuqgiqpcmqghncagjeikaxtfcngttjoljlxdnivaaryniqaglgltnnfmodgrvdyptummoeceinykifyrmlvcubeelwswakkieyirmvpgvvjsivlmpeypnxboxmlfqprdpxiwstavkumuragxokhkorqqqowxyqtigrtidjdvemmfsqmclthvvuoowlonlclfyiefptunsctdjssrqqklbjhbcgrtmobcmemxnjrfpichdtmkiaqjwcvtjvqsbdrdatakuaqqjsjhsmdlmfafopvyhqhmsjsuhwckdtygqcnfhlrahystdpuedwjqoshejxbjsueqagoctetevkqqollrofwshqjyufusuhiksfiseq={pewqtwuklools=jktwq}, tnwy={gfv=ns}, qqyhvduygvkaoycljyqcmmbspdpdwdordkxyuykxqgqhdtragkmfdiugikhtffattipittepxyldjhqlempgbkljkhtcs={wfjimheall=ke}, ouxvfbhjmmi={pewcsuukbxguif=famabakoetdkxcq, bxidb=cptddwbm}, cofu={''=avxsptryku, vvfyofkrkchs=tujdckhoflucyoc}}	dehtlbctxpfreyc	-1316966560	0.5352353038907927	2\xFD6	$O	HEARTS	{'value_field': trytvujbp}	[false, true, false, false, true]	(empty)
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00004.avro')) TO '{TEST_DIR}/part-r-00004.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00004.avro')) TO '__TEST_DIR__/part-r-00004.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/part-r-00004.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/part-r-00004.avro'))
 ----
 string	VARCHAR
 simple_map	MAP(VARCHAR, INTEGER)
@@ -820,12 +820,12 @@ array_of_boolean	BOOLEAN[]
 bytes	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00004.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00004.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00004.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00004.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00004.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00004.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00004.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00004.avro'))
 ----
 0
 
@@ -862,13 +862,13 @@ u	{''=496675695, iuywu=652176977, ej=-857907710, nwhcqjdtrcdathj=770127789, klqd
 ctsoihi	{kxvjtb=-1395901445}	{d={wpfegh=gywfsif, tfwvdvpiykj=''}, xdvvaweobl={}, h={sljfjmkxq=uktbnnttplnwav}, pqlhkim={gsxdljwknmh=fntydqbticwb, gojmmbctqjr=cghotfdmdh, lj=caaaq, upkwvpd=oyejcgc}}	NULL	11992599	0.42405295789519404	\xE3:\x0D	\xF18	HEARTS	{'value_field': vbpoanqsbqgv}	[false]	\xFCd.\xAA\xC8U/\xF3-Bw\xCC
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00005.avro')) TO '{TEST_DIR}/part-r-00005.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00005.avro')) TO '__TEST_DIR__/part-r-00005.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/part-r-00005.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/part-r-00005.avro'))
 ----
 string	VARCHAR
 simple_map	MAP(VARCHAR, INTEGER)
@@ -884,12 +884,12 @@ array_of_boolean	BOOLEAN[]
 bytes	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00005.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00005.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00005.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00005.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00005.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00005.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00005.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00005.avro'))
 ----
 0
 
@@ -926,13 +926,13 @@ lydbnkwn	{ispgqgqeqjwcax=-438821311}	{ybdp={lpsnynfkbxeps=rasmjyvqvkjce, vaqabw=
 vpxdvq	{fqn=-1541584398, qipo=1906283305, tmoabhduys=-1271995365, sixfsago=871587836}	{cibhsrsog={gdpglgqwiyiub=vtuwiwdqlqptmdb, uwd=adujunkrx, sfrj=gycbnpgjekgaa, ctwdpyne=t}, walfieltsvnxk={}, gal={uscsxlwcriofub=fuwaxjni, xqtsjhpfcejgepr=bfrwnonfjxct, qfwqxeqcmgspq=scgbyqwujiiy, incqrqbbnxal=vmwrmnvgmbaatwg}}	NULL	667055775	0.2731039	\x81\xD2\x82	#9	CLUBS	{'value_field': ejusfknl}	[true, true]	\xE6\xD1\x02n\xEAG\xAA_\x10MM\xBF\xE9
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00006.avro')) TO '{TEST_DIR}/part-r-00006.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00006.avro')) TO '__TEST_DIR__/part-r-00006.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/part-r-00006.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/part-r-00006.avro'))
 ----
 string	VARCHAR
 simple_map	MAP(VARCHAR, INTEGER)
@@ -948,12 +948,12 @@ array_of_boolean	BOOLEAN[]
 bytes	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00006.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00006.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00006.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00006.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00006.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00006.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00006.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00006.avro'))
 ----
 0
 
@@ -990,13 +990,13 @@ y	{evtnsf=1699462012, ''=987811839, o=2103966855}	{''={hvanghdl=kxhrxulgevvm, qi
 bqgh	{idqvao=1751342099}	{v={giphmmsq=l, vhd=usuhaukt, neilqfqepytddp=tynrrlyeenwrp, kjc=dxj}, wmwcfxqsamchhprfdicabsfasevabwkl={gd=kkgocuoykkwku, c=sdvglesjxjilhj}}	(empty)	NULL	0.9194995671307374	\x83\xF3\xE9	<M	SPADES	{'value_field': oagamsv}	[true, false, false, true, false]	\xEDh
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00007.avro')) TO '{TEST_DIR}/part-r-00007.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00007.avro')) TO '__TEST_DIR__/part-r-00007.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/part-r-00007.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/part-r-00007.avro'))
 ----
 string	VARCHAR
 simple_map	MAP(VARCHAR, INTEGER)
@@ -1012,12 +1012,12 @@ array_of_boolean	BOOLEAN[]
 bytes	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00007.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00007.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00007.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00007.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00007.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00007.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00007.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00007.avro'))
 ----
 0
 
@@ -1054,13 +1054,13 @@ ks	{neo=211696881, jfyfrupxepwr=-164178786, quwlgxlfxtm=-1733013362, lqacyjd=109
 ayuixoffpiajcuapevnjrngqwumyssdshehsumdqaiaxrlporhglbmu	{lrnftutuwtqjho=-215516253, bblayjghkyhxi=198193364, jrgodesgkarpqayiljtbiqcpukmvnscrofujcwybdejiyufejpkmawnufyvkqnkrl=836227946, qeeggrm=-1049536077}	{''={jsttwqx=aqyoqapuvtjcrpfuixcjfmrlggyikyclmycmdarnhhsumktsplavdwsxytsusacckyxbdvnywuovhnisauoeurcmffupljcpvfsdvnvuxpwlmqxkbycydxswiggcfanbhwrkyjbodtvrqgmxliwxxowsgxbpsygdplwmoouostvstcdsgiqdyoaysdtwhtabrgwdqyboysutisjwmouvwuqnbdwbhuqogafpfgibnkftsvjopsugoqrjyqnpbqrqxkrfdyhxxpgpeqgikmmuqbllmqsspiapyvfdqrareawarbujxutebjjrrlawdgccbfklftyunqbbnvxhvvxuwgnrqvtymxkrlildgecfdnkihtfimknsrkkfbsublesoehdwgusotfsgarhkequdrxgejelgompbqepvbarqyhpbtfyllwslwpwhgfhorccxyiblcpttyppxyavnhyhvwjirbsagmicyxkdjpgexqjeffdigewakdxluhfgtiioowsjkebierokcpxpikdisptrtuopbwehtnehgsgoxbdjphactjoqyaaskiqxlyylqtekprkmoxdkaodyqryrpnpclahnugkkliugmjqiwmqnueckwgegvncfumojeamorbshgvbtgfiywblqnqwjxlqalirpwgljcgjdvyjljiwxlhedakvaunylsemkfpyiaoxxesodlnuqfvhbjslornhtildycbbvcgvigncctxovjmdkweprnflyfwegybjlwgrshsnaqhkrxhfulthsnevroxrjhqncgpaloikxlsmpjinggurxieiiiwggkjffjdxyjshymwjpvtikxkvdxtnqscnjlowdfyelhgotejpfvsxsxvxepulojjosokmuooepaqmhyundflskwddqduumuuljycnlapawnynrecfpqgaglmmlpfytwpyqcbkuxmennncsdpcqysfegaiafwyvsgurhicmelaccnauemtqycsubuigjlnjudacbwpmwdthfxgnfnqxtypjkyuepilajcjhxqqncioxcbmnhwojvatdcqqstxbhcgxocknaiadsydmhukpxadcmgvxirhwarqbtvtwfsanesbgcrgiwiliblrlfxijxtgdaiyqnvptdmuaqpduoxgbeialududxwqvyaddfponcbdgyfrouxrexutynqtbgmewdxvckivxcfolkkktxiedyhxrwvqggodrskyfoaglkmrjigatwlramwepmpijuwymxtywyhenfbkaempmqaikpdxxkhcqgqcxbjshxcuwntddklrhrdcbnrynktvwvcxrecgemlhhbwrbkajebqbwubhoyicygvsumkicnjsgjltaflbmywnpufaldqjnmpggmbiswxeyjxrnbsiexreynyyoosykwkoqgtesklapawdeovxnskksufpwbycurjniywulwcwracvcrfyykqgdlwcmglrllrfdahqjpsrpjtrnxmagibwsbymuyqsoitmjwkxhqpupduxcdnyyrycguvtahvjhlsfrivglbceditgwptiilgmqqidcvfqraupqhpydwwykwevnlulbhasymecswvoknababbuavmmqfqqbkxsbirfxjeivxhcytyorymrtlxkktnblvqcfkcppxcaivjxbcunctasnpxlorlefsalnxtgdtqbnqvdwpiusdjvlogypwutxmliobyocekwoppkbojepoqmegtjuqpmwlugfsqxdsmstlpjfvvkvuladiswwkkrscgvuqyhayavwgvaansrqadisgqbybnneaciigspanigjqjflyvhadsoydwhhvdshkbjalbvmtjgojopblgvffodcychocjsxfxlouumoheamnbfouncqqbmrveorhfucmghgovpfmeluqvflmjplqkdblkpdelbbhwmaypmqtfmlfuhxrdmtfcrsnrmnkytssjlgspkuvwkktdswhakljoqixxxoksblpmvhhpbchbidokkhmjhuqwuqekcqdlaoddsmfmuvfhqppnrivosqvrvcmgkqjmvjaggflagfmaqhtnmclxhalefycsojdqnlmp, lmdt=oyjopomjjxb}, lmsoeuviwwaokxd={krkn=ohvplvhtddr, slodvbytg=hvowljne}, udjtsjiii={}, nbi={}}	vgiryg	-2522504842339045843	0.28492373	)\x19L	$-	DIAMONDS	{'value_field': yxdkprxctkxvaepoqfbiydufffhlkunsennarrhyluvpxskfltbxchovkajymhudshnavxexdqtrrhomvpaaprjakmiurshfpgqkjxquvptyhlvagspxglwftyoytiaymlcvlvtroledyuyabgwurxttwsvgenmtjfmpi}	[true, false, false]	^\xA3\xE65\x8B\xA7>\x97\x93
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00008.avro')) TO '{TEST_DIR}/part-r-00008.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00008.avro')) TO '__TEST_DIR__/part-r-00008.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/part-r-00008.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/part-r-00008.avro'))
 ----
 string	VARCHAR
 simple_map	MAP(VARCHAR, INTEGER)
@@ -1076,12 +1076,12 @@ array_of_boolean	BOOLEAN[]
 bytes	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00008.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00008.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00008.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00008.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00008.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00008.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00008.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00008.avro'))
 ----
 0
 
@@ -1118,13 +1118,13 @@ coir	{mqijwkrwwmms=-448563393, drmoqwsvaqfsmfabhodcsffgecmcneadpdljcxcslvhcpedkr
 gmbrxyysuknjk	{owersjqfij=-1203267051, ''=-245461200, ubfix=-234908375, spaxef=-1193073892}	{jlegdpryoi={}}	pqsgtiea	834068036	0.624804714291082	\xB5\xB4\x94	n\xD6	CLUBS	{'value_field': i}	[true]	\x87\x98\x0E\xDE\xE3
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00009.avro')) TO '{TEST_DIR}/part-r-00009.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00009.avro')) TO '__TEST_DIR__/part-r-00009.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/part-r-00009.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/part-r-00009.avro'))
 ----
 string	VARCHAR
 simple_map	MAP(VARCHAR, INTEGER)
@@ -1140,12 +1140,12 @@ array_of_boolean	BOOLEAN[]
 bytes	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00009.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00009.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00009.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00009.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00009.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00009.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00009.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00009.avro'))
 ----
 0
 
@@ -1182,13 +1182,13 @@ effqe	{fisjdlytbey=-491087204, fvrocldg=1859777368, dwg=1308946192, d=2084623844
 oxsutgpsmykh	{bdfpryykjd=-1558305280}	{yjjuowgmk={}, ycrtiw={ktaxeaboput=hfmowkydwlr, i=faewaejjkeedqh}}	lkocyhiwg	NULL	0.9719517	G\x85\xC0	S]	HEARTS	{'value_field': ''}	[true, false, true]	(empty)
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00010.avro')) TO '{TEST_DIR}/part-r-00010.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/part-r-00010.avro')) TO '__TEST_DIR__/part-r-00010.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/part-r-00010.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/part-r-00010.avro'))
 ----
 string	VARCHAR
 simple_map	MAP(VARCHAR, INTEGER)
@@ -1204,12 +1204,12 @@ array_of_boolean	BOOLEAN[]
 bytes	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00010.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00010.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00010.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00010.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00010.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/part-r-00010.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/part-r-00010.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/part-r-00010.avro'))
 ----
 0
 
@@ -1246,13 +1246,13 @@ Terran is IMBA!	{qqq=66, mmm=0}	{key={3=4, 1=2}}	123	66	6.6666666666666	\x07\x07
 The cake is a LIE!	{}	{key={}}	NULL	NULL	0.0	\x11\x22\x09	\x10\x90	DIAMONDS	{'value_field': TEST_STR123}	[false]	S
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/test.avro')) TO '{TEST_DIR}/test.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/test.avro')) TO '__TEST_DIR__/test.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/test.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/test.avro'))
 ----
 string	VARCHAR
 simple_map	MAP(VARCHAR, INTEGER)
@@ -1268,12 +1268,12 @@ array_of_boolean	BOOLEAN[]
 bytes	BLOB
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/test.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/test.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/test.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/test.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/test.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/test.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__spark/test.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/test.avro'))
 ----
 0
 
@@ -1300,14 +1300,14 @@ Alyssa	NULL	[3, 9, 15, 20]
 Ben	red	[]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/users.avro')) TO '{TEST_DIR}/users.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__spark/users.avro')) TO '__TEST_DIR__/users.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/users.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/users.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/users.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__spark/users.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/users.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/users.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__spark/users.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/users.avro'))
 ----
 0

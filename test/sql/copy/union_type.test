@@ -13,24 +13,24 @@ CREATE TABLE unions AS SELECT * FROM (VALUES
 ) t(u, i);
 
 statement ok
-COPY (SELECT * FROM unions ORDER BY i) TO '{TEST_DIR}/union.avro' (FORMAT avro);
+COPY (SELECT * FROM unions ORDER BY i) TO '__TEST_DIR__/union.avro' (FORMAT avro);
 
 # the member types in member order, null first for a nullable field; Avro unions are positional, the member names
 # are not written
 query I
-SELECT value FROM avro_metadata('{TEST_DIR}/union.avro') WHERE key = 'avro.schema';
+SELECT value FROM avro_metadata('__TEST_DIR__/union.avro') WHERE key = 'avro.schema';
 ----
 {"type":"record","name":"root","fields":[{"name":"u","type":["null",{"type":"int"},{"type":"string"},{"type":"float"}]},{"name":"i","type":["null",{"type":"int"}]}]}
 
 # ... so a round trip names the members after their branch index
 query II
-SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('{TEST_DIR}/union.avro'));
+SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('__TEST_DIR__/union.avro'));
 ----
 u	UNION(u1 INTEGER, u2 VARCHAR, u3 FLOAT)
 i	INTEGER
 
 query III
-SELECT union_tag(u), u, i FROM read_avro('{TEST_DIR}/union.avro') ORDER BY i;
+SELECT union_tag(u), u, i FROM read_avro('__TEST_DIR__/union.avro') ORDER BY i;
 ----
 u1	1	1
 u2	abc	2
@@ -39,22 +39,22 @@ NULL	NULL	4
 
 # non-nullable through FIELD_IDS: no null branch, the tag is the branch index
 statement ok
-COPY (SELECT u, i FROM unions WHERE u IS NOT NULL ORDER BY i) TO '{TEST_DIR}/union_nn.avro' (FORMAT avro, FIELD_IDS {'u': {'__duckdb_field_id': 1, '__duckdb_nullable': false}});
+COPY (SELECT u, i FROM unions WHERE u IS NOT NULL ORDER BY i) TO '__TEST_DIR__/union_nn.avro' (FORMAT avro, FIELD_IDS {'u': {'__duckdb_field_id': 1, '__duckdb_nullable': false}});
 
 query I
-SELECT value FROM avro_metadata('{TEST_DIR}/union_nn.avro') WHERE key = 'avro.schema';
+SELECT value FROM avro_metadata('__TEST_DIR__/union_nn.avro') WHERE key = 'avro.schema';
 ----
 {"type":"record","name":"root","fields":[{"name":"u","type":[{"type":"int"},{"type":"string"},{"type":"float"}],"field-id":1},{"name":"i","type":["null",{"type":"int"}]}]}
 
 query II
-SELECT u, i FROM read_avro('{TEST_DIR}/union_nn.avro') ORDER BY i;
+SELECT u, i FROM read_avro('__TEST_DIR__/union_nn.avro') ORDER BY i;
 ----
 1	1
 abc	2
 1.5	3
 
 statement error
-COPY (SELECT u FROM unions WHERE u IS NULL) TO '{TEST_DIR}/union_null.avro' (FORMAT avro, FIELD_IDS {'u': {'__duckdb_field_id': 1, '__duckdb_nullable': false}});
+COPY (SELECT u FROM unions WHERE u IS NULL) TO '__TEST_DIR__/union_null.avro' (FORMAT avro, FIELD_IDS {'u': {'__duckdb_field_id': 1, '__duckdb_nullable': false}});
 ----
 Cannot insert NULL to non-nullable field
 
@@ -72,21 +72,21 @@ CREATE TABLE mixed AS SELECT * FROM (VALUES
 ) t(u, i);
 
 statement ok
-COPY (SELECT * FROM mixed ORDER BY i) TO '{TEST_DIR}/union_mixed.avro' (FORMAT avro);
+COPY (SELECT * FROM mixed ORDER BY i) TO '__TEST_DIR__/union_mixed.avro' (FORMAT avro);
 
 query I
-SELECT value FROM avro_metadata('{TEST_DIR}/union_mixed.avro') WHERE key = 'avro.schema';
+SELECT value FROM avro_metadata('__TEST_DIR__/union_mixed.avro') WHERE key = 'avro.schema';
 ----
 {"type":"record","name":"root","fields":[{"name":"u","type":["null",{"type":"record","name":"record0","fields":[{"name":"x","type":["null",{"type":"int"}]}]},{"type":"record","name":"record1","fields":[{"name":"y","type":["null",{"type":"string"}]}]},{"type":"array","items":["null",{"type":"int"}]},{"type":"enum","name":"enum2","symbols":["sad","happy"]},{"type":"fixed","name":"fixed3","size":3,"logicalType":"decimal","precision":5,"scale":2}]},{"name":"i","type":["null",{"type":"int"}]}]}
 
 query II
-SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('{TEST_DIR}/union_mixed.avro'));
+SELECT column_name, column_type FROM (DESCRIBE FROM read_avro('__TEST_DIR__/union_mixed.avro'));
 ----
 u	UNION(u1 STRUCT(x INTEGER), u2 STRUCT(y VARCHAR), u3 INTEGER[], u4 ENUM('sad', 'happy'), u5 DECIMAL(5,2))
 i	INTEGER
 
 query II
-SELECT u, i FROM read_avro('{TEST_DIR}/union_mixed.avro') ORDER BY i;
+SELECT u, i FROM read_avro('__TEST_DIR__/union_mixed.avro') ORDER BY i;
 ----
 {'x': 1}	1
 {'y': why}	2
@@ -97,39 +97,39 @@ happy	4
 # a MAP member is an Avro array (with the map logical type), so it reads back as a MAP but cannot share a union with
 # a LIST
 statement ok
-COPY (SELECT union_value(m := MAP {'k': 7})::UNION(m MAP(VARCHAR, INTEGER), s VARCHAR) AS u) TO '{TEST_DIR}/union_map.avro' (FORMAT avro);
+COPY (SELECT union_value(m := MAP {'k': 7})::UNION(m MAP(VARCHAR, INTEGER), s VARCHAR) AS u) TO '__TEST_DIR__/union_map.avro' (FORMAT avro);
 
 query I
-SELECT u FROM read_avro('{TEST_DIR}/union_map.avro');
+SELECT u FROM read_avro('__TEST_DIR__/union_map.avro');
 ----
 {k=7}
 
 statement error
-COPY (SELECT union_value(a := [1])::UNION(a INTEGER[], b MAP(VARCHAR, INTEGER)) AS u) TO '{TEST_DIR}/union_list_map.avro' (FORMAT avro);
+COPY (SELECT union_value(a := [1])::UNION(a INTEGER[], b MAP(VARCHAR, INTEGER)) AS u) TO '__TEST_DIR__/union_list_map.avro' (FORMAT avro);
 ----
 both are an Avro 'array'
 
 # a union inside a struct and a list
 statement ok
-COPY (SELECT {'u': union_value(a := 1)::UNION(a INTEGER, b VARCHAR)} AS s, [union_value(b := 'x')::UNION(a INTEGER, b VARCHAR), NULL] AS l) TO '{TEST_DIR}/union_nested.avro' (FORMAT avro);
+COPY (SELECT {'u': union_value(a := 1)::UNION(a INTEGER, b VARCHAR)} AS s, [union_value(b := 'x')::UNION(a INTEGER, b VARCHAR), NULL] AS l) TO '__TEST_DIR__/union_nested.avro' (FORMAT avro);
 
 query II
-SELECT s, l FROM read_avro('{TEST_DIR}/union_nested.avro');
+SELECT s, l FROM read_avro('__TEST_DIR__/union_nested.avro');
 ----
 {'u': 1}	[x, NULL]
 
 # what an Avro union cannot hold: two members of the same unnamed type, a nested union, a NULL member
 statement error
-COPY (SELECT union_value(a := 1)::UNION(a INTEGER, b INTEGER) AS u) TO '{TEST_DIR}/union_dup.avro' (FORMAT avro);
+COPY (SELECT union_value(a := 1)::UNION(a INTEGER, b INTEGER) AS u) TO '__TEST_DIR__/union_dup.avro' (FORMAT avro);
 ----
 Invalid Input Error: Can't convert UNION members 'a' and 'b' to an Avro union: both are an Avro 'int'
 
 statement error
-COPY (SELECT union_value(a := [1])::UNION(a INTEGER[], b VARCHAR[]) AS u) TO '{TEST_DIR}/union_dup_list.avro' (FORMAT avro);
+COPY (SELECT union_value(a := [1])::UNION(a INTEGER[], b VARCHAR[]) AS u) TO '__TEST_DIR__/union_dup_list.avro' (FORMAT avro);
 ----
 both are an Avro 'array'
 
 statement error
-COPY (SELECT union_value(a := 1)::UNION(a INTEGER, b UNION(c VARCHAR, d FLOAT)) AS u) TO '{TEST_DIR}/union_nested_union.avro' (FORMAT avro);
+COPY (SELECT union_value(a := 1)::UNION(a INTEGER, b UNION(c VARCHAR, d FLOAT)) AS u) TO '__TEST_DIR__/union_nested_union.avro' (FORMAT avro);
 ----
 Not implemented Error: Can't convert UNION member 'b' of type UNION(c VARCHAR, d FLOAT) to an Avro union branch

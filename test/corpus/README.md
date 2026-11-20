@@ -37,7 +37,8 @@ upstream authors.
 
 ## The generated tests
 
-`scripts/gen_corpus_tests.py` writes one sqllogictest file per source. For every corpus file it states:
+`scripts/gen_corpus_tests.py` of duckdb/duckdb-avro#157 (not in this repository) wrote one sqllogictest file per
+source. For every corpus file it states:
 
 1. `SELECT count(*)` with the row count read by fastavro, an independent implementation (for 4 files fastavro
    cannot read, the count is avro-python's or, where both refuse the file, this reader's; the comment above the
@@ -53,7 +54,7 @@ upstream authors.
    (`scripts/corpus_canon.py`, the comparison of the corpus run: temporal values as epoch counts, binaries as
    hex, decimals as text, unions as tag + value): a file whose dumps differ is reported and gets no content
    expectation. 1254 files are cross-checked that way; the 4 files fastavro cannot read are not.
-4. a writer round trip: `COPY (...) TO '{TEST_DIR}/x.avro' (FORMAT avro)` and `EXCEPT ALL` in both directions
+4. a writer round trip: `COPY (...) TO '__TEST_DIR__/x.avro' (FORMAT avro)` and `EXCEPT ALL` in both directions
    expecting 0 rows. A nullable `UNION` column comes back with its members named after their branch index
    (`u0`, `u1` -> `u1`, `u2`: Avro unions are positional and the written file has `null` as the first branch), so
    for the 73 files whose schema changes that way the `DESCRIBE` of the written file is stated and the rows are
@@ -67,18 +68,12 @@ can come out in another order), and the avg/std/quantile columns of SUMMARIZE ar
 thread counts. The one source with a `TIMESTAMP WITH TIME ZONE` column also requires `icu` and sets
 `TimeZone='UTC'`, so its rendering does not depend on the machine.
 
-## Regenerating
+## Changes to the generated expectations
 
-```sh
-make                                              # the extension the tests measure
-venv/bin/pip install fastavro avro                # the oracle (or point --oracle-python at an interpreter that has them)
-python3 -I scripts/gen_corpus_tests.py            # test/sql/corpus/*.test from test/corpus/MANIFEST.tsv
-python3 -I scripts/gen_corpus_tests.py --import /path/to/avro-corpus/MANIFEST.tsv   # re-select the files from a corpus
-```
+The tests run on DuckDB 2.0.0 through duckdb-sqllogictest-python. Two kinds of expectation differ from the
+generated ones:
 
-The generator is deterministic: re-running it on the same files and build changes nothing. The expected output
-follows the rendering of the DuckDB build in `DUCKDB_PIN` (v2.0.0 prints an empty string nested in a `UNION` as
-`[, 42]`, later builds as `['', 42]`), so regenerate after a re-pin. The generator exits non-zero and
-prints `PROBLEM:` lines when a cross-check fails (a count or column mismatch against fastavro, differing dumps,
-a round trip that is not empty), which is how a reader or writer regression shows up when the corpus is
-regenerated on a new build. `--only <source>` regenerates one file.
+- the messages of files the reader refuses (corrupt or truncated files, a named type defined twice, a duplicate
+  field name) are this reader's;
+- DuckDB 2.0.0 renders an empty VARCHAR member of a UNION inside a list without quotes (`[1715755461000, , 0]`
+  for `[1715755461000, '', 0]`), which changes those rows and the hash of one hashed result.

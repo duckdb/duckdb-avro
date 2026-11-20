@@ -19,7 +19,7 @@ SET threads=1
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_hamba__avro/deflate-invalid-data.avro')
 ----
-Avro block truncated while reading a varint at offset 927
+Cannot index file block size: Cannot read 1 bytes from memory buffer
 
 
 # ---- gh_hamba__avro/full-appended.avro: ocf/testdata/full-appended.avro (hamba/avro @ afbafcb0b2, MIT)
@@ -48,15 +48,15 @@ SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-appended.avro')
 [another, record]	[]	A	{}	NULL	\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00	{'long': 0, 'string': '', 'int': 0, 'float': 0.0, 'double': 0.0, 'bool': false}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-appended.avro')) TO '{TEST_DIR}/full-appended.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-appended.avro')) TO '__TEST_DIR__/full-appended.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/full-appended.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-appended.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/full-appended.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-appended.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-appended.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/full-appended.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-appended.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/full-appended.avro'))
 ----
 0
 
@@ -86,15 +86,15 @@ SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-deflate.avro')
 [string1, string2, string3, string4, string5]	[1, 2, 3, 4, 5]	C	{key1=1, key2=2, key3=3, key4=4, key5=5}	union value	\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04	{'long': 1925639126735, 'string': I am a test record, 'int': 666, 'float': 7171.17, 'double': 916734926348163.0, 'bool': true}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-deflate.avro')) TO '{TEST_DIR}/full-deflate.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-deflate.avro')) TO '__TEST_DIR__/full-deflate.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/full-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/full-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-deflate.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/full-deflate.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-deflate.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/full-deflate.avro'))
 ----
 0
 
@@ -124,15 +124,15 @@ SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-snappy.avro')
 [string1, string2, string3, string4, string5]	[1, 2, 3, 4, 5]	C	{key1=1, key2=2, key3=3, key4=4, key5=5}	union value	\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04	{'long': 1925639126735, 'string': I am a test record, 'int': 666, 'float': 7171.17, 'double': 916734926348163.0, 'bool': true}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-snappy.avro')) TO '{TEST_DIR}/full-snappy.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-snappy.avro')) TO '__TEST_DIR__/full-snappy.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/full-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/full-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-snappy.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/full-snappy.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-snappy.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/full-snappy.avro'))
 ----
 0
 
@@ -162,15 +162,15 @@ SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-zstd.avro')
 [string1, string2, string3, string4, string5]	[1, 2, 3, 4, 5]	C	{key1=1, key2=2, key3=3, key4=4, key5=5}	union value	\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04	{'long': 1925639126735, 'string': I am a test record, 'int': 666, 'float': 7171.17, 'double': 916734926348163.0, 'bool': true}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-zstd.avro')) TO '{TEST_DIR}/full-zstd.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-zstd.avro')) TO '__TEST_DIR__/full-zstd.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/full-zstd.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-zstd.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/full-zstd.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-zstd.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-zstd.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/full-zstd.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full-zstd.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/full-zstd.avro'))
 ----
 0
 
@@ -200,15 +200,15 @@ SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full.avro')
 [string1, string2, string3, string4, string5]	[1, 2, 3, 4, 5]	C	{key4=4, key5=5, key1=1, key2=2, key3=3}	union value	\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04\x01\x02\x03\x04	{'long': 1925639126735, 'string': I am a test record, 'int': 666, 'float': 7171.17, 'double': 916734926348163.0, 'bool': true}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full.avro')) TO '{TEST_DIR}/full.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full.avro')) TO '__TEST_DIR__/full.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/full.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/full.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/full.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/full.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/full.avro'))
 ----
 0
 
@@ -233,15 +233,15 @@ SELECT * FROM read_avro('test/corpus/gh_hamba__avro/invalid-name.avro')
 1	yes
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/invalid-name.avro')) TO '{TEST_DIR}/invalid-name.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/invalid-name.avro')) TO '__TEST_DIR__/invalid-name.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/invalid-name.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/invalid-name.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/invalid-name.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_hamba__avro/invalid-name.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/invalid-name.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/invalid-name.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/invalid-name.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/invalid-name.avro'))
 ----
 0
 
@@ -251,7 +251,7 @@ SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_hamba__avro/invali
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_hamba__avro/snappy-invalid-crc.avro')
 ----
-Avro block truncated while reading a varint at offset 939
+Cannot index file block size: Cannot read 1 bytes from memory buffer
 
 
 # ---- gh_hamba__avro/snappy-invalid-data.avro: ocf/testdata/snappy-invalid-data.avro (hamba/avro @ afbafcb0b2, MIT)
@@ -259,7 +259,7 @@ Avro block truncated while reading a varint at offset 939
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_hamba__avro/snappy-invalid-data.avro')
 ----
-Avro block truncated while reading a varint at offset 939
+Cannot index file block size: Cannot read 1 bytes from memory buffer
 
 
 # ---- gh_hamba__avro/snappy-short-crc.avro: ocf/testdata/snappy-short-crc.avro (hamba/avro @ afbafcb0b2, MIT)
@@ -267,7 +267,7 @@ Avro block truncated while reading a varint at offset 939
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_hamba__avro/snappy-short-crc.avro')
 ----
-Avro block failed to decompress with snappy: block shorter than the CRC-32 trailer
+Cannot decode Avro file block: Uncompressed length error in snappy
 
 
 # ---- gh_hamba__avro/zstd-invalid-data.avro: ocf/testdata/zstd-invalid-data.avro (hamba/avro @ afbafcb0b2, MIT)
@@ -275,4 +275,4 @@ Avro block failed to decompress with snappy: block shorter than the CRC-32 trail
 statement error
 SELECT count(*) FROM read_avro('test/corpus/gh_hamba__avro/zstd-invalid-data.avro')
 ----
-Avro block truncated while reading a varint at offset 952
+Cannot index file block size: Cannot read 1 bytes from memory buffer

@@ -33,15 +33,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__drill/map_string_to_long.avro')
 {ki=1, ka=2}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__drill/map_string_to_long.avro')) TO '{TEST_DIR}/map_string_to_long.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__drill/map_string_to_long.avro')) TO '__TEST_DIR__/map_string_to_long.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/map_string_to_long.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__drill/map_string_to_long.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/map_string_to_long.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__drill/map_string_to_long.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__drill/map_string_to_long.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/map_string_to_long.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__drill/map_string_to_long.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/map_string_to_long.avro'))
 ----
 0
 
@@ -68,23 +68,23 @@ SELECT * FROM read_avro('test/corpus/gh_apache__drill/map_union_tbl.avro')
 3	{30=TextTextText, 35=200200, 10=true}
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__drill/map_union_tbl.avro')) TO '{TEST_DIR}/map_union_tbl.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__drill/map_union_tbl.avro')) TO '__TEST_DIR__/map_union_tbl.avro' (FORMAT avro)
 
 # the written file reads back with other types (an Avro union is positional: a nullable
 # UNION column comes back with its members named after their branch index), so the rows are
 # compared as text
 query II
-SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('{TEST_DIR}/map_union_tbl.avro'))
+SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('__TEST_DIR__/map_union_tbl.avro'))
 ----
 rid	INTEGER
 map_u	MAP(VARCHAR, UNION(u1 INTEGER, u2 VARCHAR, u3 BOOLEAN))
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/map_union_tbl.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__drill/map_union_tbl.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/map_union_tbl.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__drill/map_union_tbl.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__drill/map_union_tbl.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('{TEST_DIR}/map_union_tbl.avro'))
+SELECT count(*) FROM (SELECT COLUMNS(*)::VARCHAR FROM read_avro('test/corpus/gh_apache__drill/map_union_tbl.avro') EXCEPT ALL SELECT COLUMNS(*)::VARCHAR FROM read_avro('__TEST_DIR__/map_union_tbl.avro'))
 ----
 0

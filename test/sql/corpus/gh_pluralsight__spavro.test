@@ -47,14 +47,14 @@ SELECT * FROM read_avro('test/corpus/gh_pluralsight__spavro/weather-xz.avro')
 012650-99999	-655509600000	78
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_pluralsight__spavro/weather-xz.avro')) TO '{TEST_DIR}/weather-xz.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_pluralsight__spavro/weather-xz.avro')) TO '__TEST_DIR__/weather-xz.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/weather-xz.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_pluralsight__spavro/weather-xz.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/weather-xz.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_pluralsight__spavro/weather-xz.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_pluralsight__spavro/weather-xz.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/weather-xz.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_pluralsight__spavro/weather-xz.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/weather-xz.avro'))
 ----
 0

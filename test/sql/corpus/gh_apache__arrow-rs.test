@@ -72,7 +72,7 @@ SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/comprehensive_e2e.avro'
 
 # the writer refuses this schema
 statement error
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/comprehensive_e2e.avro')) TO '{TEST_DIR}/comprehensive_e2e.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/comprehensive_e2e.avro')) TO '__TEST_DIR__/comprehensive_e2e.avro' (FORMAT avro)
 ----
 Can't convert logical type 'INTERVAL' to Avro type
 
@@ -102,15 +102,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/duration_logical_types.
 40	400	4000	4
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/duration_logical_types.avro')) TO '{TEST_DIR}/duration_logical_types.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/duration_logical_types.avro')) TO '__TEST_DIR__/duration_logical_types.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/duration_logical_types.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/duration_logical_types.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/duration_logical_types.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/duration_logical_types.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/duration_logical_types.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/duration_logical_types.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/duration_logical_types.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/duration_logical_types.avro'))
 ----
 0
 
@@ -137,15 +137,15 @@ ACTIVE	INACTIVE	[PENDING, ACTIVE, INACTIVE]
 PENDING	ACTIVE	[INACTIVE, PENDING]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/enum_reuse.avro')) TO '{TEST_DIR}/enum_reuse.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/enum_reuse.avro')) TO '__TEST_DIR__/enum_reuse.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/enum_reuse.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/enum_reuse.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/enum_reuse.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/enum_reuse.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/enum_reuse.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/enum_reuse.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/enum_reuse.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/enum_reuse.avro'))
 ----
 0
 
@@ -176,15 +176,15 @@ Getting Started with Avro	{'id': 100, 'username': alice}	[]	PUBLISHED	DRAFT	\xDE
 Advanced Avro Schemas	{'id': 200, 'username': bob}	[{'id': 100, 'username': alice}, {'id': 200, 'username': bob}]	DRAFT	DRAFT	\xCA\xFE\xBA\xBE\x11\x223DUfw\x88\x99\xAA\xBB\xCC	\xCA\xFE\xBA\xBE\x11\x223DUfw\x88\x99\xAA\xBB\xCC
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/named_types_complex.avro')) TO '{TEST_DIR}/named_types_complex.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/named_types_complex.avro')) TO '__TEST_DIR__/named_types_complex.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/named_types_complex.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/named_types_complex.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/named_types_complex.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/named_types_complex.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/named_types_complex.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/named_types_complex.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/named_types_complex.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/named_types_complex.avro'))
 ----
 0
 
@@ -211,15 +211,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/nested_record_reuse.avr
 {'nested_int': 99}	{'nested_int': 200}	[{'nested_int': 4}, {'nested_int': 5}]
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/nested_record_reuse.avro')) TO '{TEST_DIR}/nested_record_reuse.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/nested_record_reuse.avro')) TO '__TEST_DIR__/nested_record_reuse.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/nested_record_reuse.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/nested_record_reuse.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/nested_record_reuse.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/nested_record_reuse.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/nested_record_reuse.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/nested_record_reuse.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/nested_record_reuse.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/nested_record_reuse.avro'))
 ----
 0
 
@@ -273,7 +273,7 @@ NULL	false	2147483647	-9223372036854775807	1.5	-2.5	\x10 0@P	skipper	1971-01-01	
 
 # the writer refuses this schema
 statement error
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/skippable_types.avro')) TO '{TEST_DIR}/skippable_types.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/skippable_types.avro')) TO '__TEST_DIR__/skippable_types.avro' (FORMAT avro)
 ----
 Can't convert logical type 'INTERVAL' to Avro type
 
@@ -320,6 +320,6 @@ NULL	s3	1.25	world	-1.01	{'x': 123456789, 'y': '\\xFF\\x00'}	1970-01-01	OFF	nigh
 
 # the writer refuses this schema
 statement error
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/union_fields.avro')) TO '{TEST_DIR}/union_fields.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__arrow-rs/union_fields.avro')) TO '__TEST_DIR__/union_fields.avro' (FORMAT avro)
 ----
 Can't convert logical type 'INTERVAL' to Avro type

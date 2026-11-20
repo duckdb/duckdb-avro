@@ -42,15 +42,15 @@ werwer	NULL	NULL	NULL	NULL	NULL
 dfgdg	NULL	NULL	NULL	NULL	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema0.avro')) TO '{TEST_DIR}/avroContainerWithWriterschema0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema0.avro')) TO '__TEST_DIR__/avroContainerWithWriterschema0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/avroContainerWithWriterschema0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/avroContainerWithWriterschema0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/avroContainerWithWriterschema0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/avroContainerWithWriterschema0.avro'))
 ----
 0
 
@@ -84,15 +84,15 @@ werwer	NULL	NULL	NULL	NULL	NULL	NULL
 dfgdg	NULL	NULL	NULL	NULL	NULL	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema1.avro')) TO '{TEST_DIR}/avroContainerWithWriterschema1.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema1.avro')) TO '__TEST_DIR__/avroContainerWithWriterschema1.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/avroContainerWithWriterschema1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/avroContainerWithWriterschema1.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema1.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema1.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/avroContainerWithWriterschema1.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/avroContainerWithWriterschema1.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/avroContainerWithWriterschema1.avro'))
 ----
 0
 
@@ -133,15 +133,15 @@ SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/sample-statuses-20120906-
 2345678901	222	San Francisco	desc2	222222	222	name2	fake_user2	1985-09-04T19:14:34Z	sample tweet two	0	false	0	href="http://sample.com"	0	NULL	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/sample-statuses-20120906-141433.avro')) TO '{TEST_DIR}/sample-statuses-20120906-141433.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/sample-statuses-20120906-141433.avro')) TO '__TEST_DIR__/sample-statuses-20120906-141433.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/sample-statuses-20120906-141433.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/sample-statuses-20120906-141433.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/sample-statuses-20120906-141433.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/sample-statuses-20120906-141433.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/sample-statuses-20120906-141433.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/sample-statuses-20120906-141433.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/sample-statuses-20120906-141433.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/sample-statuses-20120906-141433.avro'))
 ----
 0
 
@@ -264,14 +264,14 @@ SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/strings-100.avro')
 99
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/strings-100.avro')) TO '{TEST_DIR}/strings-100.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/strings-100.avro')) TO '__TEST_DIR__/strings-100.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/strings-100.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/strings-100.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/strings-100.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/strings-100.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/strings-100.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/strings-100.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_kite-sdk__kite/strings-100.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/strings-100.avro'))
 ----
 0

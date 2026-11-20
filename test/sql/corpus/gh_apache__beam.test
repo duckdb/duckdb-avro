@@ -38,15 +38,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__beam/CountWordsAvro.avro')
 4	Betty bought butter but the butter was bitter, so Betty bought better butter to make the bitter butter better.
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__beam/CountWordsAvro.avro')) TO '{TEST_DIR}/CountWordsAvro.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__beam/CountWordsAvro.avro')) TO '__TEST_DIR__/CountWordsAvro.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/CountWordsAvro.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__beam/CountWordsAvro.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/CountWordsAvro.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__beam/CountWordsAvro.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__beam/CountWordsAvro.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/CountWordsAvro.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__beam/CountWordsAvro.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/CountWordsAvro.avro'))
 ----
 0
 
@@ -72,15 +72,15 @@ VendorID	INTEGER	1	2	2	1.4248496993987976	0.49456801353803165	1.0	1.0	2.0	998	0.
 passenger_count	INTEGER	0	6	7	1.6472945891783568	1.1034039133421254	1.0	1.0	2.0	998	0.00
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__beam/NYCTaxi1000_simpleAvro.avro')) TO '{TEST_DIR}/NYCTaxi1000_simpleAvro.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__beam/NYCTaxi1000_simpleAvro.avro')) TO '__TEST_DIR__/NYCTaxi1000_simpleAvro.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/NYCTaxi1000_simpleAvro.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__beam/NYCTaxi1000_simpleAvro.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/NYCTaxi1000_simpleAvro.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__beam/NYCTaxi1000_simpleAvro.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__beam/NYCTaxi1000_simpleAvro.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/NYCTaxi1000_simpleAvro.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__beam/NYCTaxi1000_simpleAvro.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/NYCTaxi1000_simpleAvro.avro'))
 ----
 0
 
@@ -106,15 +106,15 @@ SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweet.avro')
 20.0	Hello twitter	user1
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweet.avro')) TO '{TEST_DIR}/tweet.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweet.avro')) TO '__TEST_DIR__/tweet.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/tweet.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweet.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/tweet.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweet.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweet.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/tweet.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweet.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/tweet.avro'))
 ----
 0
 
@@ -141,14 +141,14 @@ SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweetwithnulls.avro')
 21.0	Hello twitter again	NULL
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweetwithnulls.avro')) TO '{TEST_DIR}/tweetwithnulls.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweetwithnulls.avro')) TO '__TEST_DIR__/tweetwithnulls.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/tweetwithnulls.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweetwithnulls.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/tweetwithnulls.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweetwithnulls.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweetwithnulls.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/tweetwithnulls.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_apache__beam/tweetwithnulls.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/tweetwithnulls.avro'))
 ----
 0

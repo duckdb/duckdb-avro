@@ -133,15 +133,15 @@ e0	0.764963
 9a	0.778397
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/events-100-0.avro')) TO '{TEST_DIR}/events-100-0.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/events-100-0.avro')) TO '__TEST_DIR__/events-100-0.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/events-100-0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/events-100-0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/events-100-0.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/events-100-0.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/events-100-0.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/events-100-0.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/events-100-0.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/events-100-0.avro'))
 ----
 0
 
@@ -166,15 +166,15 @@ SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protob
 \x0A\x06track2\x10\x02
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf-2.avro')) TO '{TEST_DIR}/part-00000-of-00002.protobuf-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf-2.avro')) TO '__TEST_DIR__/part-00000-of-00002.protobuf-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/part-00000-of-00002.protobuf-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/part-00000-of-00002.protobuf-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/part-00000-of-00002.protobuf-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/part-00000-of-00002.protobuf-2.avro'))
 ----
 0
 
@@ -193,15 +193,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 bytes	BLOB
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf.avro')) TO '{TEST_DIR}/part-00000-of-00002.protobuf.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf.avro')) TO '__TEST_DIR__/part-00000-of-00002.protobuf.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/part-00000-of-00002.protobuf.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/part-00000-of-00002.protobuf.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/part-00000-of-00002.protobuf.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00000-of-00002.protobuf.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/part-00000-of-00002.protobuf.avro'))
 ----
 0
 
@@ -220,15 +220,15 @@ SELECT column_name, column_type FROM (DESCRIBE SELECT * FROM read_avro('test/cor
 bytes	BLOB
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf-2.avro')) TO '{TEST_DIR}/part-00001-of-00002.protobuf-2.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf-2.avro')) TO '__TEST_DIR__/part-00001-of-00002.protobuf-2.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/part-00001-of-00002.protobuf-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/part-00001-of-00002.protobuf-2.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf-2.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf-2.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/part-00001-of-00002.protobuf-2.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf-2.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/part-00001-of-00002.protobuf-2.avro'))
 ----
 0
 
@@ -253,15 +253,15 @@ SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protob
 \x0A\x06track1\x10\x01
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf.avro')) TO '{TEST_DIR}/part-00001-of-00002.protobuf.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf.avro')) TO '__TEST_DIR__/part-00001-of-00002.protobuf.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/part-00001-of-00002.protobuf.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/part-00001-of-00002.protobuf.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/part-00001-of-00002.protobuf.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/part-00001-of-00002.protobuf.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/part-00001-of-00002.protobuf.avro'))
 ----
 0
 
@@ -384,15 +384,15 @@ SELECT * FROM read_avro('test/corpus/gh_spotify__scio/protobuf-file.avro')
 \x08\xD8\xA7\x05\x10W
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/protobuf-file.avro')) TO '{TEST_DIR}/protobuf-file.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/protobuf-file.avro')) TO '__TEST_DIR__/protobuf-file.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/protobuf-file.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/protobuf-file.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/protobuf-file.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/protobuf-file.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/protobuf-file.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/protobuf-file.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/protobuf-file.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/protobuf-file.avro'))
 ----
 0
 
@@ -428,14 +428,14 @@ quality	1	sonnets	0
 wherever	1	sonnets	0
 
 statement ok
-COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/shakespeare-sample-10.avro')) TO '{TEST_DIR}/shakespeare-sample-10.avro' (FORMAT avro)
+COPY (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/shakespeare-sample-10.avro')) TO '__TEST_DIR__/shakespeare-sample-10.avro' (FORMAT avro)
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('{TEST_DIR}/shakespeare-sample-10.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/shakespeare-sample-10.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('__TEST_DIR__/shakespeare-sample-10.avro') EXCEPT ALL SELECT * FROM read_avro('test/corpus/gh_spotify__scio/shakespeare-sample-10.avro'))
 ----
 0
 
 query I
-SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/shakespeare-sample-10.avro') EXCEPT ALL SELECT * FROM read_avro('{TEST_DIR}/shakespeare-sample-10.avro'))
+SELECT count(*) FROM (SELECT * FROM read_avro('test/corpus/gh_spotify__scio/shakespeare-sample-10.avro') EXCEPT ALL SELECT * FROM read_avro('__TEST_DIR__/shakespeare-sample-10.avro'))
 ----
 0
