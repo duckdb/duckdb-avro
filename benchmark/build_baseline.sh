@@ -9,6 +9,7 @@ REF=${1:-b7b157f}
 TARGET=${2:-$HOME/duckdb-avro-cpp}
 VCPKG_ROOT=${VCPKG_ROOT:-$HOME/vcpkg}
 REPO=$(cd "$(dirname "$0")/.." && pwd)
+DUCKDB_VERSION=$(sed -n 's/^TARGET_DUCKDB_VERSION=//p' "$REPO/Makefile")
 
 if [ ! -f "$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" ]; then
     echo "vcpkg not found at $VCPKG_ROOT; set VCPKG_ROOT" >&2
@@ -27,14 +28,19 @@ if [ ! -d "$TARGET" ]; then
     done
 fi
 
+# Every build has to load into the same CLI, so build against the DuckDB release the Rust build targets rather than
+# the commit the ref pins.
+git -C "$TARGET/duckdb" rev-parse -q --verify "$DUCKDB_VERSION^{commit}" > /dev/null ||
+    git -C "$TARGET/duckdb" fetch -q origin tag "$DUCKDB_VERSION"
+git -C "$TARGET/duckdb" checkout -q "$DUCKDB_VERSION"
+
 cd "$TARGET"
 VCPKG_TOOLCHAIN_PATH="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" GEN=ninja \
     CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL:-$(sysctl -n hw.ncpu 2>/dev/null || nproc)} make release
 
-# The build stamps the DuckDB commit as the version it loads into, which release CLIs (e.g. v2.0.0) reject. Stamp the
+# The build stamps the DuckDB commit as the version it loads into, which release CLIs (e.g. v2.0.1) reject. Stamp the
 # release instead: the commit is the release's, so the binary is the same.
 EXTENSION=build/release/extension/avro/avro.duckdb_extension
-DUCKDB_VERSION=$(git -C duckdb describe --tags --exact-match)
 PLATFORM=$(cat build/release/duckdb_platform_out)
 head -c $(($(wc -c < "$EXTENSION") - 512)) "$EXTENSION" > build/release/avro.no_metadata
 python3 extension-ci-tools/scripts/append_extension_metadata.py -l build/release/avro.no_metadata \
