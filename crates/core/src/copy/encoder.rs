@@ -2,7 +2,7 @@
 
 use duckdb_neo::{
     Result,
-    data_chunk::{ChildrenMut, DataChunkRef},
+    data_chunk::{ChildrenMut, DataChunk},
     logical_type::{LogicalType, LogicalTypeID},
     types::{
         BlobValue, DateValue, DecimalSignature, EnumIndex, HugeDecimal, List, ListIndex,
@@ -261,7 +261,7 @@ impl ColumnEncoder {
 }
 
 /// Flattens every vector of the chunk, children included, so rows map to their physical slots one to one.
-pub fn flatten_chunk(chunk: &mut DataChunkRef<'_>) -> Result<()> {
+pub fn flatten_chunk(chunk: &mut DataChunk<'_>) -> Result<()> {
     for index in 0..chunk.col_count() {
         let mut vector = chunk.get_vector_at_mut::<Unknown>(index)?;
         vector.flatten()?;

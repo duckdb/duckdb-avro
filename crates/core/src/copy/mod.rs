@@ -217,7 +217,7 @@ fn write_rows(
 ) -> Result<()> {
     let mut scan = input.to_scan(context)?;
     let mut row = Vec::new();
-    while let Some(mut chunk) = scan.next_chunk()? {
+    while let Some(mut chunk) = scan.next_chunk_mut()? {
         flatten_chunk(&mut chunk)?;
         let mut readers = Vec::with_capacity(columns.len());
         for (index, column) in columns.iter().enumerate() {

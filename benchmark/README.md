@@ -1,7 +1,7 @@
 # Benchmarks
 
 `benchmark/run.py` times builds of the extension against each other with [hyperfine](https://github.com/sharkdp/hyperfine).
-Every build is loaded into the same DuckDB CLI, which must be the DuckDB version the builds target (`v2.0.0`), so the
+Every build is loaded into the same DuckDB CLI, which must be the DuckDB version the builds target (`v2.0.1`), so the
 builds differ in nothing but the extension. The first build is the baseline the others are compared to.
 
 ```shell
